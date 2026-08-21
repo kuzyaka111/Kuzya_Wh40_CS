@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Лист персонажа — Deathwatch</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Oswald:wght@400;500;600&display=swap');
+  :root{
+    --bg-main:#0d0d0f; --bg-panel:#161618; --bg-panel-alt:#1c1c1f;
+    --border-gold:#a8862f; --border-dark:#3a3a3d;
+    --red:#8c1c1c; --red-bright:#c92a2a;
+    --gold:#c9a24b; --text-main:#e6e2d8; --text-dim:#9a958a;
+    --green:#4a7c59; --blue:#4a90c9;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:radial-gradient(ellipse at top,#1a1a1d 0%,#0a0a0b 70%);color:var(--text-main);font-family:'Oswald',sans-serif;padding:24px;}
+  .sheet{max-width:1280px;margin:0 auto;border:2px solid var(--border-gold);background:var(--bg-panel);box-shadow:0 0 40px rgba(0,0,0,.6);}
+
+  /* HEADER */
+  .header{display:flex;align-items:flex-start;gap:20px;padding:20px 28px;background:linear-gradient(90deg,#1a1a1c 0%,#241414 50%,#1a1a1c 100%);border-bottom:2px solid var(--border-gold);}
+  .header .icon{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle,var(--red) 0%,#3a0a0a 100%);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:900;font-size:26px;color:var(--gold);flex-shrink:0;}
+  .titles h1{font-family:'Cinzel',serif;font-weight:900;font-size:28px;letter-spacing:1px;margin:0;color:#f2ead8;text-transform:uppercase;}
+  .titles .sub{font-size:13px;color:var(--text-dim);margin-top:5px;}
+  .titles .sub .bracket-tag{color:var(--gold);}
+  .header-right{margin-left:auto;display:flex;flex-direction:column;gap:10px;flex-shrink:0;min-width:300px;}
+  .rank-title{font-family:'Cinzel',serif;font-weight:700;font-size:17px;color:var(--gold);letter-spacing:1px;text-transform:uppercase;}
+  .xp-bar-mini{height:8px;background:#101012;border:1px solid var(--border-dark);overflow:hidden;margin:4px 0;}
+  .xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),#f0c060);}
+  .xp-info{display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);text-transform:uppercase;}
+  .xp-value{color:var(--gold);font-weight:600;cursor:pointer;}
+  .renown-row{display:flex;align-items:center;justify-content:space-between;}
+  .renown-name{font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:var(--gold);text-transform:uppercase;}
+  .renown-label{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;}
+  .renown-icon{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle,#241a08 0%,#0e0c06 100%);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:14px;}
+
+  /* TOOLTIP */
+  .tooltip{display:none;position:fixed;background:rgba(16,16,18,0.95);border:1px solid var(--border-gold);border-radius:3px;padding:8px 12px;font-size:11px;color:var(--text-dim);max-width:200px;z-index:1000;pointer-events:none;line-height:1.4;}
+  .tooltip.active{display:block;}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:999;align-items:center;justify-content:center;}
+  .modal-overlay.active{display:flex;}
+  .modal-box{background:var(--bg-panel);border:2px solid var(--border-gold);padding:20px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;border-radius:2px;}
+  .modal-box h3{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;font-size:16px;}
+  .modal-box .desc{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;}
+  .modal-close,.modal-confirm{padding:8px 16px;background:var(--bg-panel-alt);border:1px solid var(--border-gold);color:var(--gold);cursor:pointer;font-size:12px;text-transform:uppercase;font-family:'Oswald',sans-serif;margin-right:8px;}
+  .modal-close:hover,.modal-confirm:hover{background:#242024;}
+
+  /* INJURY MODAL */
+  .injury-select-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
+  .injury-column h4{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin:0 0 8px;text-transform:uppercase;}
+  .injury-radio{display:flex;align-items:center;padding:6px 4px;cursor:pointer;}
+  .injury-radio input{margin-right:8px;cursor:pointer;}
+  .injury-radio label{cursor:pointer;font-size:12px;color:var(--text-dim);}
+
+  /* XP MODAL */
+  .xp-entry{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--border-dark);font-size:12px;color:var(--text-dim);}
+  .xp-entry .cost{color:var(--gold);font-weight:600;}
+  .modal-total{margin-top:10px;text-align:right;font-size:13px;color:var(--gold);font-weight:600;}
+
+  /* TABS */
+  .tabs-nav{display:flex;border-bottom:2px solid var(--border-gold);background:#100f11;}
+  .tab-btn{flex:1;padding:13px 8px;text-align:center;font-family:'Cinzel',serif;font-weight:600;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);background:transparent;border:none;border-right:1px solid var(--border-dark);cursor:pointer;transition:background .15s,color .15s;}
+  .tab-btn:last-child{border-right:none;}
+  .tab-btn:hover{background:#1c1a1d;color:var(--text-main);}
+  .tab-btn.active{background:linear-gradient(180deg,rgba(140,28,28,.25),transparent);color:var(--gold);box-shadow:inset 0 -3px 0 var(--red-bright);}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  /* SECTION TITLES */
+  .section-title{font-family:'Cinzel',serif;font-weight:700;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:10px 16px;background:linear-gradient(90deg,rgba(140,28,28,.25),transparent);border-left:3px solid var(--red-bright);margin:0 0 12px 0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+  .section-title .chevron{font-size:18px;transition:transform .2s;color:var(--text-dim);}
+  .panel.collapsed .section-title .chevron{transform:rotate(-90deg);}
+  .panel.collapsed .panel-body{display:none;}
+
+  /* LAYOUT */
+  .stats-strip-wrap{padding:18px 22px 0;}
+  .stats-strip{display:flex;gap:10px;}
+  .stats-strip .stat-box{flex:1;}
+  .body-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;padding:18px 22px 22px;}
+  .col-span-2{grid-column:span 2;}
+  .col-span-3{grid-column:span 3;}
+  .panel{background:var(--bg-panel-alt);border:1px solid var(--border-dark);border-radius:2px;padding:16px;}
+
+  /* STAT BOXES */
+  .stat-box{border:1px solid var(--border-dark);background:#101012;text-align:center;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
+  .stat-box .name{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;}
+  .stat-box .value-row{display:flex;align-items:center;gap:6px;}
+  .stat-box .bonus-box{width:26px;height:34px;background:rgba(140,28,28,.18);border:1px solid var(--red-bright);color:var(--red-bright);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .stat-box .total{font-size:26px;font-weight:700;color:var(--gold);cursor:pointer;transition:color .15s;user-select:none;position:relative;}
+  .stat-box .total:hover{color:#f2ead8;text-shadow:0 0 10px rgba(201,162,75,.7);}
+  .stat-box .base-input{width:44px;background:var(--bg-main);border:1px solid var(--border-dark);color:var(--text-dim);font-family:'Oswald',sans-serif;font-size:11px;text-align:center;padding:2px 0;}
+  .stat-box .base-input:focus{outline:none;border-color:var(--border-gold);color:var(--text-main);}
+  .stat-box .base-label{font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:-3px;}
+
+  /* VITALS */
+  .vital-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:13px;position:relative;}
+  .vital-row .label{color:var(--text-dim);text-transform:uppercase;font-size:11px;letter-spacing:1px;cursor:help;}
+  .vital-row .value{font-weight:600;color:var(--text-main);font-size:16px;cursor:help;}
+  .bar-wrap{width:100%;height:14px;background:#101012;border:1px solid var(--border-dark);margin-top:4px;overflow:hidden;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--red-bright));}
+  .bar-fill.fate{background:linear-gradient(90deg,#2c5f8a,#4a90c9);}
+  .bar-fill.corruption{background:linear-gradient(90deg,#4a2c5f,#7a4a9c);}
+
+  /* PARAM LIST (как умения) */
+  .param-list{list-style:none;margin:0;padding:0;}
+  .param-row{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border-dark);font-size:13px;gap:8px;}
+  .param-row:last-child{border-bottom:none;}
+  .param-row .label{color:var(--text-dim);text-transform:uppercase;font-size:11px;letter-spacing:1px;flex:1;}
+  .param-chips{display:flex;gap:4px;flex-wrap:wrap;}
+  .param-chip{display:inline-flex;align-items:center;justify-content:center;background:#101012;border:1px solid var(--border-dark);padding:4px 8px;border-radius:2px;font-size:12px;color:var(--gold);font-weight:600;min-width:50px;text-align:center;}
+
+  /* ARMOUR ZONES (как умения) */
+  .armour-list{list-style:none;margin:0;padding:0;}
+  .armour-row{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border-dark);font-size:13px;gap:8px;}
+  .armour-row:last-child{border-bottom:none;}
+  .armour-row .label{color:var(--text-dim);text-transform:uppercase;font-size:11px;letter-spacing:1px;flex:1;}
+  .armour-row .value{background:#101012;border:1px solid var(--border-dark);color:var(--gold);font-weight:600;padding:4px 10px;border-radius:2px;min-width:60px;text-align:center;font-size:13px;}
+
+  /* BATTLE CIRCUMSTANCES */
+  .circumstances-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer;user-select:none;transition:background .15s;}
+  .toggle-row:hover{background:rgba(74,144,201,.05);}
+  .toggle-row.active{background:rgba(140,28,28,.1);}
+  .toggle-row .t-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;cursor:help;}
+  .toggle-row.active .t-label{color:var(--text-main);}
+  .toggle-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border-dark);flex-shrink:0;transition:background .15s,border-color .15s;}
+  .toggle-row.active .toggle-dot{background:var(--red-bright);border-color:var(--red-bright);}
+  .aim-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;}
+  .aim-row .t-label{flex:1;font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;}
+
+  /* AIM TOGGLE */
+  .aim-toggle{display:flex;border:1px solid var(--border-dark);overflow:hidden;}
+  .aim-opt{flex:1;text-align:center;padding:8px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);background:#101012;cursor:pointer;border-right:1px solid var(--border-dark);transition:background .15s,color .15s;}
+  .aim-opt:last-child{border-right:none;}
+  .aim-opt.active{background:rgba(74,144,201,.2);color:var(--blue);box-shadow:inset 0 -3px 0 var(--blue);}
+
+  /* SKILLS */
+  .skill-list{list-style:none;margin:0;padding:0;}
+  .skill-subtitle{font-family:'Cinzel',serif;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#8c8578;padding-bottom:4px;border-bottom:1px solid var(--border-dark);margin-bottom:4px;}
+  .skill-item{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-dark);font-size:13px;gap:8px;cursor:pointer;transition:background .15s;}
+  .skill-item:hover{background:rgba(74,144,201,.1);}
+  .skill-item:last-child{border-bottom:none;}
+  .skill-name{color:var(--text-main);flex:1;}
+  .skill-level{font-size:11px;padding:2px 8px;border:1px solid var(--border-gold);color:var(--gold);letter-spacing:.5px;}
+  .skill-level.trained{border-color:var(--border-dark);color:var(--text-dim);}
+
+  /* TALENTS */
+  .talent-item{padding:10px;background:#101012;border:1px solid var(--border-dark);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+  .talent-item:hover{border-color:var(--border-gold);}
+  .talent-item .t-name{font-weight:600;color:var(--gold);font-size:13px;margin-bottom:3px;}
+  .talent-item .t-desc{font-size:12px;color:var(--text-dim);line-height:1.4;}
+
+  /* GEAR */
+  .gear-item{display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid var(--border-dark);font-size:13px;gap:8px;align-items:center;cursor:pointer;transition:background .15s;}
+  .gear-item:hover{background:rgba(74,144,201,.1);}
+  .gear-item:last-child{border-bottom:none;}
+  .gear-item .g-name{flex:1;}
+
+  /* ARMOUR */
+  .armour-name-row{padding:10px;background:#101012;border:1px solid var(--border-dark);margin-bottom:12px;font-size:14px;color:var(--gold);font-weight:600;cursor:pointer;transition:border-color .15s;}
+  .armour-name-row:hover{border-color:var(--border-gold);}
+  .armour-zone{display:grid;grid-template-columns:1fr 80px;gap:8px;margin-bottom:8px;padding:8px;background:#101012;border:1px solid var(--border-dark);}
+  .armour-zone .label{font-size:12px;color:var(--text-dim);text-transform:uppercase;display:flex;align-items:center;}
+  .armour-zone .value{font-size:14px;color:var(--gold);font-weight:600;text-align:center;border:1px solid var(--border-dark);padding:4px;background:var(--bg-main);}
+
+  /* ABILITIES */
+  .abilities-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+
+  /* PSY */
+  .psy-toggle{display:flex;border:1px solid var(--border-dark);overflow:hidden;}
+  .psy-opt{flex:1;text-align:center;padding:10px 6px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);background:#101012;cursor:pointer;border-right:1px solid var(--border-dark);transition:background .15s,color .15s;}
+  .psy-opt:last-child{border-right:none;}
+  .psy-opt:hover{background:#1c1a1d;}
+  .psy-opt.active{background:rgba(74,144,201,.2);color:var(--blue);box-shadow:inset 0 -3px 0 var(--blue);font-weight:600;}
+
+  /* INJURIES */
+  .injuries-list{list-style:none;margin:8px 0;padding:0;}
+  .injury-entry{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#101012;border:1px solid var(--border-dark);margin-bottom:6px;cursor:pointer;transition:border-color .15s;}
+  .injury-entry:hover{border-color:var(--border-gold);}
+  .injury-entry .i-name{color:var(--gold);font-weight:600;font-size:12px;}
+  .injury-entry .i-type{font-size:10px;color:var(--text-dim);margin:2px 0 0;}
+  .add-injury-btn{width:100%;margin-top:8px;padding:8px;background:var(--bg-panel-alt);border:1px dashed var(--border-gold);color:var(--gold);cursor:pointer;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:11px;}
+  .add-injury-btn:hover{background:#242024;}
+
+  /* INJURIES SECTION ONLY (separate collapse) */
+  .injuries-section{background:var(--bg-panel-alt);border:1px solid var(--border-dark);border-radius:2px;margin-top:12px;}
+  .injuries-section .section-title{margin:0;border-radius:2px 2px 0 0;}
+  .injuries-section .panel-body{padding:8px 16px;}
+  .injuries-section.collapsed .section-title .chevron{transform:rotate(-90deg);}
+  .injuries-section.collapsed .panel-body{display:none;}
+
+  /* EDITABLE */
+  .editable-field{background:transparent;border:1px solid transparent;color:inherit;font-family:inherit;font-size:13px;padding:2px 4px;width:100%;resize:none;line-height:1.6;}
+  .sheet.edit-mode .editable-field{background:#101012;border-color:var(--border-dark);}
+  .sheet.edit-mode .editable-field:focus{outline:none;border-color:var(--border-gold);}
+  .base-input{pointer-events:none;opacity:.55;}
+  .sheet.edit-mode .base-input{pointer-events:auto;opacity:1;background:#1a1a1c;border-color:var(--border-gold);color:var(--text-main);}
+  .sheet.edit-mode .stat-box .total{cursor:default;}
+  .sheet.edit-mode .stat-box .total:hover{color:var(--gold);text-shadow:none;}
+  .remove-row-btn{display:none;background:none;border:none;color:#e06a6a;cursor:pointer;font-size:14px;padding:0 4px;}
+  .sheet.edit-mode .remove-row-btn{display:inline-block;}
+  .add-row-btn{display:none;margin-top:10px;width:100%;background:var(--bg-panel-alt);border:1px dashed var(--border-gold);color:var(--gold);font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:11px;padding:8px;cursor:pointer;}
+  .add-row-btn:hover{background:#242024;}
+  .sheet.edit-mode .add-row-btn{display:block;}
+
+  /* FOOTER */
+  .footer-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border-dark);}
+  .btn{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:12px;padding:9px 18px;border:1px solid var(--border-gold);background:var(--bg-panel-alt);color:var(--gold);cursor:pointer;}
+  .btn.danger{border-color:var(--red-bright);color:#e06a6a;}
+  .btn:hover{background:#242024;}
+  .btn.save{border-color:var(--green);color:#8fd19e;}
+  .btn.cancel{border-color:var(--border-dark);color:var(--text-dim);}
+
+  @media(max-width:900px){
+    .body-grid{grid-template-columns:1fr;}
+    .col-span-2,.col-span-3{grid-column:span 1;}
+    .circumstances-grid,.abilities-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="icon">✠</div>
+    <div class="titles">
+      <h1>Brother Aramus Voss</h1>
+      <div class="sub">[<span class="bracket-tag">Адептус Астартес</span>] [<span class="bracket-tag">Имперские Кулаки</span>] [<span class="bracket-tag">Опустошитель</span>] [<span class="bracket-tag">Восстание на Форпосте Эрас</span>]</div>
+    </div>
+    <div class="header-right">
+      <div>
+        <div class="rank-title">Караул Смерти Ранг — 2</div>
+        <div class="xp-bar-mini"><div class="xp-bar-fill" style="width:42%"></div></div>
+        <div class="xp-info">
+          <span>До ранга: <span class="xp-value">1550 / 2500</span></span>
+          <span>Доступно: <span class="xp-value" id="xp-available" title="Нажмите, чтобы увидеть расходование">550</span></span>
+        </div>
+      </div>
+      <div class="renown-row">
+        <div><div class="renown-label">Ранг славы</div><div class="renown-name">Уважаемый</div></div>
+        <div class="renown-icon">☩</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLTIP -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- XP MODAL -->
+  <div class="modal-overlay" id="xp-modal">
+    <div class="modal-box">
+      <h3>Расходование опыта</h3>
+      <div class="xp-entry"><span>Пси-рейтинг (3)</span><span class="cost">500 XP</span></div>
+      <div class="xp-entry"><span>Heavy Weapon Training (SP)</span><span class="cost">600 XP</span></div>
+      <div class="xp-entry"><span>Iron Discipline</span><span class="cost">500 XP</span></div>
+      <div class="xp-entry"><span>Common Lore +20</span><span class="cost">200 XP</span></div>
+      <div class="xp-entry"><span>Повышение ВЫН +5</span><span class="cost">500 XP</span></div>
+      <div class="xp-entry"><span>Повышение СВ +5</span><span class="cost">500 XP</span></div>
+      <div class="xp-entry"><span>Повышение СИЛ +5</span><span class="cost">250 XP</span></div>
+      <div class="xp-entry"><span>Повышение ВОС +5</span><span class="cost">250 XP</span></div>
+      <div class="xp-entry"><span>Parry</span><span class="cost">200 XP</span></div>
+      <div class="xp-entry"><span>Tech-Use</span><span class="cost">150 XP</span></div>
+      <div class="modal-total">Итого потрачено: 3650 XP</div>
+      <button class="modal-close" onclick="document.getElementById('xp-modal').classList.remove('active')">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- INFO MODAL (для описаний) -->
+  <div class="modal-overlay" id="info-modal">
+    <div class="modal-box">
+      <h3 id="info-title"></h3>
+      <div id="info-desc" class="desc">Описание будет загружено из базы данных</div>
+      <button class="modal-close" onclick="document.getElementById('info-modal').classList.remove('active')">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- INJURY MODAL -->
+  <div class="modal-overlay" id="injury-modal">
+    <div class="modal-box">
+      <h3>Добавить критическую травму</h3>
+      <div class="injury-select-grid">
+        <div class="injury-column">
+          <h4>Часть тела</h4>
+          <div class="injury-radio"><input type="radio" name="bodypart" value="head" id="bp-head"><label for="bp-head">Голова</label></div>
+          <div class="injury-radio"><input type="radio" name="bodypart" value="torso" id="bp-torso"><label for="bp-torso">Корпус</label></div>
+          <div class="injury-radio"><input type="radio" name="bodypart" value="left-arm" id="bp-larm"><label for="bp-larm">Левая рука</label></div>
+          <div class="injury-radio"><input type="radio" name="bodypart" value="right-arm" id="bp-rarm"><label for="bp-rarm">Правая рука</label></div>
+          <div class="injury-radio"><input type="radio" name="bodypart" value="left-leg" id="bp-lleg"><label for="bp-lleg">Левая нога</label></div>
+          <div class="injury-radio"><input type="radio" name="bodypart" value="right-leg" id="bp-rleg"><label for="bp-rleg">Правая нога</label></div>
+        </div>
+        <div class="injury-column">
+          <h4>Тип урона</h4>
+          <div class="injury-radio"><input type="radio" name="damageType" value="impact" id="dt-impact"><label for="dt-impact">Ударный</label></div>
+          <div class="injury-radio"><input type="radio" name="damageType" value="energy" id="dt-energy"><label for="dt-energy">Энергетический</label></div>
+          <div class="injury-radio"><input type="radio" name="damageType" value="slash" id="dt-slash"><label for="dt-slash">Резаный</label></div>
+          <div class="injury-radio"><input type="radio" name="damageType" value="explosive" id="dt-explosive"><label for="dt-explosive">Взрывной</label></div>
+        </div>
+      </div>
+      <button class="modal-confirm" onclick="confirmInjury()">Подтвердить и получить травму</button>
+      <button class="modal-close" onclick="document.getElementById('injury-modal').classList.remove('active')">Отменить</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" data-tab="tab-combat">Боевые параметры</button>
+    <button class="tab-btn" data-tab="tab-gear">Броня и Аугментации</button>
+    <button class="tab-btn" data-tab="tab-abilities">Одиночные и Отрядные способности</button>
+    <button class="tab-btn" data-tab="tab-psy">Пси-силы</button>
+    <button class="tab-btn" data-tab="tab-notes">Заметки</button>
+  </div>
+
+  <!-- CHARACTERISTICS (always visible) -->
+  <div class="stats-strip-wrap">
+    <div class="section-title" data-collapse-target="stats-body">
+      <span>Характеристики</span><span class="chevron">▾</span>
+    </div>
+    <div class="stats-strip" id="stats-body">
+      <div class="stat-box"><div class="name">ББ</div><div class="value-row"><div class="total" data-tooltip="Балистика: меткость при стрельбе">52</div></div><input class="base-input" type="number" value="30"><div class="base-label">База</div></div>
+      <div class="stat-box"><div class="name">ДБ</div><div class="value-row"><div class="total" data-tooltip="Защита: способность избегать попаданий">45</div></div><input class="base-input" type="number" value="30"><div class="base-label">База</div></div>
+      <div class="stat-box"><div class="name">СИЛ</div><div class="value-row"><div class="bonus-box">5</div><div class="total" data-tooltip="Сила: физическая мощь и поднятие грузов">58</div></div><input class="base-input" type="number" value="35"><div class="base-label">База</div></div>
+      <div class="stat-box"><div class="name">ВЫН</div><div class="value-row"><div class="bonus-box">6</div><div class="total" data-tooltip="Выносливость: stamina и сопротивление">60</div></div><input class="base-input" type="number" value="40"><div class="base-label">База</div></div>
+      <div class="stat-box"><div class="name">ЛОВ</div><div class="value-row"><div class="bonus-box">4</div><div class="total" data-tooltip="Ловкость: проворство и координация">41</div></div><input class="base-input" type="number" value="30"><div class="base-label">База</div></div>
+      <div class="stat-box"><div class="name">ИНТ</div><div class="value-row"><div class="bonus-box">3</div><div class="total" data-tooltip="Интеллект: логика и анализ">38</div></div><input class="base-input" type="number" value="30"><div class="base-label">База</div></div>
+      <div class="stat-box"><div class="name">ВОС</div><div class="value-row"><div class="bonus-box">4</div><div class="total" data-tooltip="Восприятие: чувства и осведомлённость">44</div></div><input class="base-input" type="number" value="30"><div class="base-label">База</div></div>
+      <div class="stat-box"><div class="name">СВ</div><div class="value-row"><div class="bonus-box">4</div><div class="total" data-tooltip="Сильная воля: убеждённость и стойкость">47</div></div><input class="base-input" type="number" value="30"><div class="base-label">База</div></div>
+      <div class="stat-box"><div class="name">ОБЩ</div><div class="value-row"><div class="bonus-box">3</div><div class="total" data-tooltip="Общее образование: эрудиция">33</div></div><input class="base-input" type="number" value="30"><div class="base-label">База</div></div>
+    </div>
+  </div>
+
+
+    <!-- TAB 1: БОЕВЫЕ ПАРАМЕТРЫ -->
+  <div class="tab-content active" id="tab-combat">
+    <div class="body-grid">
+
+      <!-- VITALS (col-span-1) -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="vitals-body"><span>Показатели</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="vitals-body">
+          <div class="vital-row"><span class="label" data-tooltip="Текущее здоровье персонажа">Раны</span><span class="value">18 / 22</span></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:82%"></div></div>
+          <div class="vital-row" style="margin-top:14px;"><span class="label" data-tooltip="Очки судьбы позволяют переписать историю и избежать верной смерти">Очки Судьбы</span><span class="value" data-tooltip="Очки судьбы позволяют переписать историю и избежать верной смерти">3 / 3</span></div>
+          <div class="bar-wrap"><div class="bar-fill fate" style="width:100%"></div></div>
+          <div class="vital-row" style="margin-top:14px;"><span class="label" data-tooltip="Боевой дух и единство отряда">Сплочённость</span><span class="value" data-tooltip="Боевой дух и единство отряда">5 / 10</span></div>
+          <div class="bar-wrap"><div class="bar-fill fate" style="width:50%"></div></div>
+          <div class="vital-row" style="margin-top:14px;"><span class="label" data-tooltip="Воздействие Хаоса и тёмных сил">Порча</span><span class="value" data-tooltip="Воздействие Хаоса и тёмных сил">4</span></div>
+          <div class="bar-wrap"><div class="bar-fill corruption" style="width:8%"></div></div>
+          <div class="vital-row" style="margin-top:14px;"><span class="label" data-tooltip="Психологический урон и навязчивые мысли">Безумие</span><span class="value" data-tooltip="Психологический урон и навязчивые мысли">2</span></div>
+          <div class="bar-wrap"><div class="bar-fill corruption" style="width:4%"></div></div>
+
+          <!-- INJURIES UNDER CORRUPTION -->
+          <div class="injuries-section">
+            <div class="section-title" data-collapse-target="injuries-only" style="margin:0;">
+              <span>Критические травмы</span><span class="chevron">▾</span>
+            </div>
+            <div class="panel-body" id="injuries-only" style="padding:8px 16px;">
+              <ul class="injuries-list" id="injuries-list"></ul>
+              <button class="add-injury-btn" onclick="document.getElementById('injury-modal').classList.add('active')">+ Добавить травму</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERSONAL GEAR (col-span-1) -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="pgear-body"><span>Личное снаряжение</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="pgear-body">
+          <div class="gear-item" data-info="Bolter" data-tooltip="Bolter (Godwyn-pattern) — стандартное оружие космодесантника"><span class="g-name">Bolter (Godwyn-pattern)</span><button class="remove-row-btn">✕</button></div>
+          <div class="gear-item" data-info="Chainsword" data-tooltip="Chainsword — зубчатый меч для ближнего боя"><span class="g-name">Chainsword</span><button class="remove-row-btn">✕</button></div>
+          <div class="gear-item" data-info="FragGrenades" data-tooltip="Frag Grenades ×4 — осколочные гранаты"><span class="g-name">Frag Grenades ×4</span><button class="remove-row-btn">✕</button></div>
+          <div class="gear-item" data-info="CombatKnife" data-tooltip="Combat Knife — боевой нож для ближнего боя"><span class="g-name">Combat Knife</span><button class="remove-row-btn">✕</button></div>
+          <button class="add-row-btn">+ Добавить предмет</button>
+        </div>
+      </div>
+
+      <!-- ADDITIONAL PARAMS (col-span-1) -->
+      <div class="col-span-1" style="display:flex;flex-direction:column;gap:18px;">
+
+        <!-- SPEED -->
+        <div class="panel">
+          <div class="section-title" data-collapse-target="speed-body"><span>Дополнительные параметры</span><span class="chevron">▾</span></div>
+          <div class="panel-body" id="speed-body">
+            <ul class="param-list">
+              <li class="param-row">
+                <span class="label">Скорость перемещения</span>
+                <div class="param-chips">
+                  <div class="param-chip" id="speed-half">4</div>
+                  <div class="param-chip" id="speed-full">8</div>
+                  <div class="param-chip" id="speed-charge">12</div>
+                  <div class="param-chip" id="speed-run">24</div>
+                </div>
+              </li>
+              <li class="param-row">
+                <span class="label">Сила</span>
+                <div class="param-chips">
+                  <div class="param-chip" id="carry-val">90 кг</div>
+                  <div class="param-chip" id="lift-val">180 кг</div>
+                  <div class="param-chip" id="push-val">360 кг</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CIRCUMSTANCES -->
+        <div class="panel">
+          <div class="section-title" data-collapse-target="circ-body"><span>Обстоятельства боя</span><span class="chevron">▾</span></div>
+          <div class="panel-body" id="circ-body" style="padding:0;">
+            <div class="circumstances-grid">
+
+              <!-- Левая колонка -->
+              <div style="display:flex;flex-direction:column;gap:0;">
+                <div class="toggle-row" data-toggle data-tooltip="Боец охвачен Праведным Гневом — получает бонус к атакам и урону">
+                  <span class="t-label">Праведный гнев</span>
+                  <div class="toggle-dot"></div>
+                </div>
+                <div class="toggle-row" data-toggle data-tooltip="Боец устал и получает штраф к действиям">
+                  <span class="t-label">Усталость</span>
+                  <div class="toggle-dot"></div>
+                </div>
+                <div class="toggle-row" data-toggle data-tooltip="Видимость снижена — штраф к атакам и восприятию">
+                  <span class="t-label">Темнота</span>
+                  <div class="toggle-dot"></div>
+                </div>
+                <div class="toggle-row" data-toggle data-tooltip="Боец затруднён при движении через препятствия">
+                  <span class="t-label">Пересечение местности</span>
+                  <div class="toggle-dot"></div>
+                </div>
+                <div class="toggle-row" data-toggle data-tooltip="Противник подавляет огнём — затруднено движение и действия">
+                  <span class="t-label">Подавлен огнём</span>
+                  <div class="toggle-dot"></div>
+                </div>
+                <div class="toggle-row" data-toggle data-tooltip="Необычные условия или погода влияют на бой">
+                  <span class="t-label">Необычные / Погодные условия</span>
+                  <div class="toggle-dot"></div>
+                </div>
+              </div>
+
+              <!-- Правая колонка -->
+              <div style="display:flex;flex-direction:column;gap:0;">
+                <div class="toggle-row" data-toggle data-tooltip="Атака целится в конкретную часть тела — сложнее, но больше урона">
+                  <span class="t-label">Точечная атака</span>
+                  <div class="toggle-dot"></div>
+                </div>
+
+                <div class="aim-row">
+                  <span class="t-label">Прицеливание</span>
+                  <div class="aim-toggle">
+                    <div class="aim-opt" data-aim data-tooltip="Полудействие прицеливания — небольшой бонус">ПД</div>
+                    <div class="aim-opt" data-aim data-tooltip="Полное действие прицеливания — большой бонус">Полное</div>
+                  </div>
+                </div>
+
+                <div class="toggle-row" data-toggle data-tooltip="Осторожная атака — штраф к урону, но может избежать контра">
+                  <span class="t-label">Осторожная атака</span>
+                  <div class="toggle-dot"></div>
+                </div>
+                <div class="toggle-row" data-toggle data-tooltip="Попытка оглушить врага вместо нанесения полного урона">
+                  <span class="t-label">Оглушение</span>
+                  <div class="toggle-dot"></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SKILLS (col-span-1) -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="skills-body"><span>Умения</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="skills-body">
+          <div class="skill-subtitle">Базовые</div>
+          <ul class="skill-list">
+            <li class="skill-item" data-info="Awareness"><span class="skill-name">Awareness</span><span class="skill-level">+10</span><button class="remove-row-btn">✕</button></li>
+            <li class="skill-item" data-info="Intimidate"><span class="skill-name">Intimidate</span><span class="skill-level">+10</span><button class="remove-row-btn">✕</button></li>
+            <li class="skill-item" data-info="Parry"><span class="skill-name">Parry</span><span class="skill-level trained">Trained</span><button class="remove-row-btn">✕</button></li>
+          </ul>
+          <button class="add-row-btn">+ Добавить базовое умение</button>
+          <div class="skill-subtitle" style="margin-top:14px;">Продвинутые</div>
+          <ul class="skill-list">
+            <li class="skill-item" data-info="Ciphers"><span class="skill-name">Ciphers (Chapter Runes)</span><span class="skill-level trained">Trained</span><button class="remove-row-btn">✕</button></li>
+            <li class="skill-item" data-info="CommonLore"><span class="skill-name">Common Lore (Adeptus Astartes)</span><span class="skill-level">+20</span><button class="remove-row-btn">✕</button></li>
+            <li class="skill-item" data-info="TechUse"><span class="skill-name">Tech-Use</span><span class="skill-level trained">Trained</span><button class="remove-row-btn">✕</button></li>
+          </ul>
+          <button class="add-row-btn">+ Добавить продвинутое умение</button>
+        </div>
+      </div>
+
+      <!-- TALENTS & TRAITS (col-span-1) -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="talents-body"><span>Таланты и Черты</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="talents-body">
+          <div class="skill-subtitle">Таланты</div>
+          <div class="talent-item" data-info="NoFear"><div style="display:flex;justify-content:space-between;"><div class="t-name">And They Shall Know No Fear</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Автоматически проходит проверки страха, эффекты пиннинга снижены.</div></div>
+          <div class="talent-item" data-info="HWT"><div style="display:flex;justify-content:space-between;"><div class="t-name">Heavy Weapon Training (SP)</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Нет штрафа за использование тяжёлого оружия без укрытия/упора.</div></div>
+          <div class="talent-item" data-info="PsiRating"><div style="display:flex;justify-content:space-between;"><div class="t-name">Пси-рейтинг (3)</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Базовый Пси-рейтинг = 3. Открывает доступ к Пси-силам.</div></div>
+          <button class="add-row-btn">+ Добавить талант</button>
+          <div class="skill-subtitle" style="margin-top:14px;">Черты</div>
+          <div class="talent-item" data-info="IronDis"><div style="display:flex;justify-content:space-between;"><div class="t-name">Iron Discipline</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Союзники в радиусе получают бонус к тестам сплочённости.</div></div>
+          <button class="add-row-btn">+ Добавить черту</button>
+        </div>
+      </div>
+
+      <!-- HONORS & DISTINCTIONS (col-span-1) -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="honors-body"><span>Почести и Отличия</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="honors-body">
+          <div class="skill-subtitle">Почести</div>
+          <div class="talent-item" data-info="CrossTerra"><div style="display:flex;justify-content:space-between;"><div class="t-name">Крест Терры</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Награждён за оборону форпоста на Ерасе от атак тиранидов.</div></div>
+          <button class="add-row-btn">+ Добавить почесть</button>
+          <div class="skill-subtitle" style="margin-top:14px;">Отличия</div>
+          <div class="talent-item" data-info="HonorBlade"><div style="display:flex;justify-content:space-between;"><div class="t-name">Почётный клинок Ордена</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Носитель почётного оружия, передаваемого между героями Ордена.</div></div>
+          <button class="add-row-btn">+ Добавить отличие</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<!-- TAB 2: БРОНЯ И АУГМЕНТАЦИИ -->
+  <div class="tab-content" id="tab-gear">
+    <div class="body-grid">
+
+      <!-- ARMOUR DESCRIPTION -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="armour-desc-body"><span>Описание брони</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="armour-desc-body" style="padding:0;">
+          <div style="padding:16px;border-bottom:1px solid var(--border-dark);font-size:14px;color:var(--gold);font-weight:600;cursor:pointer;transition:border-color .15s;" data-info="ArmourMkvii">Мк VII "Аквила"</div>
+          <ul class="armour-list" style="margin:0;padding:16px;">
+            <li class="armour-row"><span class="label">Голова</span><div class="value" id="armour-head">16</div></li>
+            <li class="armour-row"><span class="label">Корпус</span><div class="value" id="armour-torso">16</div></li>
+            <li class="armour-row"><span class="label">Левая рука</span><div class="value" id="armour-larm">16</div></li>
+            <li class="armour-row"><span class="label">Правая рука</span><div class="value" id="armour-rarm">16</div></li>
+            <li class="armour-row"><span class="label">Левая нога</span><div class="value" id="armour-lleg">16</div></li>
+            <li class="armour-row"><span class="label">Правая нога</span><div class="value" id="armour-rleg">16</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ARMOUR FEATURES -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="armour-feat-body"><span>Особенности брони</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="armour-feat-body">
+          <div class="talent-item" data-info="LocatorMatrix"><div style="display:flex;justify-content:space-between;"><div class="t-name">Locator Matrix</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Позволяет отслеживать позицию союзников по отряду на дисплее.</div></div>
+          <div class="talent-item" data-info="AutoSenses"><div style="display:flex;justify-content:space-between;"><div class="t-name">Auto-senses</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Компенсирует штрафы за плохую видимость и темноту.</div></div>
+          <button class="add-row-btn">+ Добавить особенность</button>
+        </div>
+      </div>
+
+      <!-- CHAPTER AUGMENTATIONS -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="chapaug-body"><span>Аугментации космодесантника</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="chapaug-body">
+          <div class="talent-item" data-info="BlackCarapace"><div style="display:flex;justify-content:space-between;"><div class="t-name">Black Carapace</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Нейронный интерфейс для прямого управления броней.</div></div>
+          <div class="talent-item" data-info="BetcherGland"><div style="display:flex;justify-content:space-between;"><div class="t-name">Betcher's Gland</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Железа, выделяющая едкую слюну для растворения преград.</div></div>
+          <button class="add-row-btn">+ Добавить аугментацию</button>
+        </div>
+      </div>
+
+      <!-- PERSONAL AUGMENTATIONS -->
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="persaug-body"><span>Личные аугментации</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="persaug-body">
+          <div class="talent-item" data-info="BionicEye"><div style="display:flex;justify-content:space-between;"><div class="t-name">Bionic Eye (Mk VII)</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Замена утраченного глаза, встроенный тепловизор.</div></div>
+          <button class="add-row-btn">+ Добавить аугментацию</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB 3: ОДИНОЧНЫЕ И ОТРЯДНЫЕ СПОСОБНОСТИ -->
+  <div class="tab-content" id="tab-abilities">
+    <div class="body-grid">
+      <div class="panel col-span-3">
+        <div class="section-title" data-collapse-target="abilities-body"><span>Способности</span><span class="chevron">▾</span></div>
+        <div class="panel-body abilities-grid" id="abilities-body">
+
+          <div>
+            <div class="skill-subtitle">Одиночные способности</div>
+            <div style="font-size:11px;color:#8c8578;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Орденские</div>
+            <div class="talent-item" data-info="BolterAssault"><div style="display:flex;justify-content:space-between;"><div class="t-name">Bolter Assault</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Заглушка. Орденская одиночная способность.</div></div>
+            <button class="add-row-btn">+ Добавить орденскую</button>
+            <div style="font-size:11px;color:#8c8578;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Кодексные</div>
+            <div class="talent-item" data-info="PrecisionKiller"><div style="display:flex;justify-content:space-between;"><div class="t-name">Precision Killer</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Заглушка. Кодексная одиночная способность.</div></div>
+            <button class="add-row-btn">+ Добавить кодексную</button>
+          </div>
+
+          <div>
+            <div class="skill-subtitle">Отрядные способности</div>
+            <div style="font-size:11px;color:#8c8578;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Орденские</div>
+            <div class="talent-item" data-info="SuppressingFire"><div style="display:flex;justify-content:space-between;"><div class="t-name">Suppressing Fire</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Заглушка. Орденская отрядная способность.</div></div>
+            <button class="add-row-btn">+ Добавить орденскую</button>
+            <div style="font-size:11px;color:#8c8578;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Кодексные</div>
+            <div class="talent-item" data-info="CoordinatedStrike"><div style="display:flex;justify-content:space-between;"><div class="t-name">Coordinated Strike</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Заглушка. Кодексная отрядная способность.</div></div>
+            <button class="add-row-btn">+ Добавить кодексную</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: ПСИ-СИЛЫ -->
+  <div class="tab-content" id="tab-psy">
+    <div class="body-grid">
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="psystats-body"><span>Показатели психика</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="psystats-body">
+          <div class="vital-row"><span class="label">Порча</span><span class="value">4</span></div>
+          <div class="bar-wrap"><div class="bar-fill corruption" style="width:8%"></div></div>
+          <div class="vital-row" style="margin-top:14px;"><span class="label">Пси-рейтинг</span><span class="value" id="psy-rating-display">3</span></div>
+          <div style="margin-top:16px;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Пси-мощь</div>
+          <div class="psy-toggle">
+            <div class="psy-opt active" data-psy="bound" data-tooltip="Скованная: Пси-рейтинг ÷ 2 (округление вверх)">Скованная</div>
+            <div class="psy-opt" data-psy="unbound" data-tooltip="Нескованная: Пси-рейтинг без изменений">Нескованная</div>
+            <div class="psy-opt" data-psy="push" data-tooltip="Усиленная: Пси-рейтинг + 3 (опасно!)">Усиленная</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel col-span-2">
+        <div class="section-title" data-collapse-target="powers-body"><span>Известные Пси-силы</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="powers-body">
+          <div class="talent-item" data-info="Smite"><div style="display:flex;justify-content:space-between;"><div class="t-name">Smite</div><button class="remove-row-btn">✕</button></div><div class="t-desc">Заглушка. Описание Пси-силы из базы данных.</div></div>
+          <button class="add-row-btn">+ Добавить Пси-силу</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: ЗАМЕТКИ -->
+  <div class="tab-content" id="tab-notes">
+    <div class="body-grid">
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="bio-body"><span>Биография</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="bio-body">
+          <textarea class="editable-field" rows="5" readonly>Аскетичен, немногословен. Верен доктринам Ордена Имперских Кулаков — стойкость до последнего вздоха.
+Служил в осадных операциях на Кадии. Носит шрам от когтя тираннида на левой щеке.</textarea>
+        </div>
+      </div>
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="char-order-body"><span>Орденский характер</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="char-order-body">
+          <textarea class="editable-field" rows="5" readonly>Заглушка. Описание орденского характера персонажа.</textarea>
+        </div>
+      </div>
+      <div class="panel col-span-1">
+        <div class="section-title" data-collapse-target="char-personal-body"><span>Личный характер</span><span class="chevron">▾</span></div>
+        <div class="panel-body" id="char-personal-body">
+          <textarea class="editable-field" rows="5" readonly>Заглушка. Описание личного характера персонажа.</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-actions">
+    <button class="btn" id="editBtn">Редактировать</button>
+    <button class="btn danger" id="deleteBtn">Удалить персонажа</button>
+  </div>
+
+</div>
+
+
+<script>
+// ===== ХАРАКТЕРИСТИКИ И БОНУСЫ =====
+const stats = {
+  bb: { base: 30, bonus: 0, total: 52 },
+  db: { base: 30, bonus: 0, total: 45 },
+  sil: { base: 35, bonus: 5, total: 58 },
+  wyn: { base: 40, bonus: 6, total: 60 },
+  lov: { base: 30, bonus: 4, total: 41 },
+  int: { base: 30, bonus: 3, total: 38 },
+  vos: { base: 30, bonus: 4, total: 44 },
+  sv: { base: 30, bonus: 4, total: 47 },
+  obsh: { base: 30, bonus: 3, total: 33 }
+};
+
+// Таблица грузоподъёмности
+const carryTable = [
+  { carry: "0,9 кг", lift: "2,25 кг", push: "4,5 кг" },
+  { carry: "2,25 кг", lift: "4,5 кг", push: "9 кг" },
+  { carry: "4,5 кг", lift: "9 кг", push: "18 кг" },
+  { carry: "9 кг", lift: "18 кг", push: "36 кг" },
+  { carry: "18 кг", lift: "36 кг", push: "72 кг" },
+  { carry: "27 кг", lift: "54 кг", push: "108 кг" },
+  { carry: "36 кг", lift: "72 кг", push: "144 кг" },
+  { carry: "45 кг", lift: "90 кг", push: "180 кг" },
+  { carry: "56 кг", lift: "112 кг", push: "224 кг" },
+  { carry: "67 кг", lift: "134 кг", push: "268 кг" },
+  { carry: "78 кг", lift: "156 кг", push: "312 кг" },
+  { carry: "90 кг", lift: "180 кг", push: "360 кг" },
+  { carry: "112 кг", lift: "224 кг", push: "448 кг" },
+  { carry: "225 кг", lift: "450 кг", push: "900 кг" },
+  { carry: "337 кг", lift: "674 кг", push: "1348 кг" },
+  { carry: "450 кг", lift: "900 кг", push: "1800 кг" },
+  { carry: "675 кг", lift: "1350 кг", push: "2700 кг" },
+  { carry: "900 кг", lift: "1800 кг", push: "3600 кг" },
+  { carry: "1350 кг", lift: "2700 кг", push: "5400 кг" },
+  { carry: "1800 кг", lift: "3600 кг", push: "7200 кг" },
+  { carry: "2250 кг", lift: "4500 кг", push: "9000 кг" }
+];
+
+function updateAllStats() {
+  updateSpeed();
+  updateCarry();
+  updateArmour();
+}
+
+function updateSpeed() {
+  const bonusLov = stats.lov.bonus;
+  document.getElementById('speed-half').textContent = bonusLov;
+  document.getElementById('speed-full').textContent = bonusLov * 2;
+  document.getElementById('speed-charge').textContent = bonusLov * 3;
+  document.getElementById('speed-run').textContent = bonusLov * 6;
+}
+
+function updateCarry() {
+  const sum = stats.wyn.bonus + stats.sil.bonus;
+  const index = Math.min(sum, 20);
+  const entry = carryTable[index];
+  document.getElementById('carry-val').textContent = entry.carry;
+  document.getElementById('lift-val').textContent = entry.lift;
+  document.getElementById('push-val').textContent = entry.push;
+}
+
+function updateArmour() {
+  const baseArmour = 10;
+  const bonusWyn = stats.wyn.bonus;
+  const totalOB = baseArmour + bonusWyn;
+  ['head', 'torso', 'larm', 'rarm', 'lleg', 'rleg'].forEach(zone => {
+    const el = document.getElementById('armour-' + zone);
+    if(el) el.textContent = totalOB;
+  });
+}
+
+// ===== TOOLTIP =====
+function showTooltip(e) {
+  const text = e.target.getAttribute('data-tooltip');
+  if(!text) return;
+  const tooltip = document.getElementById('tooltip');
+  tooltip.textContent = text;
+  tooltip.classList.add('active');
+  const rect = e.target.getBoundingClientRect();
+  tooltip.style.left = (rect.left + window.scrollX) + 'px';
+  tooltip.style.top = (rect.top - 40 + window.scrollY) + 'px';
+}
+
+function hideTooltip() {
+  document.getElementById('tooltip').classList.remove('active');
+}
+
+document.querySelectorAll('[data-tooltip]').forEach(el => {
+  el.addEventListener('mouseenter', showTooltip);
+  el.addEventListener('mouseleave', hideTooltip);
+});
+
+// ===== MODAL (INFO) =====
+function showInfo(title, desc) {
+  document.getElementById('info-title').textContent = title;
+  document.getElementById('info-desc').textContent = desc;
+  document.getElementById('info-modal').classList.add('active');
+}
+
+document.querySelectorAll('[data-info]').forEach(el => {
+  el.addEventListener('click', () => {
+    const id = el.getAttribute('data-info');
+    showInfo('Заголовок: ' + id, 'Описание будет загружено из базы данных для ID: ' + id);
+  });
+});
+
+// ===== INJURIES =====
+function confirmInjury() {
+  const bodypart = document.querySelector('input[name="bodypart"]:checked');
+  const damageType = document.querySelector('input[name="damageType"]:checked');
+  
+  if(!bodypart || !damageType) {
+    alert('Выберите часть тела и тип урона');
+    return;
+  }
+
+  const bpMap = {
+    'head': 'Голова', 'torso': 'Корпус', 'left-arm': 'Левая рука',
+    'right-arm': 'Правая рука', 'left-leg': 'Левая нога', 'right-leg': 'Правая нога'
+  };
+  const dmgMap = {
+    'impact': 'Ударный', 'energy': 'Энергетический', 'slash': 'Резаный', 'explosive': 'Взрывной'
+  };
+
+  const name = bpMap[bodypart.value] + ' / ' + dmgMap[damageType.value];
+  
+  const li = document.createElement('li');
+  li.className = 'injury-entry';
+  li.innerHTML = `<div>
+    <div class="i-name" data-info="injury_${Date.now()}">${name}</div>
+    <div class="i-type">Описание травмы из БД</div>
+  </div>
+  <button class="remove-row-btn">✕</button>`;
+  
+  document.getElementById('injuries-list').appendChild(li);
+  li.querySelector('.remove-row-btn').addEventListener('click', () => li.remove());
+  li.querySelector('.i-name').addEventListener('click', () => {
+    showInfo('Травма: ' + name, 'Описание критической травмы будет загружено из БД');
+  });
+
+  document.getElementById('injury-modal').classList.remove('active');
+  document.querySelectorAll('input[name="bodypart"], input[name="damageType"]').forEach(i => i.checked = false);
+}
+
+// ===== TOGGLES & TABS =====
+document.querySelectorAll('.toggle-row[data-toggle]').forEach(row => {
+  row.addEventListener('click', () => row.classList.toggle('active'));
+});
+
+document.querySelectorAll('.aim-opt[data-aim]').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const group = opt.closest('.aim-toggle');
+    group.querySelectorAll('.aim-opt').forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+  });
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ===== XP MODAL =====
+document.getElementById('xp-available').addEventListener('click', () => {
+  document.getElementById('xp-modal').classList.add('active');
+});
+
+// ===== PSY POWER & RATING =====
+let psyPowerMode = 'bound';
+
+function updatePsyRating() {
+  const display = document.getElementById('psy-rating-display');
+  let rating = 3;
+  
+  if(psyPowerMode === 'bound') {
+    rating = Math.ceil(rating / 2);
+  } else if(psyPowerMode === 'push') {
+    rating = rating + 3;
+  }
+  
+  display.textContent = rating;
+}
+
+document.querySelectorAll('.psy-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const group = opt.closest('.psy-toggle');
+    group.querySelectorAll('.psy-opt').forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+    psyPowerMode = opt.dataset.psy;
+    updatePsyRating();
+  });
+});
+
+// ===== EDIT MODE =====
+const sheet = document.querySelector('.sheet');
+const editBtn = document.getElementById('editBtn');
+const deleteBtn = document.getElementById('deleteBtn');
+
+function setEditMode(on) {
+  sheet.classList.toggle('edit-mode', on);
+  document.querySelectorAll('.editable-field').forEach(f => f.readOnly = !on);
+  
+  if(on) {
+    editBtn.textContent = 'Сохранить';
+    editBtn.classList.add('save');
+    deleteBtn.textContent = 'Отменить';
+    deleteBtn.classList.remove('danger');
+    deleteBtn.classList.add('cancel');
+  } else {
+    editBtn.textContent = 'Редактировать';
+    editBtn.classList.remove('save');
+    deleteBtn.textContent = 'Удалить персонажа';
+    deleteBtn.classList.remove('cancel');
+    deleteBtn.classList.add('danger');
+  }
+}
+
+editBtn.addEventListener('click', () => setEditMode(!sheet.classList.contains('edit-mode')));
+deleteBtn.addEventListener('click', () => {
+  if(sheet.classList.contains('edit-mode')) {
+    setEditMode(false);
+  } else {
+    alert('Здесь будет подтверждение удаления персонажа.');
+  }
+});
+
+// ===== SKILLS & TALENTS (CLICK) =====
+document.querySelectorAll('.skill-item[data-info]').forEach(el => {
+  el.addEventListener('click', () => {
+    const id = el.getAttribute('data-info');
+    showInfo('Умение: ' + id, 'Описание из БД для умения: ' + id);
+  });
+});
+
+document.querySelectorAll('.talent-item[data-info]').forEach(el => {
+  el.addEventListener('click', () => {
+    const id = el.getAttribute('data-info');
+    showInfo('Талант/Черта: ' + id, 'Описание из БД для таланта: ' + id);
+  });
+});
+
+document.querySelectorAll('.gear-item[data-info]').forEach(el => {
+  el.addEventListener('click', () => {
+    const id = el.getAttribute('data-info');
+    showInfo('Снаряжение: ' + id, 'Описание из БД для снаряжения: ' + id);
+  });
+});
+
+// ===== ACCORDION (ИСПРАВЛЕНО: независимое сворачивание травм) =====
+document.querySelectorAll('.section-title[data-collapse-target]').forEach(title => {
+  title.addEventListener('click', (e) => {
+    const injuriesSection = title.closest('.injuries-section');
+    if(injuriesSection) {
+      // Клик внутри "Критические травмы" — сворачиваем ТОЛЬКО эту секцию
+      e.stopPropagation();
+      injuriesSection.classList.toggle('collapsed');
+      return;
+    }
+    // Обычная панель
+    const panel = title.closest('.panel') || title.parentElement;
+    panel.classList.toggle('collapsed');
+  });
+});
+
+// ===== CHARACTER ROLL =====
+document.querySelectorAll('.stat-box .total').forEach(el => {
+  el.addEventListener('click', () => {
+    if(sheet.classList.contains('edit-mode')) return;
+    const target = parseInt(el.textContent, 10);
+    const roll = Math.floor(Math.random() * 100) + 1;
+    const success = roll <= target;
+    el.style.color = success ? '#7fbf7f' : '#e06a6a';
+    el.textContent = roll;
+    setTimeout(() => {
+      el.textContent = target;
+      el.style.color = '';
+    }, 1200);
+  });
+});
+
+// ===== REMOVE ROWS =====
+document.querySelectorAll('.remove-row-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.closest('.skill-item, .talent-item, .gear-item, .injury-entry').remove();
+  });
+});
+
+// Init
+updateAllStats();
+updatePsyRating();
+</script>
+
+</body>
+</html>
