@@ -313,7 +313,36 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .circumstances-grid,.abilities-grid{grid-template-columns:1fr;}
   .tabs-nav{flex-wrap:wrap;}
   .tab-btn{flex:1 1 45%;}
+  /* шапка в колонку */
+  .sheet .header{flex-wrap:wrap;gap:14px;padding:16px;}
+  .header-right{margin-left:0;min-width:0;width:100%;}
+  .sheet .titles{flex:1 1 200px;min-width:0;}
+  .sheet .titles h1{font-size:21px;word-break:break-word;}
+  /* характеристики сеткой, а не рядом */
+  .stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .stats-strip-wrap{padding:14px 14px 0;}
+  .body-grid{padding:14px;gap:14px;}
+  .sheet .panel{padding:12px;}
 }
+@media(max-width:520px){
+  #screen-sheet{padding:10px;}
+  .sheet{border-width:1px;}
+  .tab-btn{flex:1 1 100%;border-right:none;border-bottom:1px solid var(--border-dark);}
+  .stats-strip{grid-template-columns:repeat(2,1fr);}
+  .stat-box .total{font-size:22px;}
+  .param-row{flex-wrap:wrap;}
+  .param-chips{width:100%;}
+  .param-chip{flex:1;}
+  .injury-select-grid{grid-template-columns:1fr;}
+  .footer-actions{flex-direction:column;}
+  .sheet .btn{width:100%;}
+  .vital-row .vnum{width:46px;}
+}
+/* страховка от горизонтального выезда */
+html,body{max-width:100%;overflow-x:hidden;}
+.sheet{max-width:min(1280px,100%);}
+.stats-strip{min-width:0;}
+.stat-box{min-width:0;}
 
 </style>
 </head>
