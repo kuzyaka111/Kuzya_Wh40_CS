@@ -1021,8 +1021,9 @@ function normEgg(s){
 function checkEasterEgg(raw){
   const text = EASTER_EGGS[normEgg(raw)];
   if (!text) return false;
-  showInfo('◈ Вокс-перехват ◈', text);
+  toast('◈ Вокс-перехват ◈: ' + text);
   return true;
+}
 }
 async function joinChronicle(){
   const raw = $('join-input').value.trim();
