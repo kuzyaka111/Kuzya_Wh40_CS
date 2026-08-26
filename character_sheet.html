@@ -936,7 +936,11 @@ async function doLogin(){
   if (error) return toast('Ошибка: ' + error.message);
   if (!data) return toast('Аутентификатор не найден. Зарегистрируйте его.');
   S.user = data;
+  try {
   localStorage.setItem('dw_user', JSON.stringify(data));
+} catch(e) {
+  console.log('localStorage недоступен (режим инкогнито)');
+}
   await showDash();
 }
 
@@ -955,7 +959,9 @@ async function doRegister(){
 
 function doLogout(){
   S.user = S.chronicle = S.role = S.character = null;
+try {
   localStorage.removeItem('dw_user');
+} catch(e) {}
   $('login-name').value = '';
   showScreen('login');
 }
@@ -1822,16 +1828,16 @@ $('deleteBtn').addEventListener('click', () => {
 
 // ==== СТАРТ ====
 (async function init(){
-  const saved = localStorage.getItem('dw_user');
-  if (saved){
-    try {
+  try {
+    const saved = localStorage.getItem('dw_user');
+    if (saved){
       const u = JSON.parse(saved);
       const { data } = await sb.from('users_simple')
         .select('id, username').eq('id', u.id).maybeSingle();
       if (data){ S.user = data; return showDash(); }
-    } catch(e){}
+    }
     localStorage.removeItem('dw_user');
-  }
+  } catch(e){}
   showScreen('login');
 })();
 
