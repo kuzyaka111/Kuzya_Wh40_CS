@@ -1008,9 +1008,26 @@ async function createChronicle(){
   await loadChronicles();
 }
 
+// ==== ПАСХАЛКИ ====
+const EASTER_EGGS = {
+  'ересь хоруса':
+    'ЕРЕТИК ТЫ ЧЕ ОХУЕЛ!?!?'
+};
+
+function normEgg(s){
+  return s.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+}
+
+function checkEasterEgg(raw){
+  const text = EASTER_EGGS[normEgg(raw)];
+  if (!text) return false;
+  showInfo('◈ Вокс-перехват ◈', text);
+  return true;
+}
 async function joinChronicle(){
   const raw = $('join-input').value.trim();
   if (!raw) return toast('Введите код или название хроники');
+  if (checkEasterEgg(raw)){ closeModal('modal-join'); return; }
   let q = sb.from('chronicles').select('id, name');
   q = /^\d+$/.test(raw) ? q.eq('id', Number(raw)) : q.eq('name', raw);
   const { data, error } = await q.maybeSingle();
