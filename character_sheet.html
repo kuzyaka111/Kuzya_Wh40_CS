@@ -92,6 +92,7 @@ button.sm{padding:5px 10px; font-size:11px}
 .modal .box{
   background:var(--panel); border:1px solid var(--gold-dim); padding:22px;
   width:100%; max-width:440px; box-shadow:0 0 40px rgba(0,0,0,.9);
+  max-height:90vh; overflow-y:auto;
 }
 .login-shell{max-width:520px; margin:9vh auto 0}
 .crest{text-align:center; font-size:42px; color:var(--gold-dim); margin-bottom:8px}
@@ -108,7 +109,6 @@ th{background:var(--panel2); color:var(--gold-dim); font-size:11px;
   text-transform:uppercase; letter-spacing:.08em}
 .mono-sm{font-size:11px; color:var(--txt-dim)}
 hr{border:none; border-top:1px solid var(--line); margin:16px 0}
-
 /* ======================= ЛИСТ ПЕРСОНАЖА ======================= */
 #screen-sheet{
   --bg-main:#0d0d0f; --bg-panel:#161618; --bg-panel-alt:#1c1c1f;
@@ -217,7 +217,6 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .armour-row:last-child{border-bottom:none;}
 .armour-row .label{color:var(--text-dim);text-transform:uppercase;font-size:11px;letter-spacing:1px;flex:1;margin:0;}
 .armour-row .value{background:#101012;border:1px solid var(--border-dark);color:var(--gold);font-weight:600;padding:4px 10px;min-width:60px;text-align:center;font-size:13px;}
-
 /* BATTLE CIRCUMSTANCES */
 .circumstances-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer;user-select:none;transition:background .15s;}
@@ -313,12 +312,11 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .circumstances-grid,.abilities-grid{grid-template-columns:1fr;}
   .tabs-nav{flex-wrap:wrap;}
   .tab-btn{flex:1 1 45%;}
-  /* шапка в колонку */
+  .chr-grid{grid-template-columns:1fr !important;}
   .sheet .header{flex-wrap:wrap;gap:14px;padding:16px;}
   .header-right{margin-left:0;min-width:0;width:100%;}
   .sheet .titles{flex:1 1 200px;min-width:0;}
   .sheet .titles h1{font-size:21px;word-break:break-word;}
-  /* характеристики сеткой, а не рядом */
   .stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
   .stats-strip-wrap{padding:14px 14px 0;}
   .body-grid{padding:14px;gap:14px;}
@@ -338,12 +336,10 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .sheet .btn{width:100%;}
   .vital-row .vnum{width:46px;}
 }
-/* страховка от горизонтального выезда */
 html,body{max-width:100%;overflow-x:hidden;}
 .sheet{max-width:min(1280px,100%);}
 .stats-strip{min-width:0;}
 .stat-box{min-width:0;}
-
 </style>
 </head>
 <body>
@@ -378,9 +374,12 @@ html,body{max-width:100%;overflow-x:hidden;}
   <div class="tpanel">
     <div class="spread">
       <h2>Авторизованные хроники</h2>
-      <button onclick="openModal('modal-chronicle')">Создать хронику</button>
+      <div class="row tight">
+        <button class="ghost" onclick="openModal('modal-join')">Присоединиться</button>
+        <button onclick="openModal('modal-chronicle')">Создать хронику</button>
+      </div>
     </div>
-    <div id="chronicle-list"></div>
+    <div id="chronicle-list" style="margin-top:18px"></div>
   </div>
 </div>
 
@@ -396,12 +395,37 @@ html,body{max-width:100%;overflow-x:hidden;}
       <button id="chr-delete-btn" class="danger sm" onclick="openModal('modal-delete')">Удалить хронику</button>
     </div>
   </div>
-  <div class="tpanel">
-    <div class="spread">
-      <h2 id="chr-list-title">Персонажи</h2>
-      <button id="chr-create-btn" onclick="openModal('modal-character')">Создать персонажа</button>
+
+  <div class="grid chr-grid" style="grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:start;gap:16px">
+    <div>
+      <div class="tpanel">
+        <div class="spread">
+          <h2 id="chr-list-title">Персонажи</h2>
+          <button id="chr-create-btn" onclick="openModal('modal-character')">Создать персонажа</button>
+        </div>
+        <div id="character-list" style="margin-top:18px"></div>
+      </div>
+
+      <div class="tpanel sub hidden" id="gm-panel">
+        <h2>Персонажи Мастера</h2>
+        <div id="gm-character-list" style="margin-top:14px"></div>
+      </div>
     </div>
-    <div id="character-list"></div>
+
+    <div class="tpanel">
+      <div class="spread">
+        <h2>Хронология</h2>
+        <button class="sm" id="tl-add-btn" onclick="openModal('modal-event')">+ Событие</button>
+      </div>
+      <div class="tabs" style="margin-top:12px">
+        <div class="tab active" data-tl="events">События</div>
+        <div class="tab" data-tl="rolls">Броски</div>
+      </div>
+      <div id="timeline-events"></div>
+      <div id="timeline-rolls" class="hidden">
+        <div class="empty">Броски пока не записываются.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -691,6 +715,12 @@ html,body{max-width:100%;overflow-x:hidden;}
         </div>
       </div>
       <div class="panel col-span-3">
+        <div class="section-title"><span>Проклятье примарха</span><span class="chevron">▾</span></div>
+        <div class="panel-body">
+          <textarea class="editable-field" rows="4" readonly data-info-field="primarch_curse"></textarea>
+        </div>
+      </div>
+      <div class="panel col-span-3">
         <div class="section-title"><span>Досье</span><span class="chevron">▾</span></div>
         <div class="panel-body body-grid" style="padding:0;grid-template-columns:1fr 1fr 1fr;gap:12px">
           <div><div class="renown-label">Орден</div><input class="editable-field" readonly data-info-field="chapter"></div>
@@ -761,7 +791,7 @@ html,body{max-width:100%;overflow-x:hidden;}
   <div class="modal-box">
     <h3 id="pick-title">Добавить</h3>
     <div style="margin-bottom:10px">
-      <input id="pick-search" placeholder="поиск по справочнику..." style="width:100%">
+      <input id="pick-search" placeholder="поиск по справочнику...">
     </div>
     <div id="pick-results" style="max-height:300px;overflow-y:auto"></div>
     <hr style="border-color:#3a3a3d">
@@ -774,8 +804,7 @@ html,body{max-width:100%;overflow-x:hidden;}
   </div>
 </div>
 
-
-<!-- ============ МОДАЛКИ ============ -->
+<!-- ============ МОДАЛКИ ОБОЛОЧКИ ============ -->
 <div id="modal-register" class="modal hidden">
   <div class="box">
     <h2>Регистрация</h2>
@@ -796,6 +825,34 @@ html,body{max-width:100%;overflow-x:hidden;}
     <div class="row" style="margin-top:16px; justify-content:flex-end">
       <button class="ghost" onclick="closeModal('modal-chronicle')">Отмена</button>
       <button onclick="createChronicle()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-join" class="modal hidden">
+  <div class="box">
+    <h2>Присоединиться к хронике</h2>
+    <label>Код хроники (ID) или точное название</label>
+    <input id="join-input" placeholder="12 или Гнев Астартес">
+    <div class="row" style="margin-top:16px; justify-content:flex-end">
+      <button class="ghost" onclick="closeModal('modal-join')">Отмена</button>
+      <button onclick="joinChronicle()">Присоединиться</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-event" class="modal hidden">
+  <div class="box">
+    <h2>Новое событие</h2>
+    <label>Название</label>
+    <input id="event-title" placeholder="Падение станции Кадия-Прим...">
+    <label style="margin-top:10px">Дата / метка (необязательно)</label>
+    <input id="event-date" placeholder="815.M41 · Сессия 3">
+    <label style="margin-top:10px">Описание</label>
+    <textarea id="event-body" rows="4" placeholder="что произошло..."></textarea>
+    <div class="row" style="margin-top:16px; justify-content:flex-end">
+      <button class="ghost" onclick="closeModal('modal-event')">Отмена</button>
+      <button onclick="createEvent()">Добавить</button>
     </div>
   </div>
 </div>
@@ -828,17 +885,17 @@ html,body{max-width:100%;overflow-x:hidden;}
 <div id="toast" class="hidden"></div>
 
 <script>
-// ==== КОНФИГ: подставь свои значения из Supabase → Settings → API ====
+// ==== КОНФИГ ====
 const SUPABASE_URL = "https://dqalsiuewjftxherpgoq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_ACGTUOM5t4i_OZBm3zzwCA_Xx4E71b-";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ==== СОСТОЯНИЕ ====
 const S = {
-  user: null,        // {id, username}
-  chronicle: null,   // {id, name}
-  role: null,        // 'gm' | 'player'
-  character: null,   // {id, name, character_data, ...}
+  user: null,
+  chronicle: null,
+  role: null,
+  character: null,
   tab: 'main'
 };
 
@@ -856,9 +913,11 @@ function toast(msg){
   toastTimer = setTimeout(() => t.classList.add('hidden'), 3200);
 }
 function openModal(id){
-  $(id).classList.remove('hidden');
-  const inp = $(id).querySelector('input');
-  if (inp){ inp.value = ''; inp.focus(); }
+  const box = $(id);
+  box.classList.remove('hidden');
+  box.querySelectorAll('input, textarea').forEach(el => el.value = '');
+  const first = box.querySelector('input, textarea');
+  if (first) first.focus();
 }
 function closeModal(id){ $(id).classList.add('hidden'); }
 
@@ -917,7 +976,7 @@ async function loadChronicles(){
   if (error){ box.innerHTML = `<div class="empty">Ошибка: ${esc(error.message)}</div>`; return; }
   const rows = (data || []).filter(r => r.chronicles);
   if (!rows.length){
-    box.innerHTML = '<div class="empty">Хроник нет. Создайте первую.</div>';
+    box.innerHTML = '<div class="empty">Хроник нет. Создайте первую или присоединитесь.</div>';
     return;
   }
   box.innerHTML = rows.map(r => {
@@ -925,7 +984,7 @@ async function loadChronicles(){
     return `<div class="list-item">
       <div>
         <div class="nm">${esc(c.name)}</div>
-        <div class="meta">${c.creator_id === S.user.id ? 'основатель' : 'участник'}</div>
+        <div class="meta">${c.creator_id === S.user.id ? 'основатель' : 'участник'} · код ${c.id}</div>
       </div>
       <div class="row tight">
         <button class="sm" onclick="enterChronicle(${c.id},'${esc(c.name)}','gm')">Как Мастер</button>
@@ -949,6 +1008,25 @@ async function createChronicle(){
   await loadChronicles();
 }
 
+async function joinChronicle(){
+  const raw = $('join-input').value.trim();
+  if (!raw) return toast('Введите код или название хроники');
+  let q = sb.from('chronicles').select('id, name');
+  q = /^\d+$/.test(raw) ? q.eq('id', Number(raw)) : q.eq('name', raw);
+  const { data, error } = await q.maybeSingle();
+  if (error) return toast('Ошибка: ' + error.message);
+  if (!data) return toast('Хроника не найдена');
+  const { data: exist } = await sb.from('chronicle_members')
+    .select('user_id').eq('chronicle_id', data.id).eq('user_id', S.user.id).maybeSingle();
+  if (exist){ closeModal('modal-join'); return toast('Вы уже участник этой хроники'); }
+  const { error: e2 } = await sb.from('chronicle_members')
+    .insert({ chronicle_id: data.id, user_id: S.user.id, role: 'player' });
+  if (e2) return toast('Ошибка: ' + e2.message);
+  closeModal('modal-join');
+  toast('Вы присоединились к «' + data.name + '»');
+  await loadChronicles();
+}
+
 async function leaveChronicle(id){
   if (!confirm('Покинуть хронику? Персонажи останутся в базе.')) return;
   const { error } = await sb.from('chronicle_members').delete()
@@ -962,35 +1040,104 @@ async function leaveChronicle(id){
 async function enterChronicle(id, name, role){
   S.chronicle = { id, name };
   S.role = role;
+  const isGm = role === 'gm';
   $('chr-title').textContent = name;
-  $('chr-role').textContent = role === 'gm' ? 'режим: Мастер' : 'режим: Игрок';
-  $('chr-delete-btn').classList.toggle('hidden', role !== 'gm');
-  $('chr-list-title').textContent = role === 'gm'
-    ? 'Персонажи хроники (все игроки)' : 'Ваши персонажи';
-  $('chr-create-btn').textContent = role === 'gm'
-    ? 'Создать персонажа Мастера' : 'Создать персонажа';
+  $('chr-role').textContent = isGm ? 'режим: Мастер' : 'режим: Игрок';
+  $('chr-delete-btn').classList.toggle('hidden', !isGm);
+  $('chr-list-title').textContent = isGm ? 'Персонажи игроков' : 'Ваши персонажи';
+  $('chr-create-btn').textContent = isGm ? 'Создать персонажа Мастера' : 'Создать персонажа';
+  $('gm-panel').classList.toggle('hidden', !isGm);
+  $('tl-add-btn').classList.toggle('hidden', !isGm);
+  document.querySelectorAll('#screen-chronicle [data-tl]').forEach(x =>
+    x.classList.toggle('active', x.dataset.tl === 'events'));
+  $('timeline-events').classList.remove('hidden');
+  $('timeline-rolls').classList.add('hidden');
   showScreen('chronicle');
   await loadCharacters();
+  await loadEvents();
 }
 
-async function loadCharacters(){
-  const box = $('character-list');
-  let q = sb.from('characters')
-    .select('id, name, is_gm_character, user_id, users_simple(username)')
-    .eq('chronicle_id', S.chronicle.id).order('id');
-  if (S.role === 'player') q = q.eq('user_id', S.user.id);
-  const { data, error } = await q;
-  if (error){ box.innerHTML = `<div class="empty">Ошибка: ${esc(error.message)}</div>`; return; }
-  if (!data.length){ box.innerHTML = '<div class="empty">Персонажей нет.</div>'; return; }
-  box.innerHTML = data.map(c => `
-    <div class="list-item clickable" onclick="openSheet(${c.id})">
+function charCard(c){
+  return `<div class="list-item clickable" onclick="openSheet(${c.id})">
       <div>
         <div class="nm">${esc(c.name)}</div>
         <div class="meta">${esc(c.users_simple?.username || '—')}</div>
       </div>
       <span class="badge ${c.is_gm_character ? 'gm' : ''}">
         ${c.is_gm_character ? 'Мастер' : 'Игрок'}</span>
-    </div>`).join('');
+    </div>`;
+}
+
+async function loadCharacters(){
+  const box = $('character-list'), gmBox = $('gm-character-list');
+  const isGm = S.role === 'gm';
+
+  let q = sb.from('characters')
+    .select('id, name, is_gm_character, user_id, users_simple(username)')
+    .eq('chronicle_id', S.chronicle.id).order('id');
+  if (!isGm) q = q.eq('user_id', S.user.id).eq('is_gm_character', false);
+
+  const { data, error } = await q;
+  if (error){
+    box.innerHTML = `<div class="empty">Ошибка: ${esc(error.message)}</div>`;
+    gmBox.innerHTML = '';
+    return;
+  }
+  const all = data || [];
+  const players = all.filter(c => !c.is_gm_character);
+  box.innerHTML = players.length ? players.map(charCard).join('')
+    : '<div class="empty">Персонажей нет.</div>';
+
+  if (!isGm){ gmBox.innerHTML = ''; return; }
+  const gms = all.filter(c => c.is_gm_character);
+  gmBox.innerHTML = gms.length ? gms.map(charCard).join('')
+    : '<div class="empty">Персонажей Мастера нет.</div>';
+}
+
+// ==== ХРОНОЛОГИЯ ====
+async function loadEvents(){
+  const box = $('timeline-events');
+  box.innerHTML = '<div class="empty">Загрузка...</div>';
+  const { data, error } = await sb.from('chronicle_events')
+    .select('id, title, body, event_date')
+    .eq('chronicle_id', S.chronicle.id).order('id', { ascending: false });
+  if (error){
+    box.innerHTML = `<div class="empty">Хронология недоступна: ${esc(error.message)}</div>`;
+    return;
+  }
+  const rows = data || [];
+  box.innerHTML = rows.length ? rows.map(ev => `
+    <div class="list-item">
+      <div style="min-width:0">
+        <div class="nm">${esc(ev.title)}</div>
+        ${ev.event_date ? `<div class="meta">${esc(ev.event_date)}</div>` : ''}
+        ${ev.body ? `<div class="mono-sm" style="margin-top:5px;line-height:1.5">${esc(ev.body)}</div>` : ''}
+      </div>
+      ${S.role === 'gm' ? `<button class="sm danger" onclick="deleteEvent(${ev.id})">✕</button>` : ''}
+    </div>`).join('') : '<div class="empty">События не записаны.</div>';
+}
+
+async function createEvent(){
+  const title = $('event-title').value.trim();
+  if (!title) return toast('Введите название события');
+  const { error } = await sb.from('chronicle_events').insert({
+    chronicle_id: S.chronicle.id,
+    title,
+    event_date: $('event-date').value.trim(),
+    body: $('event-body').value.trim(),
+    created_by: S.user.id
+  });
+  if (error) return toast('Ошибка: ' + error.message);
+  closeModal('modal-event');
+  toast('Событие добавлено');
+  await loadEvents();
+}
+
+async function deleteEvent(id){
+  if (!confirm('Удалить событие?')) return;
+  const { error } = await sb.from('chronicle_events').delete().eq('id', id);
+  if (error) return toast('Ошибка: ' + error.message);
+  await loadEvents();
 }
 
 async function createCharacter(){
@@ -1078,7 +1225,8 @@ const SECTIONS = {
 function blankSheet(){
   const d = {
     info:{ chapter:'', specialization:'', campaign:'', demeanour:'',
-           chapter_demeanour:'', bio:'', rank_title:'', renown_title:'' },
+           chapter_demeanour:'', bio:'', primarch_curse:'',
+           rank_title:'', renown_title:'' },
     stats:{}, vitals:{}, armour:{ name:'', base:10 },
     circumstances:{}, aim:'', psy:{ base:0, mode:'bound' },
     injuries:[], xp_log:[]
@@ -1109,7 +1257,6 @@ function normalize(raw){
     xp_log: d.xp_log || []
   };
   Object.keys(SECTIONS).forEach(k => out[k] = Array.isArray(d[k]) ? d[k] : []);
-  // миграция со старого формата
   if (Array.isArray(d.skills) && d.skills.length) out.skills_basic = d.skills;
   return out;
 }
@@ -1250,7 +1397,7 @@ function renownTitle(r){
   return 'Посвящённый';
 }
 
-// ==== СПИСКИ (умения / таланты / снаряжение) ====
+// ==== СПИСКИ ====
 function renderList(key){
   const host = document.querySelector(`[data-list="${key}"]`);
   if (!host) return;
@@ -1321,6 +1468,7 @@ document.addEventListener('click', e => {
 
 // ==== ПОДБОР ИЗ СПРАВОЧНИКА ====
 let pickTarget = null;
+let pickRows = [];
 async function openPicker(key){
   pickTarget = key;
   const [label, table] = SECTIONS[key];
@@ -1340,7 +1488,7 @@ async function openPicker(key){
   pickRows = data || [];
   drawPickResults('');
 }
-let pickRows = [];
+
 function drawPickResults(q){
   const rows = pickRows.filter(r => r.name.toLowerCase().includes(q.toLowerCase())).slice(0, 80);
   $('pick-results').innerHTML = rows.length
@@ -1353,11 +1501,13 @@ function drawPickResults(q){
       addRow(pickTarget, row.name, row.description || '');
     }));
 }
+
 function pickManual(){
   const name = $('pick-manual').value.trim();
   if (!name) return toast('Введите название');
   addRow(pickTarget, name, '');
 }
+
 function addRow(key, name, desc){
   const row = { name, desc };
   if (SECTIONS[key][2] === 'skill') row.level = 'Trained';
@@ -1609,6 +1759,19 @@ document.addEventListener('click', e => {
     e.target.classList.remove('active');
 });
 
+// ==== ПЕРЕКЛЮЧАТЕЛЬ ХРОНОЛОГИИ ====
+document.addEventListener('click', e => {
+  const t = e.target.closest('#screen-chronicle [data-tl]');
+  if (!t) return;
+  document.querySelectorAll('#screen-chronicle [data-tl]')
+    .forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  const isEvents = t.dataset.tl === 'events';
+  $('timeline-events').classList.toggle('hidden', !isEvents);
+  $('timeline-rolls').classList.toggle('hidden', isEvents);
+  $('tl-add-btn').classList.toggle('hidden', !isEvents || S.role !== 'gm');
+});
+
 document.addEventListener('input', e => {
   if (e.target.id === 'pick-search') drawPickResults(e.target.value);
   if (e.target.id === 'psy-rating-base'){
@@ -1639,7 +1802,6 @@ $('deleteBtn').addEventListener('click', () => {
   else deleteCharacter();
 });
 
-
 // ==== СТАРТ ====
 (async function init(){
   const saved = localStorage.getItem('dw_user');
@@ -1658,6 +1820,7 @@ $('deleteBtn').addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter'){
     if (!$('modal-register').classList.contains('hidden')) doRegister();
+    else if (!$('modal-join').classList.contains('hidden')) joinChronicle();
     else if (!$('modal-chronicle').classList.contains('hidden')) createChronicle();
     else if (!$('modal-character').classList.contains('hidden')) createCharacter();
     else if (!$('screen-login').classList.contains('hidden')) doLogin();
@@ -1668,3 +1831,13 @@ document.addEventListener('keydown', e => {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
