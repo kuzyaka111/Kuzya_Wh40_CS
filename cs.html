@@ -364,6 +364,36 @@ html,body{max-width:100%;overflow-x:hidden;}
   .adv-buy-btn:hover{background:#5fd185;}
   .advancement-item.locked .adv-buy-btn{display:none;}
 
+
+  /* ========== CHAPTER SELECT ========== */
+  .chapter-selector{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:8px;
+  }
+  .chapter-selector label{
+    font-size:11px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    margin:0;
+  }
+  .chapter-selector select{
+    background:#0a0b07;
+    border:1px solid var(--border-gold);
+    color:var(--gold);
+    padding:6px 8px;
+    font-size:12px;
+    cursor:pointer;
+    font-family:inherit;
+    min-width:180px;
+  }
+  .chapter-selector select:focus{
+    outline:none;
+    border-color:var(--text-main);
+  }
+
 </style>
 </head>
 <body>
@@ -463,6 +493,7 @@ html,body{max-width:100%;overflow-x:hidden;}
     <div class="titles">
       <h1 id="sh-name">—</h1>
       <div class="sub" id="sh-tags"></div>
+      <div class="chapter-selector" id="chapter-selector-container"></div>
     </div>
     <div class="header-right">
       <div>
@@ -1244,6 +1275,27 @@ const VITALS = [
   ['insanity','insanity_threshold','Безумие','Психологический урон и навязчивые мысли','corruption','']
 ];
 
+// ========== CHAPTERS (ОРДЕНА) ==========
+let CHAPTERS = [];  // Загружается из БД
+
+// ========== LOAD CHAPTERS FROM DB ==========
+async function loadChapters(){
+  const { data, error } = await sb.from('chapters')
+    .select('id, name')
+    .order('name');
+
+  if (error){
+    console.error('Error loading chapters:', error);
+    CHAPTERS = [{ id: 'unknown', name: 'Ошибка загрузки' }];
+    return;
+  }
+
+  CHAPTERS = data || [];
+  console.log(`✓ Загружено ${CHAPTERS.length} ордена`);
+}
+
+
+
 // Таблица грузоподъёмности (индекс = бонус ВЫН + бонус СИЛ)
 const carryTable = [
   ["0,9 кг","2,25 кг","4,5 кг"],["2,25 кг","4,5 кг","9 кг"],["4,5 кг","9 кг","18 кг"],
@@ -1356,6 +1408,7 @@ function renderSheet(){
   ].filter(Boolean);
   $('sh-tags').innerHTML = tags.map(t =>
     `[<span class="bracket-tag">${esc(t)}</span>]`).join(' ');
+  renderChapterSelector();
   $('sheet-root').classList.toggle('edit-mode', editMode);
 
   renderStats();
@@ -1880,6 +1933,7 @@ $('deleteBtn').addEventListener('click', () => {
   const saved = localStorage.getItem('dw_user');
   if (saved){
     try {
+  await loadChapters();
       const u = JSON.parse(saved);
       const { data } = await sb.from('users_simple')
         .select('id, username').eq('id', u.id).maybeSingle();
@@ -1889,6 +1943,37 @@ $('deleteBtn').addEventListener('click', () => {
   }
   showScreen('login');
 })();
+
+
+
+// ========== CHAPTER SELECTOR ==========
+async function renderChapterSelector(){
+  if (!S.character) return;
+
+  // Если ордена не загружены, загружаем
+  if (CHAPTERS.length === 0){
+    await loadChapters();
+  }
+
+  const d = S.character.character_data;
+  const currentChapter = d.info.chapter || '';
+
+  const container = $('chapter-selector-container');
+  container.innerHTML = `
+    <label>Орден:</label>
+    <select id="chapter-select" onchange="changeChapter(this.value)">
+      <option value="">-- Не выбран --</option>
+      ${CHAPTERS.map(ch => `<option value="${esc(ch.name)}" ${currentChapter === ch.name ? 'selected' : ''}>${esc(ch.name)}</option>`).join('')}
+    </select>
+  `;
+}
+
+function changeChapter(chapterName){
+  if (!S.character) return;
+  S.character.character_data.info.chapter = chapterName;
+  renderSheet();
+  saveSheet();
+}
 
 
 // ==== ADVANCEMENT SYSTEM ====
