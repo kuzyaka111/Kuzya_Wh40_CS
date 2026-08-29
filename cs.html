@@ -423,8 +423,49 @@ html,body{max-width:100%;overflow-x:hidden;}
     font-weight:600;
     border-color:var(--gold);
   }
-  .chapter-close-btn{
+  #chapter-modal{
+    backdrop-filter:blur(4px);
+    background:rgba(0,0,0,.85);
+  }
+  .chapter-modal-box{
+    box-shadow:0 10px 40px rgba(0,0,0,.9), inset 0 0 20px rgba(169,132,42,.1);
+  }
+  .chapter-custom{
+    display:flex;
+    gap:8px;
     margin-top:15px;
+    margin-bottom:10px;
+  }
+  .chapter-custom input{
+    flex:1;
+    background:#0a0b07;
+    border:1px solid var(--border-gold);
+    color:var(--text-main);
+    padding:8px;
+    font-size:12px;
+    font-family:inherit;
+  }
+  .chapter-custom input:focus{
+    outline:none;
+    border-color:var(--gold);
+  }
+  .chapter-custom-btn{
+    background:var(--gold);
+    color:#000;
+    border:1px solid var(--border-gold);
+    padding:8px 12px;
+    cursor:pointer;
+    font-size:11px;
+    text-transform:uppercase;
+    font-weight:600;
+    transition:all .15s;
+    font-family:inherit;
+  }
+  .chapter-custom-btn:hover{
+    background:#f0c060;
+    transform:translateY(-1px);
+  }
+  .chapter-close-btn{
     width:100%;
     padding:8px;
     background:var(--bg-panel-alt);
@@ -495,8 +536,49 @@ html,body{max-width:100%;overflow-x:hidden;}
     font-weight:600;
     border-color:var(--gold);
   }
-  .chapter-close-btn{
+  #chapter-modal{
+    backdrop-filter:blur(4px);
+    background:rgba(0,0,0,.85);
+  }
+  .chapter-modal-box{
+    box-shadow:0 10px 40px rgba(0,0,0,.9), inset 0 0 20px rgba(169,132,42,.1);
+  }
+  .chapter-custom{
+    display:flex;
+    gap:8px;
     margin-top:15px;
+    margin-bottom:10px;
+  }
+  .chapter-custom input{
+    flex:1;
+    background:#0a0b07;
+    border:1px solid var(--border-gold);
+    color:var(--text-main);
+    padding:8px;
+    font-size:12px;
+    font-family:inherit;
+  }
+  .chapter-custom input:focus{
+    outline:none;
+    border-color:var(--gold);
+  }
+  .chapter-custom-btn{
+    background:var(--gold);
+    color:#000;
+    border:1px solid var(--border-gold);
+    padding:8px 12px;
+    cursor:pointer;
+    font-size:11px;
+    text-transform:uppercase;
+    font-weight:600;
+    transition:all .15s;
+    font-family:inherit;
+  }
+  .chapter-custom-btn:hover{
+    background:#f0c060;
+    transform:translateY(-1px);
+  }
+  .chapter-close-btn{
     width:100%;
     padding:8px;
     background:var(--bg-panel-alt);
@@ -2108,12 +2190,37 @@ function openChapterModal(){
     </div>
   `).join('');
 
+  // Очистить и фокусировать инпут
+  $('custom-chapter-input').value = '';
+  $('custom-chapter-input').focus();
+
   $('chapter-modal').classList.add('active');
 }
 
 function closeChapterModal(){
   $('chapter-modal').classList.remove('active');
 }
+
+function saveCustomChapter(){
+  const input = $('custom-chapter-input');
+  const customChapter = input.value.trim();
+
+  if (!customChapter){
+    toast('Введите название ордена');
+    return;
+  }
+
+  if (!S.character) return;
+
+  // Сохраню в character_data.info.chapter (в таблицу персонажа)
+  S.character.character_data.info.chapter = customChapter;
+  closeChapterModal();
+  renderSheet();
+  saveSheet();
+
+  toast(`Орден установлен: ${customChapter}`);
+}
+
 
 
 
@@ -2275,10 +2382,15 @@ document.addEventListener('click', (e) => {
   }
 });
 
+
 document.addEventListener('keydown', e => {
+  if (e.target.id === 'custom-chapter-input' && e.key === 'Enter'){
+    saveCustomChapter();
+  }
   if (e.key === 'Escape'){
     closeChapterModal();
   }
+
   if (e.key === 'Enter'){
     if (!$('modal-register').classList.contains('hidden')) doRegister();
     else if (!$('modal-join').classList.contains('hidden')) joinChronicle();
@@ -2304,6 +2416,10 @@ document.addEventListener('click', e => {
   <div class="chapter-modal-box">
     <h3>Выбрать Орден</h3>
     <div class="chapter-list" id="chapter-list"></div>
+    <div class="chapter-custom">
+      <input type="text" id="custom-chapter-input" placeholder="Или введите свой орден..." maxlength="50">
+      <button class="chapter-custom-btn" onclick="saveCustomChapter()">Использовать</button>
+    </div>
     <button class="chapter-close-btn" onclick="closeChapterModal()">Закрыть</button>
   </div>
 </div>
