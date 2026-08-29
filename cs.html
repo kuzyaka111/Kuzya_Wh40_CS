@@ -1280,18 +1280,24 @@ let CHAPTERS = [];  // Загружается из БД
 
 // ========== LOAD CHAPTERS FROM DB ==========
 async function loadChapters(){
-  const { data, error } = await sb.from('chapters')
-    .select('id, name')
-    .order('name');
+  console.log('🔄 Загрузка ордена из БД...');
+  try {
+    const { data, error } = await sb.from('chapters')
+      .select('id, name')
+      .order('name');
 
-  if (error){
-    console.error('Error loading chapters:', error);
-    CHAPTERS = [{ id: 'unknown', name: 'Ошибка загрузки' }];
-    return;
+    if (error){
+      console.error('❌ Ошибка загрузки ордена:', error);
+      CHAPTERS = [{ id: 'unknown', name: 'Ошибка загрузки' }];
+      return;
+    }
+
+    CHAPTERS = data || [];
+    console.log(`✓ Загружено ${CHAPTERS.length} ордена:`, CHAPTERS);
+  } catch(e){
+    console.error('❌ Exception в loadChapters:', e);
+    CHAPTERS = [];
   }
-
-  CHAPTERS = data || [];
-  console.log(`✓ Загружено ${CHAPTERS.length} ордена`);
 }
 
 
@@ -2148,3 +2154,13 @@ document.addEventListener('keydown', e => {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
