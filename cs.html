@@ -365,33 +365,149 @@ html,body{max-width:100%;overflow-x:hidden;}
   .advancement-item.locked .adv-buy-btn{display:none;}
 
 
-  /* ========== CHAPTER SELECT ========== */
-  .chapter-selector{
-    display:flex;
+
+  /* ========== CHAPTER MODAL ========== */
+  #chapter-modal{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.8);
+    z-index:1000;
     align-items:center;
-    gap:8px;
-    margin-top:8px;
+    justify-content:center;
   }
-  .chapter-selector label{
-    font-size:11px;
-    color:var(--text-dim);
-    text-transform:uppercase;
-    letter-spacing:.5px;
-    margin:0;
+  #chapter-modal.active{
+    display:flex;
   }
-  .chapter-selector select{
-    background:#0a0b07;
-    border:1px solid var(--border-gold);
+  .chapter-modal-box{
+    background:var(--bg-panel);
+    border:2px solid var(--border-gold);
+    padding:20px;
+    max-width:400px;
+    width:90%;
+    max-height:70vh;
+    overflow-y:auto;
+    border-radius:2px;
+  }
+  .chapter-modal-box h3{
+    font-family:'Cinzel',serif;
     color:var(--gold);
-    padding:6px 8px;
-    font-size:12px;
-    cursor:pointer;
-    font-family:inherit;
-    min-width:180px;
+    margin:0 0 15px;
+    font-size:16px;
   }
-  .chapter-selector select:focus{
-    outline:none;
-    border-color:var(--text-main);
+  .chapter-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .chapter-item{
+    padding:10px;
+    background:var(--bg-panel-alt);
+    border:1px solid var(--border-dark);
+    color:var(--text-main);
+    cursor:pointer;
+    font-size:13px;
+    transition:all .15s;
+  }
+  .chapter-item:hover{
+    background:var(--gold);
+    color:#000;
+    border-color:var(--gold);
+  }
+  .chapter-item.selected{
+    background:var(--gold);
+    color:#000;
+    font-weight:600;
+    border-color:var(--gold);
+  }
+  .chapter-close-btn{
+    margin-top:15px;
+    width:100%;
+    padding:8px;
+    background:var(--bg-panel-alt);
+    border:1px solid var(--border-dark);
+    color:var(--text-dim);
+    cursor:pointer;
+    font-size:12px;
+    text-transform:uppercase;
+  }
+  .chapter-close-btn:hover{
+    background:#2a2a2d;
+  }
+
+
+  /* ========== CHAPTER MODAL ========== */
+  #chapter-modal{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.8);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+  }
+  #chapter-modal.active{
+    display:flex;
+  }
+  .chapter-modal-box{
+    background:var(--bg-panel);
+    border:2px solid var(--border-gold);
+    padding:20px;
+    max-width:400px;
+    width:90%;
+    max-height:70vh;
+    overflow-y:auto;
+  }
+  .chapter-modal-box h3{
+    font-family:'Cinzel',serif;
+    color:var(--gold);
+    margin:0 0 15px;
+    font-size:16px;
+  }
+  .chapter-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .chapter-item{
+    padding:10px;
+    background:var(--bg-panel-alt);
+    border:1px solid var(--border-dark);
+    color:var(--text-main);
+    cursor:pointer;
+    font-size:13px;
+    transition:all .15s;
+  }
+  .chapter-item:hover{
+    background:var(--gold);
+    color:#000;
+    border-color:var(--gold);
+  }
+  .chapter-item.selected{
+    background:var(--gold);
+    color:#000;
+    font-weight:600;
+    border-color:var(--gold);
+  }
+  .chapter-close-btn{
+    margin-top:15px;
+    width:100%;
+    padding:8px;
+    background:var(--bg-panel-alt);
+    border:1px solid var(--border-dark);
+    color:var(--text-dim);
+    cursor:pointer;
+    font-size:12px;
+    text-transform:uppercase;
+  }
+  .chapter-close-btn:hover{
+    background:#2a2a2d;
   }
 
 </style>
@@ -493,7 +609,7 @@ html,body{max-width:100%;overflow-x:hidden;}
     <div class="titles">
       <h1 id="sh-name">—</h1>
       <div class="sub" id="sh-tags"></div>
-      <div class="chapter-selector" id="chapter-selector-container"></div>
+
     </div>
     <div class="header-right">
       <div>
@@ -1953,33 +2069,52 @@ $('deleteBtn').addEventListener('click', () => {
 
 
 // ========== CHAPTER SELECTOR ==========
-async function renderChapterSelector(){
+function renderChapterSelector(){
   if (!S.character) return;
 
-  // Если ордена не загружены, загружаем
-  if (CHAPTERS.length === 0){
-    await loadChapters();
-  }
-
   const d = S.character.character_data;
-  const currentChapter = d.info.chapter || '';
+  const currentChapter = d.info.chapter || 'Орден не определен';
 
-  const container = $('chapter-selector-container');
-  container.innerHTML = `
-    <label>Орден:</label>
-    <select id="chapter-select" onchange="changeChapter(this.value)">
-      <option value="">-- Не выбран --</option>
-      ${CHAPTERS.map(ch => `<option value="${esc(ch.name)}" ${currentChapter === ch.name ? 'selected' : ''}>${esc(ch.name)}</option>`).join('')}
-    </select>
-  `;
+  // Добавлю тег ордена в sh-tags
+  const shTags = $('sh-tags');
+  let html = shTags.innerHTML;
+
+  // Удалю старый тег ордена если он есть
+  html = html.replace(/<span class="chapter-tag"[^>]*>.*?<\/span>/g, '');
+
+  // Добавлю новый тег ордена как кликабельный
+  html += ` [<span class="bracket-tag chapter-tag" onclick="openChapterModal()" style="cursor:pointer;">${esc(currentChapter)}</span>]`;
+
+  shTags.innerHTML = html;
 }
 
 function changeChapter(chapterName){
   if (!S.character) return;
   S.character.character_data.info.chapter = chapterName;
+  closeChapterModal();
   renderSheet();
   saveSheet();
 }
+
+function openChapterModal(){
+  if (!S.character) return;
+
+  const list = $('chapter-list');
+  const currentChapter = S.character.character_data.info.chapter || '';
+
+  list.innerHTML = CHAPTERS.map(ch => `
+    <div class="chapter-item ${currentChapter === ch.name ? 'selected' : ''}" onclick="changeChapter('${esc(ch.name).replace(/'/g, "\'")}')">
+      ${esc(ch.name)}
+    </div>
+  `).join('');
+
+  $('chapter-modal').classList.add('active');
+}
+
+function closeChapterModal(){
+  $('chapter-modal').classList.remove('active');
+}
+
 
 
 // ==== ADVANCEMENT SYSTEM ====
@@ -2141,6 +2276,9 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){
+    closeChapterModal();
+  }
   if (e.key === 'Enter'){
     if (!$('modal-register').classList.contains('hidden')) doRegister();
     else if (!$('modal-join').classList.contains('hidden')) joinChronicle();
@@ -2151,7 +2289,25 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape')
     document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
 });
+
+document.addEventListener('click', e => {
+  const modal = $('chapter-modal');
+  if (e.target === modal){
+    closeChapterModal();
+  }
+});
+
 </script>
+
+<!-- ========== CHAPTER SELECTION MODAL ========== -->
+<div id="chapter-modal">
+  <div class="chapter-modal-box">
+    <h3>Выбрать Орден</h3>
+    <div class="chapter-list" id="chapter-list"></div>
+    <button class="chapter-close-btn" onclick="closeChapterModal()">Закрыть</button>
+  </div>
+</div>
+
 </body>
 </html>
 
