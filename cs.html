@@ -592,6 +592,18 @@ html,body{max-width:100%;overflow-x:hidden;}
     background:#2a2a2d;
   }
 
+  .chapter-item.selected{
+    background:var(--gold);
+    color:#000;
+    font-weight:600;
+    border-color:var(--gold);
+  }
+
+  .bracket-tag.chapter-tag,
+  .bracket-tag.specialization-tag{
+    color:var(--gold) !important;
+    display:inline;
+  }
 </style>
 </head>
 <body>
@@ -1613,6 +1625,7 @@ function renderSheet(){
   $('sh-tags').innerHTML = tags.map(t =>
     `[<span class="bracket-tag">${esc(t)}</span>]`).join(' ');
   renderChapterSelector();
+  renderSpecializationSelector();
   $('sheet-root').classList.toggle('edit-mode', editMode);
 
   renderStats();
@@ -2157,18 +2170,40 @@ function renderChapterSelector(){
   const d = S.character.character_data;
   const currentChapter = d.info.chapter || 'Орден не определен';
 
-  // Создам контейнер для кликабельного тега ордена
-  let container = $('chapter-tag-container');
+  // Добавлю тег ордена в sh-tags (в конец, перед специализацией)
+  const shTags = $('sh-tags');
+  let html = shTags.innerHTML;
 
-  if (!container){
-    // Если контейнера нет, создам его рядом с sh-tags
-    container = document.createElement('span');
-    container.id = 'chapter-tag-container';
-    $('sh-tags').parentNode.insertBefore(container, $('sh-tags').nextSibling);
-  }
+  // Удалю старый тег ордена если он есть
+  html = html.replace(/\s*\[<span class="bracket-tag chapter-tag"[^>]*>.*?<\/span>\]/g, '');
 
-  // Рендерю только кликабельный тег ордена
-  container.innerHTML = ` [<span class="bracket-tag" onclick="openChapterModal()" style="cursor:pointer;">${esc(currentChapter)}</span>]`;
+  // Вставлю новый тег ордена в начало
+  html = ` [<span class="bracket-tag chapter-tag" onclick="openChapterModal()" style="cursor:pointer;">${esc(currentChapter)}</span>]` + html;
+
+  shTags.innerHTML = html;
+}
+
+// Аналогично для специализации
+function renderSpecializationSelector(){
+  if (!S.character) return;
+
+  const d = S.character.character_data;
+  const currentSpecialization = d.info.specialization || 'Специализация не определена';
+
+  // Добавлю тег специализации в sh-tags
+  const shTags = $('sh-tags');
+  let html = shTags.innerHTML;
+
+  // Удалю старый тег специализации если он есть
+  html = html.replace(/\s*\[<span class="bracket-tag specialization-tag"[^>]*>.*?<\/span>\]/g, '');
+
+  // Вставлю новый тег специализации после ордена
+  html = html.replace(
+    /(\[<span class="bracket-tag chapter-tag"[^>]*>.*?<\/span>\])/,
+    '$1 [<span class="bracket-tag specialization-tag" onclick="openSpecializationModal()" style="cursor:pointer;">${esc(currentSpecialization)}</span>]'
+  );
+
+  shTags.innerHTML = html;
 }
 
 function changeChapter(chapterName){
@@ -2201,6 +2236,57 @@ function openChapterModal(){
 function closeChapterModal(){
   $('chapter-modal').classList.remove('active');
 }
+
+function openSpecializationModal(){
+  if (!S.character) return;
+
+  const list = $('specialization-list');
+  const currentSpecialization = S.character.character_data.info.specialization || '';
+
+  // Пока пусто - позже можно загрузить из БД если будет таблица
+  list.innerHTML = `
+    <div class="specialization-item" onclick="changeSpecialization('')">
+      -- Не определена --
+    </div>
+  `;
+
+  $('custom-specialization-input').value = '';
+  $('custom-specialization-input').focus();
+
+  $('specialization-modal').classList.add('active');
+}
+
+function closeSpecializationModal(){
+  $('specialization-modal').classList.remove('active');
+}
+
+function changeSpecialization(specializationName){
+  if (!S.character) return;
+  S.character.character_data.info.specialization = specializationName;
+  closeSpecializationModal();
+  renderSheet();
+  saveSheet();
+}
+
+function saveCustomSpecialization(){
+  const input = $('custom-specialization-input');
+  const customSpecialization = input.value.trim();
+
+  if (!customSpecialization){
+    toast('Введите специализацию');
+    return;
+  }
+
+  if (!S.character) return;
+
+  S.character.character_data.info.specialization = customSpecialization;
+  closeSpecializationModal();
+  renderSheet();
+  saveSheet();
+
+  toast(`Специализация установлена: ${customSpecialization}`);
+}
+
 
 function saveCustomChapter(){
   const input = $('custom-chapter-input');
@@ -2388,6 +2474,9 @@ document.addEventListener('keydown', e => {
   if (e.target.id === 'custom-chapter-input' && e.key === 'Enter'){
     saveCustomChapter();
   }
+  if (e.target.id === 'custom-specialization-input' && e.key === 'Enter'){
+    saveCustomSpecialization();
+  }
   if (e.key === 'Escape'){
     closeChapterModal();
   }
@@ -2422,6 +2511,19 @@ document.addEventListener('click', e => {
       <button class="chapter-custom-btn" onclick="saveCustomChapter()">Использовать</button>
     </div>
     <button class="chapter-close-btn" onclick="closeChapterModal()">Закрыть</button>
+  </div>
+</div>
+
+<!-- ========== SPECIALIZATION SELECTION MODAL ========== -->
+<div id="specialization-modal">
+  <div class="chapter-modal-box">
+    <h3>Выбрать Специализацию</h3>
+    <div class="specialization-list" id="specialization-list"></div>
+    <div class="chapter-custom">
+      <input type="text" id="custom-specialization-input" placeholder="Или введите свою специализацию..." maxlength="50">
+      <button class="chapter-custom-btn" onclick="saveCustomSpecialization()">Использовать</button>
+    </div>
+    <button class="chapter-close-btn" onclick="closeSpecializationModal()">Закрыть</button>
   </div>
 </div>
 
