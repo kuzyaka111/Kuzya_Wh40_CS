@@ -1608,7 +1608,7 @@ function renderSheet(){
   const c = S.character, d = c.character_data;
   $('sh-name').textContent = c.name;
   const tags = [
-    'Адептус Астартес', d.info.chapter, d.info.specialization, d.info.campaign
+    'Адептус Астартес', d.info.specialization, d.info.campaign
   ].filter(Boolean);
   $('sh-tags').innerHTML = tags.map(t =>
     `[<span class="bracket-tag">${esc(t)}</span>]`).join(' ');
@@ -2157,17 +2157,18 @@ function renderChapterSelector(){
   const d = S.character.character_data;
   const currentChapter = d.info.chapter || 'Орден не определен';
 
-  // Добавлю тег ордена в sh-tags
-  const shTags = $('sh-tags');
-  let html = shTags.innerHTML;
+  // Создам контейнер для кликабельного тега ордена
+  let container = $('chapter-tag-container');
 
-  // Удалю старый тег ордена если он есть
-  html = html.replace(/<span class="chapter-tag"[^>]*>.*?<\/span>/g, '');
+  if (!container){
+    // Если контейнера нет, создам его рядом с sh-tags
+    container = document.createElement('span');
+    container.id = 'chapter-tag-container';
+    $('sh-tags').parentNode.insertBefore(container, $('sh-tags').nextSibling);
+  }
 
-  // Добавлю новый тег ордена как кликабельный
-  html += ` [<span class="bracket-tag chapter-tag" onclick="openChapterModal()" style="cursor:pointer;">${esc(currentChapter)}</span>]`;
-
-  shTags.innerHTML = html;
+  // Рендерю только кликабельный тег ордена
+  container.innerHTML = ` [<span class="bracket-tag" onclick="openChapterModal()" style="cursor:pointer;">${esc(currentChapter)}</span>]`;
 }
 
 function changeChapter(chapterName){
