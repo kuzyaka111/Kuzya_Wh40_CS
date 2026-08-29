@@ -340,6 +340,30 @@ html,body{max-width:100%;overflow-x:hidden;}
 .sheet{max-width:min(1280px,100%);}
 .stats-strip{min-width:0;}
 .stat-box{min-width:0;}
+
+  /* ========== ADVANCEMENT TAB ========== */
+  .advancement-subtab.active{background:linear-gradient(180deg,rgba(140,28,28,.25),transparent);color:var(--gold);box-shadow:inset 0 -3px 0 var(--red-bright);}
+  .advancement-subtab:hover{background:#1c1a1d;color:var(--text-main);}
+
+  .advancement-item{background:#101012;border:1px solid var(--border-dark);padding:12px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+  .advancement-item:hover{border-color:var(--border-gold);}
+  .advancement-item.locked{opacity:.55;}
+  .advancement-item.available{border-left:3px solid var(--green);}
+
+  .adv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;}
+  .adv-name{font-weight:600;color:var(--gold);font-size:13px;}
+  .adv-requirements{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+  .adv-price{font-weight:600;color:var(--green);font-size:12px;text-align:right;}
+  .adv-desc-short{font-size:12px;color:var(--text-dim);line-height:1.4;margin-top:4px;}
+  .adv-desc-toggle{font-size:10px;color:var(--gold);cursor:pointer;margin-top:4px;text-decoration:underline;}
+  .adv-desc-full{display:none;font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-dark);}
+  .adv-desc-full.open{display:block;}
+
+  .adv-buy-btn{display:none;width:100%;margin-top:8px;padding:6px;background:var(--green);color:#000;border:none;font-size:11px;text-transform:uppercase;font-weight:600;cursor:pointer;letter-spacing:.5px;}
+  .advancement-item.available .adv-buy-btn{display:block;}
+  .adv-buy-btn:hover{background:#5fd185;}
+  .advancement-item.locked .adv-buy-btn{display:none;}
+
 </style>
 </head>
 <body>
@@ -463,6 +487,7 @@ html,body{max-width:100%;overflow-x:hidden;}
     <button class="tab-btn" data-tab="tab-abilities">Одиночные и Отрядные способности</button>
     <button class="tab-btn" data-tab="tab-psy">Пси-силы</button>
     <button class="tab-btn" data-tab="tab-notes">Заметки</button>
+    <button class="tab-btn" data-tab="tab-advancement">Улучшение / Реквизиция</button>
   </div>
 
   <!-- CHARACTERISTICS -->
@@ -688,6 +713,32 @@ html,body{max-width:100%;overflow-x:hidden;}
         <div class="panel-body">
           <div data-list="psi"></div>
           <button class="add-row-btn" data-add="psi">+ Добавить Пси-силу</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 6: УЛУЧШЕНИЕ / РЕКВИЗИЦИЯ -->
+  <div class="tab-content" id="tab-advancement">
+    <div class="advancement-wrapper" style="padding:18px 22px;">
+      <!-- Подвкладки -->
+      <div class="advancement-subtabs" style="display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border-gold);">
+        <button class="advancement-subtab active" data-subadv="improvements" style="flex:1;padding:10px;background:#100f11;border:1px solid var(--border-dark);border-bottom:none;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);cursor:pointer;font-family:'Cinzel',serif;font-weight:600;">Улучшения</button>
+        <button class="advancement-subtab" data-subadv="requisition" style="flex:1;padding:10px;background:#100f11;border:1px solid var(--border-dark);border-bottom:none;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);cursor:pointer;font-family:'Cinzel',serif;font-weight:600;">Реквизиция</button>
+      </div>
+
+      <!-- ПОДВКЛАДКА: УЛУЧШЕНИЯ -->
+      <div id="adv-improvements" class="advancement-content active">
+        <div class="advancement-header" style="margin-bottom:16px;">
+          <input type="text" id="adv-search" placeholder="Поиск улучшения..." style="width:100%;padding:8px 10px;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);font-family:inherit;">
+        </div>
+        <div id="adv-list" class="advancement-list"></div>
+      </div>
+
+      <!-- ПОДВКЛАДКА: РЕКВИЗИЦИЯ -->
+      <div id="adv-requisition" class="advancement-content" style="display:none;">
+        <div class="advancement-header">
+          <p style="color:var(--text-dim);text-align:center;padding:20px 0">Реквизиция — приобретение вооружения и снаряжения (позже)</p>
         </div>
       </div>
     </div>
@@ -936,11 +987,7 @@ async function doLogin(){
   if (error) return toast('Ошибка: ' + error.message);
   if (!data) return toast('Аутентификатор не найден. Зарегистрируйте его.');
   S.user = data;
-  try {
   localStorage.setItem('dw_user', JSON.stringify(data));
-} catch(e) {
-  console.log('localStorage недоступен (режим инкогнито)');
-}
   await showDash();
 }
 
@@ -959,9 +1006,7 @@ async function doRegister(){
 
 function doLogout(){
   S.user = S.chronicle = S.role = S.character = null;
-try {
   localStorage.removeItem('dw_user');
-} catch(e) {}
   $('login-name').value = '';
   showScreen('login');
 }
@@ -1014,22 +1059,6 @@ async function createChronicle(){
   await loadChronicles();
 }
 
-// ==== ПАСХАЛКИ ====
-const EASTER_EGGS = {
-  'ересь хоруса':
-    'ЕРЕТИК ТЫ ЧЕ ОХУЕЛ!?!?'
-};
-
-function normEgg(s){
-  return s.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
-}
-
-function checkEasterEgg(raw){
-  const text = EASTER_EGGS[normEgg(raw)];
-  if (!text) return false;
-  toast('◈ Вокс-перехват ◈: ' + text);
-  return true;
-}
 async function joinChronicle(){
   const raw = $('join-input').value.trim();
   if (!raw) return toast('Введите код или название хроники');
@@ -1287,6 +1316,26 @@ function normalize(raw){
 const bonusOf = v => Math.floor((Number(v) || 0) / 10);
 let editMode = false;
 
+// ==== ПАСХАЛКИ ====
+const EASTER_EGGS = {
+  'ересь хоруса':
+    'Вокс-канал захлёбывается статикой. Сквозь помехи пробивается голос, ' +
+    'которого не должно существовать десять тысяч лет:\n\n' +
+    '«Я делал это не ради себя. Я делал это ради людей.»\n\n' +
+    'Терминал молчит. Запись не сохранена.'
+};
+
+function normEgg(s){
+  return s.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+}
+
+function checkEasterEgg(raw){
+  const text = EASTER_EGGS[normEgg(raw)];
+  if (!text) return false;
+  showInfo('◈ Вокс-перехват ◈', text);
+  return true;
+}
+
 // ==== ОТКРЫТИЕ ЛИСТА ====
 async function openSheet(id){
   const { data, error } = await sb.from('characters')
@@ -1322,6 +1371,7 @@ function renderSheet(){
   bindTooltips();
   bindCollapse();
   setEditButtons();
+if (!editMode) loadAdvancements();
 }
 
 function renderStats(){
@@ -1827,18 +1877,177 @@ $('deleteBtn').addEventListener('click', () => {
 
 // ==== СТАРТ ====
 (async function init(){
-  try {
-    const saved = localStorage.getItem('dw_user');
-    if (saved){
+  const saved = localStorage.getItem('dw_user');
+  if (saved){
+    try {
       const u = JSON.parse(saved);
       const { data } = await sb.from('users_simple')
         .select('id, username').eq('id', u.id).maybeSingle();
       if (data){ S.user = data; return showDash(); }
-    }
+    } catch(e){}
     localStorage.removeItem('dw_user');
-  } catch(e){}
+  }
   showScreen('login');
 })();
+
+
+// ==== ADVANCEMENT SYSTEM ====
+let advancementCache = null;
+
+async function loadAdvancements(){
+  if (!S.character) return;
+  const { data, error } = await sb.from('character_advancements')
+    .select('id, name, description, cost, requirements, category, tables')
+    .order('name');
+  if (error){
+    console.error('Advancements load error:', error);
+    return [];
+  }
+  advancementCache = data || [];
+  renderAdvancements('');
+}
+
+function checkRequirement(req){
+  if (!req) return true;
+  const d = S.character.character_data;
+  try{
+    if (req.stat) return bonusOf(d.stats[req.stat] || 0) >= (req.min || 0);
+    if (req.skill) return d.skills_basic.some(s => s.name === req.skill) || 
+                          d.skills_adv.some(s => s.name === req.skill);
+    if (req.rank) return (d.vitals.rank || 1) >= req.rank;
+    return true;
+  } catch(e){
+    return false;
+  }
+}
+
+function renderAdvancements(searchQuery){
+  if (!advancementCache) return;
+  const list = $('adv-list');
+  let items = advancementCache;
+
+  if (searchQuery){
+    items = items.filter(a => 
+      a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (a.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+
+  const available = items.filter(a => checkRequirement(a.requirements));
+  const locked = items.filter(a => !checkRequirement(a.requirements));
+
+  const rendered = [...available, ...locked].map((adv, idx) => {
+    const isAvailable = checkRequirement(adv.requirements);
+    const reqText = adv.requirements 
+      ? formatRequirement(adv.requirements)
+      : 'Нет требований';
+
+    return `
+      <div class="advancement-item ${isAvailable ? 'available' : 'locked'}" data-adv-id="${adv.id}">
+        <div class="adv-head">
+          <div>
+            <div class="adv-name">${esc(adv.name)}</div>
+            <div class="adv-requirements">Требование: ${reqText}</div>
+          </div>
+          <div class="adv-price">${adv.cost} XP</div>
+        </div>
+        <div class="adv-desc-short">${esc((adv.description || '').substring(0, 100))}...</div>
+        <div class="adv-desc-toggle" data-toggle="desc-${adv.id}">Развернуть</div>
+        <div class="adv-desc-full" id="desc-${adv.id}">${esc(adv.description || 'Описание отсутствует')}</div>
+        <button class="adv-buy-btn" onclick="buyAdvancement(${adv.id})">Купить</button>
+      </div>
+    `;
+  }).join('');
+
+  list.innerHTML = rendered || '<div style="color:var(--text-dim);padding:20px;text-align:center;">Улучшений не найдено</div>';
+  bindAdvancementEvents();
+}
+
+function formatRequirement(req){
+  if (!req) return 'Нет';
+  const parts = [];
+  if (req.stat) parts.push(`Бонус ${req.stat} ≥ ${req.min || 0}`);
+  if (req.skill) parts.push(`Умение: ${req.skill}`);
+  if (req.rank) parts.push(`Ранг ≥ ${req.rank}`);
+  return parts.length ? parts.join(', ') : 'Нет требований';
+}
+
+function bindAdvancementEvents(){
+  document.querySelectorAll('[data-toggle^="desc-"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const descId = btn.dataset.toggle;
+      const descEl = $(descId);
+      descEl.classList.toggle('open');
+      btn.textContent = descEl.classList.contains('open') ? 'Свернуть' : 'Развернуть';
+    });
+  });
+}
+
+async function buyAdvancement(advId){
+  const adv = advancementCache.find(a => a.id === advId);
+  if (!adv) return toast('Улучшение не найдено');
+
+  const d = S.character.character_data;
+  const xpFree = (d.vitals.xp_total || 0) - 
+    ((d.xp_log || []).reduce((a, x) => a + (Number(x.cost) || 0), 0) || d.vitals.xp_spent || 0);
+
+  if (xpFree < adv.cost) return toast(`Недостаточно опыта. Нужно: ${adv.cost}, доступно: ${xpFree}`);
+  if (!checkRequirement(adv.requirements)) return toast('Требования не выполнены');
+
+  const categories = {
+    talents: 'talents',
+    traits: 'traits',
+    skills_basic: 'skills_basic',
+    skills_adv: 'skills_adv',
+    honors: 'honors',
+    distinctions: 'distinctions',
+    solo_chapter: 'solo_chapter',
+    squad_chapter: 'squad_chapter'
+  };
+
+  const targetCategory = categories[adv.category || 'talents'];
+  if (!targetCategory) return toast('Неизвестная категория улучшения');
+
+  d[targetCategory].push({
+    name: adv.name,
+    desc: adv.description
+  });
+
+  if (!d.xp_log) d.xp_log = [];
+  d.xp_log.push({
+    name: adv.name,
+    cost: adv.cost,
+    date: new Date().toISOString()
+  });
+
+  toast(`${adv.name} куплен за ${adv.cost} XP`);
+
+  await saveSheet();
+  renderSheet();
+}
+
+if ($('adv-search')){
+  $('adv-search').addEventListener('input', (e) => {
+    renderAdvancements(e.target.value);
+  });
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.advancement-subtab');
+  if (!btn) return;
+
+  document.querySelectorAll('.advancement-subtab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.advancement-content').forEach(c => c.style.display = 'none');
+
+  btn.classList.add('active');
+  const target = btn.dataset.subadv;
+  const el = $('adv-' + target);
+  if (el) el.style.display = 'block';
+
+  if (target === 'improvements' && !advancementCache){
+    loadAdvancements();
+  }
+});
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter'){
@@ -1854,13 +2063,3 @@ document.addEventListener('keydown', e => {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
