@@ -364,152 +364,136 @@ html,body{max-width:100%;overflow-x:hidden;}
   .adv-buy-btn:hover{background:#5fd185;}
   .advancement-item.locked .adv-buy-btn{display:none;}
 
-
-
-  /* ========== CHAPTER MODAL ========== */
-  #chapter-modal{
+  /* ========== CHAPTER / SPEC / PLUS MODALS ========== */
+  #chapter-modal,
+  #specialization-modal,
+  #plus-modal,
+  #custom-tag-modal{
     display:none;
     position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,.8);
+    top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,.65);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
     z-index:1000;
     align-items:center;
     justify-content:center;
   }
-  #chapter-modal.active{
-    display:flex;
-  }
+  #chapter-modal.active,
+  #specialization-modal.active,
+  #plus-modal.active,
+  #custom-tag-modal.active{display:flex;}
+  
   .chapter-modal-box{
-    background:var(--bg-panel);
+    background:#1c1c1f;
     border:2px solid var(--border-gold);
+    box-shadow:0 8px 40px rgba(0,0,0,.95);
     padding:20px;
-    max-width:400px;
+    max-width:420px;
     width:90%;
-    max-height:70vh;
+    max-height:72vh;
     overflow-y:auto;
     border-radius:2px;
   }
   .chapter-modal-box h3{
     font-family:'Cinzel',serif;
     color:var(--gold);
-    margin:0 0 15px;
-    font-size:16px;
+    margin:0 0 14px;
+    font-size:15px;
+    letter-spacing:1px;
   }
-  .chapter-list{
+  .chapter-list,
+  .specialization-list{
     display:flex;
     flex-direction:column;
-    gap:8px;
+    gap:6px;
   }
-  .chapter-item{
-    padding:10px;
-    background:var(--bg-panel-alt);
+  .chapter-group-label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--text-dim);
+    padding:8px 4px 4px;
+    border-bottom:1px solid var(--border-dark);
+    margin-bottom:2px;
+  }
+  .chapter-item,
+  .specialization-item{
+    padding:9px 12px;
+    background:#101012;
     border:1px solid var(--border-dark);
     color:var(--text-main);
     cursor:pointer;
     font-size:13px;
+    transition:background .12s,border-color .12s;
+  }
+  .chapter-item:hover,
+  .specialization-item:hover{background:var(--gold);color:#000;border-color:var(--gold);}
+  .chapter-item.selected,
+  .specialization-item.selected{
+    background:var(--gold);color:#000;
+    font-weight:600;border-color:var(--gold);
+  }
+  .chapter-custom{
+    display:flex;gap:8px;
+    margin-top:14px;margin-bottom:8px;
+  }
+  .chapter-custom input{
+    flex:1;background:#0a0b07;
+    border:1px solid var(--border-gold);
+    color:var(--text-main);
+    padding:8px;font-size:12px;
+    font-family:inherit;
+  }
+  .chapter-custom input:focus{outline:none;border-color:var(--gold);}
+  .chapter-custom-btn{
+    background:var(--gold);color:#000;
+    border:1px solid var(--border-gold);
+    padding:8px 12px;cursor:pointer;
+    font-size:11px;text-transform:uppercase;
+    font-weight:600;font-family:inherit;
+    transition:background .12s;
+  }
+  .chapter-custom-btn:hover{background:#f0c060;}
+  .chapter-close-btn{
+    margin-top:12px;width:100%;
+    padding:8px;background:#101012;
+    border:1px solid var(--border-dark);
+    color:var(--text-dim);cursor:pointer;
+    font-size:11px;text-transform:uppercase;
+    font-family:inherit;
+  }
+  .chapter-close-btn:hover{background:#1c1c1f;}
+
+  /* ========== PLUS MENU MODAL ========== */
+  .plus-menu-list{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:14px;
+  }
+  .plus-menu-modal-item{
+    padding:12px;
+    background:#101012;
+    border:1px solid var(--border-dark);
+    cursor:pointer;
     transition:all .15s;
   }
-  .chapter-item:hover{
-    background:var(--gold);
-    color:#000;
-    border-color:var(--gold);
+  .plus-menu-modal-item:hover{
+    border-color:var(--border-gold);
+    background:#1c1a1d;
   }
-  .chapter-item.selected{
-    background:var(--gold);
-    color:#000;
+  .plus-item-label{
     font-weight:600;
-    border-color:var(--gold);
-  }
-  .chapter-close-btn{
-    margin-top:15px;
-    width:100%;
-    padding:8px;
-    background:var(--bg-panel-alt);
-    border:1px solid var(--border-dark);
-    color:var(--text-dim);
-    cursor:pointer;
-    font-size:12px;
-    text-transform:uppercase;
-  }
-  .chapter-close-btn:hover{
-    background:#2a2a2d;
-  }
-
-
-  /* ========== CHAPTER MODAL ========== */
-  #chapter-modal{
-    display:none;
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,.8);
-    z-index:1000;
-    align-items:center;
-    justify-content:center;
-  }
-  #chapter-modal.active{
-    display:flex;
-  }
-  .chapter-modal-box{
-    background:var(--bg-panel);
-    border:2px solid var(--border-gold);
-    padding:20px;
-    max-width:400px;
-    width:90%;
-    max-height:70vh;
-    overflow-y:auto;
-  }
-  .chapter-modal-box h3{
-    font-family:'Cinzel',serif;
     color:var(--gold);
-    margin:0 0 15px;
-    font-size:16px;
-  }
-  .chapter-list{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  .chapter-item{
-    padding:10px;
-    background:var(--bg-panel-alt);
-    border:1px solid var(--border-dark);
-    color:var(--text-main);
-    cursor:pointer;
     font-size:13px;
-    transition:all .15s;
+    margin-bottom:3px;
   }
-  .chapter-item:hover{
-    background:var(--gold);
-    color:#000;
-    border-color:var(--gold);
-  }
-  .chapter-item.selected{
-    background:var(--gold);
-    color:#000;
-    font-weight:600;
-    border-color:var(--gold);
-  }
-  .chapter-close-btn{
-    margin-top:15px;
-    width:100%;
-    padding:8px;
-    background:var(--bg-panel-alt);
-    border:1px solid var(--border-dark);
+  .plus-item-desc{
+    font-size:11px;
     color:var(--text-dim);
-    cursor:pointer;
-    font-size:12px;
-    text-transform:uppercase;
+    line-height:1.4;
   }
-  .chapter-close-btn:hover{
-    background:#2a2a2d;
-  }
-
 </style>
 </head>
 <body>
@@ -608,7 +592,36 @@ html,body{max-width:100%;overflow-x:hidden;}
     <div class="icon">✠</div>
     <div class="titles">
       <h1 id="sh-name">—</h1>
-      <div class="sub" id="sh-tags"></div>
+      <div class="sub" id="sh-tags">
+        <!-- РАСА (всегда видна) -->
+        [<span class="bracket-tag" data-selector="race" 
+          onclick="openRaceModal()" style="cursor:pointer">
+          Адептус Астартес
+        </span>]
+        
+        <!-- ОРДЕН (видна если выбран) -->
+        <span id="chapter-wrapper" style="display:none">
+          [<span class="bracket-tag" data-selector="chapter" 
+            onclick="openChapterModal()" style="cursor:pointer">
+            Орден не определен
+          </span>]
+        </span>
+        
+        <!-- СПЕЦИАЛИЗАЦИЯ (видна если выбрана) -->
+        <span id="specialization-wrapper" style="display:none">
+          [<span class="bracket-tag" data-selector="specialization" 
+            onclick="openSpecializationModal()" style="cursor:pointer">
+            Специализация не определена
+          </span>]
+        </span>
+        
+        <!-- ДИНАМИЧЕСКИЕ ТЭГИ (добавляются сюда) -->
+        <span id="tags-container"></span>
+        
+        <!-- МЕНЮ [+] -->
+        [<span class="bracket-tag" onclick="openPlusMenu()" 
+          style="cursor:pointer">+</span>]
+      </div>
 
     </div>
     <div class="header-right">
@@ -1392,33 +1405,28 @@ const VITALS = [
 ];
 
 // ========== CHAPTERS (ОРДЕНА) ==========
-let CHAPTERS = [];  // Загружается из БД
+let CHAPTERS = [];  
+let SPECIALIZATIONS = [];  
 
 // ========== LOAD CHAPTERS FROM DB ==========
 async function loadChapters(){
-  console.log('🔄 Загрузка ордена из БД...');
   try {
     const { data, error } = await sb.from('chapters')
       .select('id, name')
       .order('name');
 
     if (error){
-      console.error('❌ Ошибка загрузки ордена:', error);
       CHAPTERS = [{ id: 'unknown', name: 'Ошибка загрузки' }];
       return;
     }
 
     CHAPTERS = data || [];
-    console.log(`✓ Загружено ${CHAPTERS.length} ордена:`, CHAPTERS);
   } catch(e){
-    console.error('❌ Exception в loadChapters:', e);
     CHAPTERS = [];
   }
 }
 
-
-
-// Таблица грузоподъёмности (индекс = бонус ВЫН + бонус СИЛ)
+// Таблица грузоподъёмности
 const carryTable = [
   ["0,9 кг","2,25 кг","4,5 кг"],["2,25 кг","4,5 кг","9 кг"],["4,5 кг","9 кг","18 кг"],
   ["9 кг","18 кг","36 кг"],["18 кг","36 кг","72 кг"],["27 кг","54 кг","108 кг"],
@@ -1429,7 +1437,6 @@ const carryTable = [
   ["1350 кг","2700 кг","5400 кг"],["1800 кг","3600 кг","7200 кг"],["2250 кг","4500 кг","9000 кг"]
 ];
 
-// разделы-списки: ключ -> [подпись в модалке, справочная таблица или null, стиль]
 const SECTIONS = {
   gear:            ['Снаряжение', 'combat_gear', 'gear'],
   skills_basic:    ['Базовое умение', 'skills', 'skill'],
@@ -1446,7 +1453,23 @@ const SECTIONS = {
   squad_chapter:   ['Орденская отрядная способность', 'squad_abilities', 'talent'],
   squad_codex:     ['Кодексная отрядная способность', 'squad_abilities', 'talent'],
   psi:             ['Пси-сила', 'psi_powers', 'talent']
-};
+}
+
+// ========== LOAD SPECIALIZATIONS FROM DB ==========
+async function loadSpecializations(){
+  try {
+    const { data, error } = await sb.from('specializations')
+      .select('id, name, is_advanced')
+      .order('name');
+    if (error){ 
+      SPECIALIZATIONS = []; 
+      return; 
+    }
+    SPECIALIZATIONS = data || [];
+  } catch(e){
+    SPECIALIZATIONS = [];
+  }
+}
 
 function blankSheet(){
   const d = {
@@ -1455,7 +1478,7 @@ function blankSheet(){
            rank_title:'', renown_title:'' },
     stats:{}, vitals:{}, armour:{ name:'', base:10 },
     circumstances:{}, aim:'', psy:{ base:0, mode:'bound' },
-    injuries:[], xp_log:[]
+    injuries:[], xp_log:[], tags:[]
   };
   STATS.forEach(([k]) => d.stats[k] = 30);
   VITALS.forEach(([c,m]) => { d.vitals[c] = 0; d.vitals[m] = 0; });
@@ -1480,7 +1503,8 @@ function normalize(raw){
     aim: d.aim || '',
     psy: Object.assign(b.psy, d.psy || {}),
     injuries: d.injuries || [],
-    xp_log: d.xp_log || []
+    xp_log: d.xp_log || [],
+    tags: Array.isArray(d.tags) ? d.tags : []
   };
   Object.keys(SECTIONS).forEach(k => out[k] = Array.isArray(d[k]) ? d[k] : []);
   if (Array.isArray(d.skills) && d.skills.length) out.skills_basic = d.skills;
@@ -1518,6 +1542,10 @@ async function openSheet(id){
   S.character = data;
   S.character.character_data = normalize(data.character_data);
   editMode = false;
+
+  if (CHAPTERS.length === 0) await loadChapters();
+  if (SPECIALIZATIONS.length === 0) await loadSpecializations();
+
   showScreen('sheet');
   renderSheet();
 }
@@ -1525,12 +1553,20 @@ async function openSheet(id){
 function renderSheet(){
   const c = S.character, d = c.character_data;
   $('sh-name').textContent = c.name;
-  const tags = [
-    'Адептус Астартес', d.info.chapter, d.info.specialization, d.info.campaign
-  ].filter(Boolean);
-  $('sh-tags').innerHTML = tags.map(t =>
-    `[<span class="bracket-tag">${esc(t)}</span>]`).join(' ');
-  renderChapterSelector();
+  document.querySelector('[data-selector="race"]').textContent = 'Адептус Астартес';
+  
+const chapterTag = document.getElementById('chapter-wrapper');
+const chapterText = d.info.chapter || 'Орден не определен';
+document.querySelector('[data-selector="chapter"]').textContent = chapterText;
+chapterTag.style.display = '';
+
+const specTag = document.getElementById('specialization-wrapper');
+const specText = d.info.specialization || 'Специализация не определена';
+document.querySelector('[data-selector="specialization"]').textContent = specText;
+specTag.style.display = '';
+
+renderTagsAfterSpec();
+
   $('sheet-root').classList.toggle('edit-mode', editMode);
 
   renderStats();
@@ -1546,7 +1582,77 @@ function renderSheet(){
   bindTooltips();
   bindCollapse();
   setEditButtons();
-if (!editMode) loadAdvancements();
+}
+
+// ========== СИСТЕМА ТЭГОВ ==========
+
+function renderTagsAfterSpec(){
+  if (!S.character) return;
+  const d = S.character.character_data;
+  let tagContainer = document.getElementById('tags-container');
+  if (!tagContainer) return;
+
+  const tags = d.tags || [];
+  tagContainer.innerHTML = tags.map(tag => `
+    [<span class="bracket-tag" style="cursor:pointer" onclick="removeTag('${esc(tag).replace(/'/g,"\\'")}')">
+      ${esc(tag)}
+    </span>]
+  `).join('');
+}
+
+function addTag(name){
+  if (!S.character) return;
+  const d = S.character.character_data;
+  if (!d.tags) d.tags = [];
+  if (d.tags.includes(name)) return toast('Такой тэг уже есть');
+  d.tags.push(name);
+  renderSheet();
+  saveSheet();
+}
+
+function removeTag(name){
+  if (!S.character) return;
+  const d = S.character.character_data;
+  if (!d.tags) return;
+  d.tags = d.tags.filter(t => t !== name);
+  renderSheet();
+  saveSheet();
+}
+
+// ========== ДОЛГОЕ БДЕНИЕ ==========
+
+function addDeathwatchVigil(){
+  addTag('Караул Смерти');
+  toast('Тэг [Караул Смерти] добавлен');
+}
+
+// ========== МЕНЮ [+] МОДАЛЬНОЕ ==========
+
+function openPlusMenu(){
+  $('plus-modal').classList.add('active');
+}
+
+function closePlusMenuModal(){
+  $('plus-modal').classList.remove('active');
+}
+
+// ========== СОЗДАТЬ ПОЛЬЗОВАТЕЛЬСКИЙ ТЭГ ==========
+
+function openCustomTagModal(){
+  $('custom-tag-input').value = '';
+  $('custom-tag-modal').classList.add('active');
+  $('custom-tag-input').focus();
+}
+
+function closeCustomTagModal(){
+  $('custom-tag-modal').classList.remove('active');
+}
+
+function saveCustomTag(){
+  const name = $('custom-tag-input').value.trim();
+  if (!name) return toast('Введите название тэга');
+  addTag(name);
+  closeCustomTagModal();
 }
 
 function renderStats(){
@@ -1645,7 +1751,6 @@ function renownTitle(r){
   return 'Посвящённый';
 }
 
-// ==== СПИСКИ ====
 function renderList(key){
   const host = document.querySelector(`[data-list="${key}"]`);
   if (!host) return;
@@ -1708,13 +1813,11 @@ function bindListEvents(host){
     }));
 }
 
-// кнопки "+ Добавить"
 document.addEventListener('click', e => {
   const btn = e.target.closest('[data-add]');
   if (btn) openPicker(btn.dataset.add);
 });
 
-// ==== ПОДБОР ИЗ СПРАВОЧНИКА ====
 let pickTarget = null;
 let pickRows = [];
 async function openPicker(key){
@@ -1764,7 +1867,6 @@ function addRow(key, name, desc){
   closeSheetModal('pick-modal');
 }
 
-// ==== ТРАВМЫ ====
 const BP_MAP = { 'head':'Голова','torso':'Корпус','left-arm':'Левая рука',
   'right-arm':'Правая рука','left-leg':'Левая нога','right-leg':'Правая нога' };
 const DMG_MAP = { 'impact':'Ударный','energy':'Энергетический',
@@ -1812,7 +1914,6 @@ async function confirmInjury(){
     .forEach(i => i.checked = false);
 }
 
-// ==== БРОНЯ ====
 function renderArmour(){
   const a = S.character.character_data.armour;
   $('armour-name').textContent = a.name || 'Броня не указана';
@@ -1827,7 +1928,6 @@ function updateArmour(){
   });
 }
 
-// ==== ПРОИЗВОДНЫЕ ПАРАМЕТРЫ ====
 function updateDerived(){
   const d = S.character.character_data;
   const bLov = bonusOf(d.stats.lov);
@@ -1843,7 +1943,6 @@ function updateDerived(){
   updateArmour();
 }
 
-// ==== ПСИ ====
 function renderPsy(){
   const d = S.character.character_data, v = d.vitals;
   $('psy-corruption').textContent = v.corruption || 0;
@@ -1863,7 +1962,6 @@ function updatePsyRating(){
   $('psy-rating-display').textContent = r;
 }
 
-// ==== ОБСТОЯТЕЛЬСТВА БОЯ ====
 function renderCircumstances(){
   const d = S.character.character_data;
   document.querySelectorAll('[data-toggle]').forEach(row =>
@@ -1872,7 +1970,6 @@ function renderCircumstances(){
     o.classList.toggle('active', o.dataset.aim === d.aim));
 }
 
-// ==== ЗАМЕТКИ / ДОСЬЕ ====
 function renderNotes(){
   const info = S.character.character_data.info;
   document.querySelectorAll('[data-info-field]').forEach(el => {
@@ -1881,7 +1978,6 @@ function renderNotes(){
   });
 }
 
-// ==== ТУЛТИПЫ ====
 function bindTooltips(){
   document.querySelectorAll('#screen-sheet [data-tooltip]').forEach(el => {
     if (el.dataset.tipBound) return;
@@ -1898,7 +1994,6 @@ function bindTooltips(){
   });
 }
 
-// ==== БРОСКИ ПО ХАРАКТЕРИСТИКЕ ====
 function bindRolls(){
   document.querySelectorAll('#screen-sheet [data-roll]').forEach(el => {
     el.addEventListener('click', () => {
@@ -1915,7 +2010,6 @@ function bindRolls(){
   });
 }
 
-// ==== СВОРАЧИВАНИЕ ПАНЕЛЕЙ ====
 function bindCollapse(scope){
   (scope || document).querySelectorAll('#screen-sheet .section-title').forEach(t => {
     if (t.dataset.colBound) return;
@@ -1929,7 +2023,6 @@ function bindCollapse(scope){
   });
 }
 
-// ==== МОДАЛКИ ЛИСТА ====
 function openSheetModal(id){ $(id).classList.add('active'); }
 function closeSheetModal(id){ $(id).classList.remove('active'); }
 function showInfo(title, desc){
@@ -1938,7 +2031,6 @@ function showInfo(title, desc){
   openSheetModal('info-modal');
 }
 
-// ==== РЕЖИМ РЕДАКТИРОВАНИЯ ====
 function setEditButtons(){
   const eb = $('editBtn'), db = $('deleteBtn');
   if (editMode){
@@ -1952,7 +2044,6 @@ function setEditButtons(){
   document.querySelectorAll('[data-info-field]').forEach(el => el.readOnly = !editMode);
 }
 
-// ==== СОХРАНЕНИЕ ====
 async function saveSheet(){
   const d = S.character.character_data;
   d.vitals.xp_spent = (d.xp_log || []).reduce((a, x) => a + (Number(x.cost) || 0), 0)
@@ -1971,7 +2062,6 @@ async function deleteCharacter(){
   backToChronicle();
 }
 
-// ==== ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ ЛИСТА ====
 document.addEventListener('click', e => {
   const tab = e.target.closest('#screen-sheet .tab-btn');
   if (tab){
@@ -2007,7 +2097,6 @@ document.addEventListener('click', e => {
     e.target.classList.remove('active');
 });
 
-// ==== ПЕРЕКЛЮЧАТЕЛЬ ХРОНОЛОГИИ ====
 document.addEventListener('click', e => {
   const t = e.target.closest('#screen-chronicle [data-tl]');
   if (!t) return;
@@ -2050,7 +2139,6 @@ $('deleteBtn').addEventListener('click', () => {
   else deleteCharacter();
 });
 
-// ==== СТАРТ ====
 (async function init(){
   const saved = localStorage.getItem('dw_user');
   if (saved){
@@ -2066,236 +2154,105 @@ $('deleteBtn').addEventListener('click', () => {
   showScreen('login');
 })();
 
-
-
 // ========== CHAPTER SELECTOR ==========
-function renderChapterSelector(){
+
+async function openChapterModal(){
   if (!S.character) return;
-
-  const d = S.character.character_data;
-  const currentChapter = d.info.chapter || 'Орден не определен';
-
-  // Добавлю тег ордена в sh-tags
-  const shTags = $('sh-tags');
-  let html = shTags.innerHTML;
-
-  // Удалю старый тег ордена если он есть
-  html = html.replace(/<span class="chapter-tag"[^>]*>.*?<\/span>/g, '');
-
-  // Добавлю новый тег ордена как кликабельный
-  html += ` [<span class="bracket-tag chapter-tag" onclick="openChapterModal()" style="cursor:pointer;">${esc(currentChapter)}</span>]`;
-
-  shTags.innerHTML = html;
+  if (CHAPTERS.length === 0) await loadChapters();
+  const list = $('chapter-list');
+  const cur  = S.character.character_data.info.chapter || '';
+  list.innerHTML = CHAPTERS.map(ch =>
+    `<div class="chapter-item${cur === ch.name ? ' selected' : ''}"
+      onclick="changeChapter('${esc(ch.name).replace(/'/g,"\\'")}')">
+      ${esc(ch.name)}</div>`
+  ).join('');
+  $('custom-chapter-input').value = '';
+  $('chapter-modal').classList.add('active');
 }
 
-function changeChapter(chapterName){
+function changeChapter(name){
   if (!S.character) return;
-  S.character.character_data.info.chapter = chapterName;
+  S.character.character_data.info.chapter = name;
   closeChapterModal();
   renderSheet();
   saveSheet();
 }
 
-function openChapterModal(){
-  if (!S.character) return;
-
-  const list = $('chapter-list');
-  const currentChapter = S.character.character_data.info.chapter || '';
-
-  list.innerHTML = CHAPTERS.map(ch => `
-    <div class="chapter-item ${currentChapter === ch.name ? 'selected' : ''}" onclick="changeChapter('${esc(ch.name).replace(/'/g, "\'")}')">
-      ${esc(ch.name)}
-    </div>
-  `).join('');
-
-  $('chapter-modal').classList.add('active');
+function saveCustomChapter(){
+  const v = $('custom-chapter-input').value.trim();
+  if (!v) return toast('Введите название ордена');
+  changeChapter(v);
 }
 
 function closeChapterModal(){
   $('chapter-modal').classList.remove('active');
 }
 
+// ========== SPECIALIZATION SELECTOR ==========
 
-
-// ==== ADVANCEMENT SYSTEM ====
-let advancementCache = null;
-
-async function loadAdvancements(){
+function openSpecializationModal(){
   if (!S.character) return;
-  const { data, error } = await sb.from('character_advancements')
-    .select('id, name, description, cost, requirements, category, tables')
-    .order('name');
-  if (error){
-    console.error('Advancements load error:', error);
-    return [];
+  if (SPECIALIZATIONS.length === 0){
+    loadSpecializations().then(() => _renderSpecializationModal(false));
+    return;
   }
-  advancementCache = data || [];
-  renderAdvancements('');
+  _renderSpecializationModal(false);
 }
 
-function checkRequirement(req){
-  if (!req) return true;
-  const d = S.character.character_data;
-  try{
-    if (req.stat) return bonusOf(d.stats[req.stat] || 0) >= (req.min || 0);
-    if (req.skill) return d.skills_basic.some(s => s.name === req.skill) || 
-                          d.skills_adv.some(s => s.name === req.skill);
-    if (req.rank) return (d.vitals.rank || 1) >= req.rank;
-    return true;
-  } catch(e){
-    return false;
-  }
+function _renderSpecializationModal(advancedOnly){
+  const list = $('specialization-list');
+  const cur  = S.character.character_data.info.specialization || '';
+  const items = SPECIALIZATIONS.filter(s => !!s.is_advanced === advancedOnly);
+  const label = advancedOnly ? 'Продвинутые специализации' : 'Специализации';
+
+  list.innerHTML = items.length
+    ? `<div class="chapter-group-label">${label}</div>` +
+      items.map(s =>
+        `<div class="specialization-item${cur === s.name ? ' selected' : ''}"
+          onclick="changeSpecialization('${esc(s.name).replace(/'/g,"\\'")}')">
+          ${esc(s.name)}</div>`
+      ).join('')
+    : `<div style="color:var(--text-dim);padding:8px">Нет данных</div>`;
+
+  $('custom-specialization-input').value = '';
+  $('specialization-modal').classList.add('active');
 }
 
-function renderAdvancements(searchQuery){
-  if (!advancementCache) return;
-  const list = $('adv-list');
-  let items = advancementCache;
-
-  if (searchQuery){
-    items = items.filter(a => 
-      a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (a.description || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }
-
-  const available = items.filter(a => checkRequirement(a.requirements));
-  const locked = items.filter(a => !checkRequirement(a.requirements));
-
-  const rendered = [...available, ...locked].map((adv, idx) => {
-    const isAvailable = checkRequirement(adv.requirements);
-    const reqText = adv.requirements 
-      ? formatRequirement(adv.requirements)
-      : 'Нет требований';
-
-    return `
-      <div class="advancement-item ${isAvailable ? 'available' : 'locked'}" data-adv-id="${adv.id}">
-        <div class="adv-head">
-          <div>
-            <div class="adv-name">${esc(adv.name)}</div>
-            <div class="adv-requirements">Требование: ${reqText}</div>
-          </div>
-          <div class="adv-price">${adv.cost} XP</div>
-        </div>
-        <div class="adv-desc-short">${esc((adv.description || '').substring(0, 100))}...</div>
-        <div class="adv-desc-toggle" data-toggle="desc-${adv.id}">Развернуть</div>
-        <div class="adv-desc-full" id="desc-${adv.id}">${esc(adv.description || 'Описание отсутствует')}</div>
-        <button class="adv-buy-btn" onclick="buyAdvancement(${adv.id})">Купить</button>
-      </div>
-    `;
-  }).join('');
-
-  list.innerHTML = rendered || '<div style="color:var(--text-dim);padding:20px;text-align:center;">Улучшений не найдено</div>';
-  bindAdvancementEvents();
-}
-
-function formatRequirement(req){
-  if (!req) return 'Нет';
-  const parts = [];
-  if (req.stat) parts.push(`Бонус ${req.stat} ≥ ${req.min || 0}`);
-  if (req.skill) parts.push(`Умение: ${req.skill}`);
-  if (req.rank) parts.push(`Ранг ≥ ${req.rank}`);
-  return parts.length ? parts.join(', ') : 'Нет требований';
-}
-
-function bindAdvancementEvents(){
-  document.querySelectorAll('[data-toggle^="desc-"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const descId = btn.dataset.toggle;
-      const descEl = $(descId);
-      descEl.classList.toggle('open');
-      btn.textContent = descEl.classList.contains('open') ? 'Свернуть' : 'Развернуть';
-    });
-  });
-}
-
-async function buyAdvancement(advId){
-  const adv = advancementCache.find(a => a.id === advId);
-  if (!adv) return toast('Улучшение не найдено');
-
-  const d = S.character.character_data;
-  const xpFree = (d.vitals.xp_total || 0) - 
-    ((d.xp_log || []).reduce((a, x) => a + (Number(x.cost) || 0), 0) || d.vitals.xp_spent || 0);
-
-  if (xpFree < adv.cost) return toast(`Недостаточно опыта. Нужно: ${adv.cost}, доступно: ${xpFree}`);
-  if (!checkRequirement(adv.requirements)) return toast('Требования не выполнены');
-
-  const categories = {
-    talents: 'talents',
-    traits: 'traits',
-    skills_basic: 'skills_basic',
-    skills_adv: 'skills_adv',
-    honors: 'honors',
-    distinctions: 'distinctions',
-    solo_chapter: 'solo_chapter',
-    squad_chapter: 'squad_chapter'
-  };
-
-  const targetCategory = categories[adv.category || 'talents'];
-  if (!targetCategory) return toast('Неизвестная категория улучшения');
-
-  d[targetCategory].push({
-    name: adv.name,
-    desc: adv.description
-  });
-
-  if (!d.xp_log) d.xp_log = [];
-  d.xp_log.push({
-    name: adv.name,
-    cost: adv.cost,
-    date: new Date().toISOString()
-  });
-
-  toast(`${adv.name} куплен за ${adv.cost} XP`);
-
-  await saveSheet();
+function changeSpecialization(name){
+  if (!S.character) return;
+  S.character.character_data.info.specialization = name;
+  closeSpecializationModal();
   renderSheet();
+  saveSheet();
 }
 
-if ($('adv-search')){
-  $('adv-search').addEventListener('input', (e) => {
-    renderAdvancements(e.target.value);
-  });
+function saveCustomSpecialization(){
+  const v = $('custom-specialization-input').value.trim();
+  if (!v) return toast('Введите специализацию');
+  changeSpecialization(v);
 }
 
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('.advancement-subtab');
-  if (!btn) return;
+function closeSpecializationModal(){
+  $('specialization-modal').classList.remove('active');
+}
 
-  document.querySelectorAll('.advancement-subtab').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.advancement-content').forEach(c => c.style.display = 'none');
+// ========== ПРОДВИНУТАЯ СПЕЦИАЛИЗАЦИЯ ==========
 
-  btn.classList.add('active');
-  const target = btn.dataset.subadv;
-  const el = $('adv-' + target);
-  if (el) el.style.display = 'block';
-
-  if (target === 'improvements' && !advancementCache){
-    loadAdvancements();
+function openAdvancedSpecializationModal(){
+  if (!S.character) return;
+  closePlusMenuModal();
+  if (SPECIALIZATIONS.length === 0){
+    loadSpecializations().then(() => _renderSpecializationModal(true));
+    return;
   }
-});
+  _renderSpecializationModal(true);
+}
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){
-    closeChapterModal();
-  }
-  if (e.key === 'Enter'){
-    if (!$('modal-register').classList.contains('hidden')) doRegister();
-    else if (!$('modal-join').classList.contains('hidden')) joinChronicle();
-    else if (!$('modal-chronicle').classList.contains('hidden')) createChronicle();
-    else if (!$('modal-character').classList.contains('hidden')) createCharacter();
-    else if (!$('screen-login').classList.contains('hidden')) doLogin();
-  }
-  if (e.key === 'Escape')
-    document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
-});
+// ========== RACE SELECTOR ==========
 
-document.addEventListener('click', e => {
-  const modal = $('chapter-modal');
-  if (e.target === modal){
-    closeChapterModal();
-  }
-});
+function openRaceModal(){
+  toast('Выбор расы будет доступен позже');
+}
 
 </script>
 
@@ -2304,7 +2261,61 @@ document.addEventListener('click', e => {
   <div class="chapter-modal-box">
     <h3>Выбрать Орден</h3>
     <div class="chapter-list" id="chapter-list"></div>
+    <div class="chapter-custom">
+      <input type="text" id="custom-chapter-input" placeholder="Или введите свой орден..." maxlength="50">
+      <button class="chapter-custom-btn" onclick="saveCustomChapter()">Использовать</button>
+    </div>
     <button class="chapter-close-btn" onclick="closeChapterModal()">Закрыть</button>
+  </div>
+</div>
+
+<!-- ========== SPECIALIZATION SELECTION MODAL ========== -->
+<div id="specialization-modal">
+  <div class="chapter-modal-box">
+    <h3>Выбрать Специализацию</h3>
+    <div class="specialization-list" id="specialization-list"></div>
+    <div class="chapter-custom">
+      <input type="text" id="custom-specialization-input" placeholder="Или введите свою специализацию..." maxlength="50">
+      <button class="chapter-custom-btn" onclick="saveCustomSpecialization()">Использовать</button>
+    </div>
+    <button class="chapter-close-btn" onclick="closeSpecializationModal()">Закрыть</button>
+  </div>
+</div>
+
+<!-- ========== PLUS MENU MODAL ========== -->
+<div id="plus-modal">
+  <div class="chapter-modal-box">
+    <h3>Дополнительные опции</h3>
+    <div class="plus-menu-list">
+      <div class="plus-menu-modal-item" onclick="addDeathwatchVigil();closePlusMenuModal()">
+        <div class="plus-item-label">Начать Долгое Бдение в Карауле Смерти</div>
+        <div class="plus-item-desc">Добавляет тэг [Караул Смерти]</div>
+      </div>
+      <div class="plus-menu-modal-item" onclick="openAdvancedSpecializationModal();closePlusMenuModal()">
+        <div class="plus-item-label">Продвинутая Специализация</div>
+        <div class="plus-item-desc">Выберите дополнительную специализацию</div>
+      </div>
+      <div class="plus-menu-modal-item" onclick="openCustomTagModal();closePlusMenuModal()">
+        <div class="plus-item-label">Создать свой Тэг</div>
+        <div class="plus-item-desc">Добавьте пользовательский тэг</div>
+      </div>
+    </div>
+    <button class="chapter-close-btn" onclick="closePlusMenuModal()">Закрыть</button>
+  </div>
+</div>
+
+<!-- ========== CUSTOM TAG INPUT MODAL ========== -->
+<div id="custom-tag-modal">
+  <div class="chapter-modal-box">
+    <h3>Создать Тэг</h3>
+    <div style="margin-bottom:14px;color:var(--text-dim);font-size:12px">
+      Введите название тэга, который будет добавлен после специализации
+    </div>
+    <input type="text" id="custom-tag-input" placeholder="Название тэга..." maxlength="50" style="margin-bottom:12px">
+    <div style="display:flex;gap:8px">
+      <button class="chapter-custom-btn" onclick="saveCustomTag()" style="flex:1">Добавить</button>
+      <button class="chapter-close-btn" onclick="closeCustomTagModal()" style="flex:1">Отмена</button>
+    </div>
   </div>
 </div>
 
