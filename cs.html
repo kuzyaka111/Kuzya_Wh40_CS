@@ -423,49 +423,8 @@ html,body{max-width:100%;overflow-x:hidden;}
     font-weight:600;
     border-color:var(--gold);
   }
-  #chapter-modal{
-    backdrop-filter:blur(4px);
-    background:rgba(0,0,0,.85);
-  }
-  .chapter-modal-box{
-    box-shadow:0 10px 40px rgba(0,0,0,.9), inset 0 0 20px rgba(169,132,42,.1);
-  }
-  .chapter-custom{
-    display:flex;
-    gap:8px;
-    margin-top:15px;
-    margin-bottom:10px;
-  }
-  .chapter-custom input{
-    flex:1;
-    background:#0a0b07;
-    border:1px solid var(--border-gold);
-    color:var(--text-main);
-    padding:8px;
-    font-size:12px;
-    font-family:inherit;
-  }
-  .chapter-custom input:focus{
-    outline:none;
-    border-color:var(--gold);
-  }
-  .chapter-custom-btn{
-    background:var(--gold);
-    color:#000;
-    border:1px solid var(--border-gold);
-    padding:8px 12px;
-    cursor:pointer;
-    font-size:11px;
-    text-transform:uppercase;
-    font-weight:600;
-    transition:all .15s;
-    font-family:inherit;
-  }
-  .chapter-custom-btn:hover{
-    background:#f0c060;
-    transform:translateY(-1px);
-  }
   .chapter-close-btn{
+    margin-top:15px;
     width:100%;
     padding:8px;
     background:var(--bg-panel-alt);
@@ -536,49 +495,8 @@ html,body{max-width:100%;overflow-x:hidden;}
     font-weight:600;
     border-color:var(--gold);
   }
-  #chapter-modal{
-    backdrop-filter:blur(4px);
-    background:rgba(0,0,0,.85);
-  }
-  .chapter-modal-box{
-    box-shadow:0 10px 40px rgba(0,0,0,.9), inset 0 0 20px rgba(169,132,42,.1);
-  }
-  .chapter-custom{
-    display:flex;
-    gap:8px;
-    margin-top:15px;
-    margin-bottom:10px;
-  }
-  .chapter-custom input{
-    flex:1;
-    background:#0a0b07;
-    border:1px solid var(--border-gold);
-    color:var(--text-main);
-    padding:8px;
-    font-size:12px;
-    font-family:inherit;
-  }
-  .chapter-custom input:focus{
-    outline:none;
-    border-color:var(--gold);
-  }
-  .chapter-custom-btn{
-    background:var(--gold);
-    color:#000;
-    border:1px solid var(--border-gold);
-    padding:8px 12px;
-    cursor:pointer;
-    font-size:11px;
-    text-transform:uppercase;
-    font-weight:600;
-    transition:all .15s;
-    font-family:inherit;
-  }
-  .chapter-custom-btn:hover{
-    background:#f0c060;
-    transform:translateY(-1px);
-  }
   .chapter-close-btn{
+    margin-top:15px;
     width:100%;
     padding:8px;
     background:var(--bg-panel-alt);
@@ -592,18 +510,6 @@ html,body{max-width:100%;overflow-x:hidden;}
     background:#2a2a2d;
   }
 
-  .chapter-item.selected{
-    background:var(--gold);
-    color:#000;
-    font-weight:600;
-    border-color:var(--gold);
-  }
-
-  .bracket-tag.chapter-tag,
-  .bracket-tag.specialization-tag{
-    color:var(--gold) !important;
-    display:inline;
-  }
 </style>
 </head>
 <body>
@@ -1620,12 +1526,11 @@ function renderSheet(){
   const c = S.character, d = c.character_data;
   $('sh-name').textContent = c.name;
   const tags = [
-    'Адептус Астартес', d.info.specialization, d.info.campaign
+    'Адептус Астартес', d.info.chapter, d.info.specialization, d.info.campaign
   ].filter(Boolean);
   $('sh-tags').innerHTML = tags.map(t =>
     `[<span class="bracket-tag">${esc(t)}</span>]`).join(' ');
   renderChapterSelector();
-  renderSpecializationSelector();
   $('sheet-root').classList.toggle('edit-mode', editMode);
 
   renderStats();
@@ -2170,38 +2075,15 @@ function renderChapterSelector(){
   const d = S.character.character_data;
   const currentChapter = d.info.chapter || 'Орден не определен';
 
-  // Добавлю тег ордена в sh-tags (в конец, перед специализацией)
+  // Добавлю тег ордена в sh-tags
   const shTags = $('sh-tags');
   let html = shTags.innerHTML;
 
   // Удалю старый тег ордена если он есть
-  html = html.replace(/\s*\[<span class="bracket-tag chapter-tag"[^>]*>.*?<\/span>\]/g, '');
+  html = html.replace(/<span class="chapter-tag"[^>]*>.*?<\/span>/g, '');
 
-  // Вставлю новый тег ордена в начало
-  html = ` [<span class="bracket-tag chapter-tag" onclick="openChapterModal()" style="cursor:pointer;">${esc(currentChapter)}</span>]` + html;
-
-  shTags.innerHTML = html;
-}
-
-// Аналогично для специализации
-function renderSpecializationSelector(){
-  if (!S.character) return;
-
-  const d = S.character.character_data;
-  const currentSpecialization = d.info.specialization || 'Специализация не определена';
-
-  // Добавлю тег специализации в sh-tags
-  const shTags = $('sh-tags');
-  let html = shTags.innerHTML;
-
-  // Удалю старый тег специализации если он есть
-  html = html.replace(/\s*\[<span class="bracket-tag specialization-tag"[^>]*>.*?<\/span>\]/g, '');
-
-  // Вставлю новый тег специализации после ордена
-  html = html.replace(
-    /(\[<span class="bracket-tag chapter-tag"[^>]*>.*?<\/span>\])/,
-    '$1 [<span class="bracket-tag specialization-tag" onclick="openSpecializationModal()" style="cursor:pointer;">${esc(currentSpecialization)}</span>]'
-  );
+  // Добавлю новый тег ордена как кликабельный
+  html += ` [<span class="bracket-tag chapter-tag" onclick="openChapterModal()" style="cursor:pointer;">${esc(currentChapter)}</span>]`;
 
   shTags.innerHTML = html;
 }
@@ -2226,88 +2108,12 @@ function openChapterModal(){
     </div>
   `).join('');
 
-  // Очистить и фокусировать инпут
-  $('custom-chapter-input').value = '';
-  $('custom-chapter-input').focus();
-
   $('chapter-modal').classList.add('active');
 }
 
 function closeChapterModal(){
   $('chapter-modal').classList.remove('active');
 }
-
-function openSpecializationModal(){
-  if (!S.character) return;
-
-  const list = $('specialization-list');
-  const currentSpecialization = S.character.character_data.info.specialization || '';
-
-  // Пока пусто - позже можно загрузить из БД если будет таблица
-  list.innerHTML = `
-    <div class="specialization-item" onclick="changeSpecialization('')">
-      -- Не определена --
-    </div>
-  `;
-
-  $('custom-specialization-input').value = '';
-  $('custom-specialization-input').focus();
-
-  $('specialization-modal').classList.add('active');
-}
-
-function closeSpecializationModal(){
-  $('specialization-modal').classList.remove('active');
-}
-
-function changeSpecialization(specializationName){
-  if (!S.character) return;
-  S.character.character_data.info.specialization = specializationName;
-  closeSpecializationModal();
-  renderSheet();
-  saveSheet();
-}
-
-function saveCustomSpecialization(){
-  const input = $('custom-specialization-input');
-  const customSpecialization = input.value.trim();
-
-  if (!customSpecialization){
-    toast('Введите специализацию');
-    return;
-  }
-
-  if (!S.character) return;
-
-  S.character.character_data.info.specialization = customSpecialization;
-  closeSpecializationModal();
-  renderSheet();
-  saveSheet();
-
-  toast(`Специализация установлена: ${customSpecialization}`);
-}
-
-
-function saveCustomChapter(){
-  const input = $('custom-chapter-input');
-  const customChapter = input.value.trim();
-
-  if (!customChapter){
-    toast('Введите название ордена');
-    return;
-  }
-
-  if (!S.character) return;
-
-  // Сохраню в character_data.info.chapter (в таблицу персонажа)
-  S.character.character_data.info.chapter = customChapter;
-  closeChapterModal();
-  renderSheet();
-  saveSheet();
-
-  toast(`Орден установлен: ${customChapter}`);
-}
-
 
 
 
@@ -2469,18 +2275,10 @@ document.addEventListener('click', (e) => {
   }
 });
 
-
 document.addEventListener('keydown', e => {
-  if (e.target.id === 'custom-chapter-input' && e.key === 'Enter'){
-    saveCustomChapter();
-  }
-  if (e.target.id === 'custom-specialization-input' && e.key === 'Enter'){
-    saveCustomSpecialization();
-  }
   if (e.key === 'Escape'){
     closeChapterModal();
   }
-
   if (e.key === 'Enter'){
     if (!$('modal-register').classList.contains('hidden')) doRegister();
     else if (!$('modal-join').classList.contains('hidden')) joinChronicle();
@@ -2506,36 +2304,9 @@ document.addEventListener('click', e => {
   <div class="chapter-modal-box">
     <h3>Выбрать Орден</h3>
     <div class="chapter-list" id="chapter-list"></div>
-    <div class="chapter-custom">
-      <input type="text" id="custom-chapter-input" placeholder="Или введите свой орден..." maxlength="50">
-      <button class="chapter-custom-btn" onclick="saveCustomChapter()">Использовать</button>
-    </div>
     <button class="chapter-close-btn" onclick="closeChapterModal()">Закрыть</button>
-  </div>
-</div>
-
-<!-- ========== SPECIALIZATION SELECTION MODAL ========== -->
-<div id="specialization-modal">
-  <div class="chapter-modal-box">
-    <h3>Выбрать Специализацию</h3>
-    <div class="specialization-list" id="specialization-list"></div>
-    <div class="chapter-custom">
-      <input type="text" id="custom-specialization-input" placeholder="Или введите свою специализацию..." maxlength="50">
-      <button class="chapter-custom-btn" onclick="saveCustomSpecialization()">Использовать</button>
-    </div>
-    <button class="chapter-close-btn" onclick="closeSpecializationModal()">Закрыть</button>
   </div>
 </div>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
