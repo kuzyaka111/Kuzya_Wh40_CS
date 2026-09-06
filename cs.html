@@ -78,6 +78,8 @@ button.sm{padding:5px 10px; font-size:11px}
 }
 .badge.gm{color:var(--gold); border-color:var(--gold-dim)}
 .empty{color:var(--txt-dim); font-style:italic; padding:14px 0; text-align:center}
+.loading{opacity:.6;pointer-events:none;position:relative}
+.loading::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.15);pointer-events:none}
 .tabs{display:flex; gap:2px; flex-wrap:wrap; border-bottom:1px solid var(--line); margin-bottom:16px}
 .tab{
   background:#12140d; border:1px solid var(--line); border-bottom:none;
@@ -118,24 +120,29 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   --green:#4a7c59; --blue:#4a90c9;
   max-width:none; padding:24px; font-family:'Oswald',sans-serif; color:var(--text-main);
 }
-.sheet{max-width:1280px;margin:0 auto;border:2px solid var(--border-gold);background:var(--bg-panel);box-shadow:0 0 40px rgba(0,0,0,.6);}
+.sheet{max-width:min(1280px,100%);margin:0 auto;border:2px solid var(--border-gold);background:var(--bg-panel);box-shadow:0 0 40px rgba(0,0,0,.6);}
 
 /* HEADER */
-.sheet .header{display:flex;align-items:flex-start;gap:20px;padding:20px 28px;background:linear-gradient(90deg,#1a1a1c 0%,#241414 50%,#1a1a1c 100%);border-bottom:2px solid var(--border-gold);}
-.sheet .header .icon{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle,var(--red) 0%,#3a0a0a 100%);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:900;font-size:26px;color:var(--gold);flex-shrink:0;}
+.sheet .header{display:flex;align-items:center;gap:20px;padding:16px 24px;background:linear-gradient(90deg,#1a1a1c 0%,#241414 50%,#1a1a1c 100%);border-bottom:2px solid var(--border-gold);}
+.sheet .header .icon{width:80px;height:80px;flex-shrink:0;}.sheet .header .icon img{width:100%;height:100%;object-fit:contain;}
 .sheet .titles h1{font-family:'Cinzel',serif;font-weight:900;font-size:28px;letter-spacing:1px;margin:0;color:#f2ead8;text-transform:uppercase;}
 .sheet .titles .sub{font-size:13px;color:var(--text-dim);margin-top:5px;}
 .sheet .titles .sub .bracket-tag{color:var(--gold);}
-.header-right{margin-left:auto;display:flex;flex-direction:column;gap:10px;flex-shrink:0;min-width:300px;}
-.rank-title{font-family:'Cinzel',serif;font-weight:700;font-size:17px;color:var(--gold);letter-spacing:1px;text-transform:uppercase;}
-.xp-bar-mini{height:8px;background:#101012;border:1px solid var(--border-dark);overflow:hidden;margin:4px 0;}
-.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),#f0c060);}
-.xp-info{display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);text-transform:uppercase;}
-.xp-value{color:var(--gold);font-weight:600;cursor:pointer;}
-.renown-row{display:flex;align-items:center;justify-content:space-between;}
-.renown-name{font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:var(--gold);text-transform:uppercase;}
-.renown-label{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;}
-.renown-icon{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle,#241a08 0%,#0e0c06 100%);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:14px;}
+.header-right{margin-left:auto;display:flex;flex-direction:column;gap:6px;min-width:220px;}
+.rank-title{font-family:'Cinzel',serif;font-size:14px;letter-spacing:1px;text-transform:uppercase;}
+.rank-chapter{color:var(--gold);font-weight:700;}
+.rank-num{color:var(--text-dim);font-weight:700;}
+.header > .rank-icon{width:80px;height:80px;flex-shrink:0;}
+.header > .rank-icon img{width:100%;height:100%;object-fit:contain;}
+.bar-clickable{cursor:pointer;}
+.bar-track{position:relative;height:18px;background:#101012;border:1px solid var(--border-dark);overflow:hidden;}
+.bar-fill{height:100%;transition:width .3s;}
+.bar-fill.xp{background:linear-gradient(90deg,var(--gold),#f0c060);}
+.bar-fill.renown{background:linear-gradient(90deg,#4a2c5f,#7a4a9c);}
+.bar-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-dim);letter-spacing:.5px;pointer-events:none;}
+.renown-section{display:flex;flex-direction:column;gap:2px;}
+.renown-title{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}
+.renown-name{font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--gold);text-transform:uppercase;}
 
 /* TOOLTIP */
 .tooltip{display:none;position:fixed;background:rgba(16,16,18,.95);border:1px solid #a8862f;border-radius:3px;padding:8px 12px;font-size:11px;color:#9a958a;max-width:200px;z-index:1000;pointer-events:none;line-height:1.4;font-family:'Oswald',sans-serif;}
@@ -157,6 +164,25 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .xp-entry{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #3a3a3d;font-size:12px;color:#9a958a;}
 .xp-entry .cost{color:#c9a24b;font-weight:600;}
 .modal-total{margin-top:10px;text-align:right;font-size:13px;color:#c9a24b;font-weight:600;}
+.xp-add-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;}
+.xp-amount-input{width:80px;padding:6px 8px;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);font-size:13px;text-align:center;}
+.xp-amount-input:focus{outline:none;border-color:var(--border-gold);}
+.modal-divider{border-top:1px solid #3a3a3d;margin:8px 0 12px;}
+.renown-current{text-align:center;font-size:14px;color:#c9a24b;margin-bottom:12px;font-weight:600;}
+
+/* SKILL DETAIL MODAL */
+.skill-detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.skill-detail-name{font-size:16px;color:var(--gold);font-weight:600;}
+.skill-detail-ch{font-size:12px;color:var(--text-dim);}
+.skill-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-dark);margin-top:8px;}
+.skill-toggle-label{font-size:13px;color:var(--text-main);}
+.skill-toggle{position:relative;width:40px;height:22px;cursor:pointer;}
+.skill-toggle input{opacity:0;width:0;height:0;}
+.skill-toggle .slider{position:absolute;inset:0;background:#333;border-radius:11px;transition:.2s;}
+.skill-toggle .slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#888;border-radius:50%;transition:.2s;}
+.skill-toggle input:checked+.slider{background:#4a9e6e;}
+.skill-toggle input:checked+.slider:before{transform:translateX(18px);background:#fff;}
+.skill-desc-box{background:#0a0b07;border:1px solid var(--border-dark);padding:10px;margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.5;max-height:250px;overflow-y:auto;}
 
 /* TABS */
 .tabs-nav{display:flex;border-bottom:2px solid var(--border-gold);background:#100f11;}
@@ -198,10 +224,17 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .vital-row .label{color:var(--text-dim);text-transform:uppercase;font-size:11px;letter-spacing:1px;cursor:help;margin:0;}
 .vital-row .value{font-weight:600;color:var(--text-main);font-size:16px;cursor:help;}
 .vital-row .vnum{width:52px;background:var(--bg-main);border:1px solid var(--border-dark);color:var(--text-main);font-family:'Oswald',sans-serif;font-size:14px;text-align:center;padding:2px 0;}
-.bar-wrap{width:100%;height:14px;background:#101012;border:1px solid var(--border-dark);margin-top:4px;overflow:hidden;}
+.bar-wrap{width:100%;height:20px;background:#101012;border:1px solid var(--border-dark);margin-top:4px;overflow:hidden;}
 .bar-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--red-bright));}
 .bar-fill.fate{background:linear-gradient(90deg,#2c5f8a,#4a90c9);}
 .bar-fill.corruption{background:linear-gradient(90deg,#4a2c5f,#7a4a9c);}
+.bar-fill.crit-wounds{background:linear-gradient(90deg,#8b0000,#cc0000);}
+.vit-arrow{background:none;border:1px solid var(--border-dark);color:var(--text-dim);width:20px;height:20px;cursor:pointer;font-size:9px;display:inline-flex;align-items:center;justify-content:center;border-radius:2px;flex-shrink:0;}
+.vit-arrow:hover{border-color:var(--border-gold);color:var(--gold);}
+.madness-bar{display:flex;gap:2px;width:100%;height:20px;margin-top:4px;}
+.madness-seg{flex:1;background:#101012;border:1px solid var(--border-dark);overflow:hidden;}
+.madness-seg.filled{background:#2a1540;border-color:#4a2060;}
+.madness-seg.partial{background:linear-gradient(90deg,#2a1540 var(--fill),#101012 var(--fill));border-color:#4a2060;}
 
 /* PARAM LIST */
 .param-list{list-style:none;margin:0;padding:0;}
@@ -239,9 +272,41 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .skill-item{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-dark);font-size:13px;gap:8px;cursor:pointer;transition:background .15s;}
 .skill-item:hover{background:rgba(74,144,201,.1);}
 .skill-item:last-child{border-bottom:none;}
-.skill-name{color:var(--text-main);flex:1;}
-.skill-level{font-size:11px;padding:2px 8px;border:1px solid var(--border-gold);color:var(--gold);letter-spacing:.5px;}
+.skill-name{color:var(--text-main);flex:1;display:flex;align-items:center;gap:6px;font-size:13px;}
+.skill-ch-inline{font-size:10px;color:var(--text-dim);letter-spacing:.5px;}
+.skill-ch-select{background:var(--bg-main);border:1px solid var(--border-dark);color:var(--text-dim);font-size:10px;padding:2px 14px 2px 4px;border-radius:2px;max-width:90px;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%239a958a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;background-size:6px 4px;}
+.sheet .skill-ch-select{pointer-events:none;opacity:0;width:0;padding:0;border:none;overflow:hidden;}
+.sheet.edit-mode .skill-ch-select{pointer-events:auto;opacity:1;width:auto;padding:2px 14px 2px 4px;border:1px solid var(--border-dark);overflow:visible;}
+.skill-ch-select:hover{border-color:var(--border-gold);}
+.skill-ch-select:focus{outline:none;border-color:var(--border-gold);color:var(--text-main);}
+.skill-ch-select option{background:var(--bg-main);color:var(--text-main);}
+.skill-ch{font-size:10px;color:var(--text-dim);min-width:70px;text-align:right;letter-spacing:.5px;}
+.skill-level{font-size:11px;padding:2px 8px;border:1px solid var(--border-gold);color:var(--gold);letter-spacing:.5px;min-width:42px;text-align:center;cursor:pointer;}
 .skill-level.trained{border-color:var(--border-dark);color:var(--text-dim);}
+.skill-level.gifted{border-color:#4a9e6e;color:#6ccf8e;}
+.skill-level.untrained{border-color:var(--border-dark);color:var(--text-dim);font-style:italic;}
+.skill-groups-wrap{padding-left:12px;margin-top:2px;}
+.skill-group-row{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);}
+.skill-group-row:last-child{border-bottom:none;}
+.skill-group-name{flex:1;color:var(--text-dim);}
+.skill-group-ch{font-size:10px;color:var(--text-dim);min-width:60px;text-align:right;}
+.skill-group-lvl{font-size:10px;padding:1px 6px;border:1px solid var(--border-dark);color:var(--text-dim);min-width:36px;text-align:center;cursor:pointer;}
+.skill-group-lvl.gifted{border-color:#4a9e6e;color:#6ccf8e;}
+.skill-group-add{display:flex;gap:4px;margin-top:6px;}
+.skill-group-add input{flex:1;background:var(--bg-main);border:1px solid var(--border-dark);color:var(--text-main);padding:4px 8px;font-size:12px;border-radius:2px;}
+.skill-group-add button{background:var(--border-dark);color:var(--text-main);border:none;padding:4px 10px;font-size:12px;cursor:pointer;border-radius:2px;}
+.skill-group-add button:hover{background:var(--border-gold);}
+.skill-group-del{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;}
+.skill-group-del:hover{color:var(--red);}
+.skill-collapsed{display:none;}
+.skill-collapse-toggle{cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;}
+.skill-collapse-toggle .chevron{font-size:10px;}
+.skill-filter-toggle{display:inline-block;font-size:11px;color:var(--text-dim);padding:5px 12px;cursor:pointer;white-space:nowrap;border:1px solid var(--border-dark);border-radius:3px;background:#101012;transition:background .15s,border-color .15s;}
+.skill-filter-toggle:hover{border-color:var(--border-gold);}
+.skill-filter-toggle input{display:none;}
+.skill-filter-toggle input+span::before{content:'☐ ';font-size:13px;}
+.skill-filter-toggle input:checked+span::before{content:'☑ ';font-size:13px;color:#8fd19e;}
+#skills-basic-render,#skills-adv-render{max-height:400px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border-dark) transparent;}
 
 /* TALENTS */
 .talent-item{padding:10px;background:#101012;border:1px solid var(--border-dark);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
@@ -286,16 +351,19 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .editable-field{background:transparent;border:1px solid transparent;color:inherit;font-family:inherit;font-size:13px;padding:2px 4px;width:100%;resize:none;line-height:1.6;}
 .sheet.edit-mode .editable-field{background:#101012;border-color:var(--border-dark);}
 .sheet.edit-mode .editable-field:focus{outline:none;border-color:var(--border-gold);}
-.sheet .base-input,.sheet .vnum{pointer-events:none;opacity:.55;}
+.sheet .base-input{pointer-events:none;opacity:0;width:0;height:0;padding:0;border:none;overflow:hidden;}
+.sheet .base-label{display:none;}
+.sheet.edit-mode .base-input{pointer-events:auto;opacity:1;width:44px;height:auto;padding:2px 0;border:1px solid var(--border-dark);overflow:visible;background:var(--bg-main);color:var(--text-dim);font-family:'Oswald',sans-serif;font-size:11px;text-align:center;}
+.sheet.edit-mode .base-label{display:block;}
 .sheet.edit-mode .base-input,.sheet.edit-mode .vnum{pointer-events:auto;opacity:1;background:#1a1a1c;border-color:var(--border-gold);color:var(--text-main);}
 .sheet.edit-mode .stat-box .total{cursor:default;}
 .sheet.edit-mode .stat-box .total:hover{color:var(--gold);text-shadow:none;}
+.sheet.edit-mode .skill-level,.sheet.edit-mode .skill-group-lvl{border-color:#c9602b;color:#e8843a;cursor:pointer;}
 .remove-row-btn{display:none;background:none;border:none;color:#e06a6a;cursor:pointer;font-size:14px;padding:0 4px;}
 .sheet.edit-mode .remove-row-btn{display:inline-block;}
 .add-row-btn{display:none;margin-top:10px;width:100%;background:var(--bg-panel-alt);border:1px dashed var(--border-gold);color:var(--gold);font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:11px;padding:8px;cursor:pointer;}
 .add-row-btn:hover{background:#242024;}
 .sheet.edit-mode .add-row-btn{display:block;}
-.sheet .add-injury-btn{display:none;}
 .sheet.edit-mode .add-injury-btn{display:block;}
 
 /* FOOTER */
@@ -314,7 +382,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .tab-btn{flex:1 1 45%;}
   .chr-grid{grid-template-columns:1fr !important;}
   .sheet .header{flex-wrap:wrap;gap:14px;padding:16px;}
-  .header-right{margin-left:0;min-width:0;width:100%;}
+  .header-right{min-width:0;width:100%;}.header > .rank-icon{width:60px;height:60px;}
   .sheet .titles{flex:1 1 200px;min-width:0;}
   .sheet .titles h1{font-size:21px;word-break:break-word;}
   .stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
@@ -337,32 +405,67 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .vital-row .vnum{width:46px;}
 }
 html,body{max-width:100%;overflow-x:hidden;}
-.sheet{max-width:min(1280px,100%);}
 .stats-strip{min-width:0;}
 .stat-box{min-width:0;}
 
   /* ========== ADVANCEMENT TAB ========== */
+  .advancement-subtabs{display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border-gold);}
+  .advancement-subtab{flex:1;padding:10px;background:#100f11;border:1px solid var(--border-dark);border-bottom:none;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);cursor:pointer;font-family:'Cinzel',serif;font-weight:600;}
   .advancement-subtab.active{background:linear-gradient(180deg,rgba(140,28,28,.25),transparent);color:var(--gold);box-shadow:inset 0 -3px 0 var(--red-bright);}
   .advancement-subtab:hover{background:#1c1a1d;color:var(--text-main);}
+  .advancement-wrapper{padding:18px 22px;}
 
-  .advancement-item{background:#101012;border:1px solid var(--border-dark);padding:12px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+  /* XP BAR */
+  .adv-xp-bar{display:flex;gap:24px;padding:12px 16px;background:#101012;border:1px solid var(--border-dark);margin-bottom:14px;align-items:center;}
+  .adv-xp-info{display:flex;gap:6px;align-items:baseline;}
+  .adv-xp-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;}
+  .adv-xp-value{font-weight:600;color:var(--green);font-size:14px;}
+  .adv-xp-value.spent{color:var(--gold);}
+  .adv-xp-value.total{color:var(--text-main);}
+
+  /* SOURCE TABS */
+  .adv-source-tabs{display:flex;gap:2px;margin-bottom:12px;}
+  .adv-source-tab{flex:1;padding:9px;text-align:center;background:#101012;border:1px solid var(--border-dark);color:var(--text-dim);cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.5px;transition:all .15s;}
+  .adv-source-tab:hover{background:#1c1a1d;color:var(--text-main);}
+  .adv-source-tab.active{color:var(--gold);border-color:var(--border-gold);background:#161618;}
+
+  /* CONTROLS */
+  .adv-controls{display:flex;gap:8px;margin-bottom:12px;}
+  .adv-filter-select{background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);padding:7px 10px;font-family:inherit;font-size:12px;min-width:180px;}
+  .adv-filter-select:focus{outline:none;border-color:var(--border-gold);}
+  .adv-search-input{flex:1;padding:7px 10px;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);font-family:inherit;font-size:12px;}
+  .adv-search-input:focus{outline:none;border-color:var(--border-gold);}
+
+  /* LIST ITEMS */
+  .advancement-list{max-height:55vh;overflow-y:auto;padding-right:4px;}
+  .advancement-item{background:#101012;border:1px solid var(--border-dark);padding:12px;margin-bottom:8px;cursor:pointer;transition:all .15s;}
   .advancement-item:hover{border-color:var(--border-gold);}
-  .advancement-item.locked{opacity:.55;}
   .advancement-item.available{border-left:3px solid var(--green);}
+  .advancement-item.locked{opacity:.55;border-left:3px solid var(--border-dark);}
+  .advancement-item.purchased{opacity:.4;border-left:3px solid var(--gold);cursor:default;}
 
-  .adv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;}
+  .adv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:2px;}
   .adv-name{font-weight:600;color:var(--gold);font-size:13px;}
-  .adv-requirements{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
-  .adv-price{font-weight:600;color:var(--green);font-size:12px;text-align:right;}
-  .adv-desc-short{font-size:12px;color:var(--text-dim);line-height:1.4;margin-top:4px;}
-  .adv-desc-toggle{font-size:10px;color:var(--gold);cursor:pointer;margin-top:4px;text-decoration:underline;}
-  .adv-desc-full{display:none;font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-dark);}
-  .adv-desc-full.open{display:block;}
+  .adv-rank-badge{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+  .adv-price{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}
+  .adv-price.ok{color:var(--green);}
+  .adv-price.expensive{color:var(--red-bright);}
+  .adv-req{font-size:10px;color:var(--text-dim);margin-top:4px;line-height:1.4;}
+  .adv-req.not-met{color:var(--red-bright);font-weight:600;}
 
-  .adv-buy-btn{display:none;width:100%;margin-top:8px;padding:6px;background:var(--green);color:#000;border:none;font-size:11px;text-transform:uppercase;font-weight:600;cursor:pointer;letter-spacing:.5px;}
-  .advancement-item.available .adv-buy-btn{display:block;}
-  .adv-buy-btn:hover{background:#5fd185;}
-  .advancement-item.locked .adv-buy-btn{display:none;}
+  .adv-buy-btn{display:none;width:100%;margin-top:8px;padding:6px;border:none;font-size:11px;text-transform:uppercase;font-weight:600;cursor:pointer;letter-spacing:.5px;transition:background .12s;}
+  .advancement-item.available .adv-buy-btn{display:block;background:var(--green);color:#000;}
+  .advancement-item.available .adv-buy-btn:hover{background:#5fd185;}
+  .advancement-item.locked .adv-buy-btn{display:block;background:var(--red);color:#fff;}
+  .advancement-item.locked .adv-buy-btn:hover{background:var(--red-bright);}
+  .advancement-item.purchased .adv-buy-btn{display:none;}
+  .adv-purchased-badge{display:none;font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-top:6px;}
+  .advancement-item.purchased .adv-purchased-badge{display:block;}
+
+  /* BUY MODAL */
+  .buy-warning{background:rgba(140,28,28,.15);border:1px solid var(--red-bright);padding:8px 12px;margin-bottom:6px;font-size:12px;color:var(--red-bright);line-height:1.4;}
+  .buy-info{font-size:13px;color:var(--text-main);margin-bottom:6px;}
+  .buy-info b{color:var(--gold);}
 
   /* ========== CHAPTER / SPEC / PLUS MODALS ========== */
   #chapter-modal,
@@ -589,7 +692,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 
   <!-- HEADER -->
   <div class="header">
-    <div class="icon">✠</div>
+    <div class="icon"><img id="sh-chapter-img" src="" alt="Chapter"></div>
     <div class="titles">
       <h1 id="sh-name">—</h1>
       <div class="sub" id="sh-tags">
@@ -625,19 +728,18 @@ html,body{max-width:100%;overflow-x:hidden;}
 
     </div>
     <div class="header-right">
-      <div>
-        <div class="rank-title" id="sh-rank">Караул Смерти Ранг — 1</div>
-        <div class="xp-bar-mini"><div class="xp-bar-fill" id="sh-xpbar" style="width:0%"></div></div>
-        <div class="xp-info">
-          <span>Потрачено: <span class="xp-value" id="sh-xpspent">0</span></span>
-          <span>Доступно: <span class="xp-value" id="xp-available" title="Нажмите, чтобы увидеть расходование">0</span></span>
+      <div class="rank-title"><span class="rank-chapter" id="sh-chapter">Орден</span> <span class="rank-num">Ранг — <span id="sh-rank-num">1</span></span></div>
+      <div class="bar-clickable" id="xp-bar-click" title="Нажмите для просмотра расходов">
+        <div class="bar-track"><div class="bar-fill xp" id="sh-xpbar" style="width:0%"></div><span class="bar-text" id="sh-xptext">0 / 13 000</span></div>
+      </div>
+      <div class="renown-section">
+        <div class="renown-title">Слава — <span class="renown-name" id="sh-renown">Посвящённый</span></div>
+        <div class="bar-clickable" id="renown-bar-click" title="Нажмите для изменения славы">
+          <div class="bar-track"><div class="bar-fill renown" id="sh-renownbar" style="width:0%"></div><span class="bar-text" id="sh-renowntext">0 / 19</span></div>
         </div>
       </div>
-      <div class="renown-row">
-        <div><div class="renown-label">Слава</div><div class="renown-name" id="sh-renown">—</div></div>
-        <div class="renown-icon">☩</div>
-      </div>
     </div>
+    <div class="rank-icon" id="sh-rank-icon"><img id="sh-rank-img" src="" alt="Rank"></div>
   </div>
 
   <!-- TABS -->
@@ -667,11 +769,21 @@ html,body{max-width:100%;overflow-x:hidden;}
         <div class="panel-body" id="vitals-body"></div>
       </div>
 
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Личное снаряжение</span><span class="chevron">▾</span></div>
+      <div class="panel col-span-2">
+        <div class="section-title"><span>Умения</span><span class="chevron">▾</span></div>
         <div class="panel-body">
-          <div data-list="gear"></div>
-          <button class="add-row-btn" data-add="gear">+ Добавить предмет</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <div class="skill-subtitle skill-collapse-toggle" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Базовые</span><span class="chevron">▾</span></div>
+              <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-basic');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-basic" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
+              <div id="skills-basic-render"></div>
+            </div>
+            <div>
+              <div class="skill-subtitle skill-collapse-toggle" style="margin-top:0;" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Продвинутые</span><span class="chevron">▾</span></div>
+              <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-adv');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-adv" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
+              <div id="skills-adv-render"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -698,32 +810,29 @@ html,body{max-width:100%;overflow-x:hidden;}
                 </div>
               </li>
             </ul>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="section-title"><span>Обстоятельства боя</span><span class="chevron">▾</span></div>
-          <div class="panel-body" style="padding:0;">
-            <div class="circumstances-grid">
-              <div style="display:flex;flex-direction:column;">
-                <div class="toggle-row" data-toggle="rage" data-tooltip="Боец охвачен Праведным Гневом — бонус к атакам и урону"><span class="t-label">Праведный гнев</span><div class="toggle-dot"></div></div>
-                <div class="toggle-row" data-toggle="fatigue" data-tooltip="Боец устал и получает штраф к действиям"><span class="t-label">Усталость</span><div class="toggle-dot"></div></div>
-                <div class="toggle-row" data-toggle="dark" data-tooltip="Видимость снижена — штраф к атакам и восприятию"><span class="t-label">Темнота</span><div class="toggle-dot"></div></div>
-                <div class="toggle-row" data-toggle="terrain" data-tooltip="Боец затруднён при движении через препятствия"><span class="t-label">Пересечение местности</span><div class="toggle-dot"></div></div>
-                <div class="toggle-row" data-toggle="suppressed" data-tooltip="Противник подавляет огнём"><span class="t-label">Подавлен огнём</span><div class="toggle-dot"></div></div>
-                <div class="toggle-row" data-toggle="weather" data-tooltip="Необычные условия или погода влияют на бой"><span class="t-label">Необычные / Погодные условия</span><div class="toggle-dot"></div></div>
-              </div>
-              <div style="display:flex;flex-direction:column;">
-                <div class="toggle-row" data-toggle="called" data-tooltip="Атака целится в конкретную часть тела"><span class="t-label">Точечная атака</span><div class="toggle-dot"></div></div>
-                <div class="aim-row">
-                  <span class="t-label">Прицеливание</span>
-                  <div class="aim-toggle">
-                    <div class="aim-opt" data-aim="half" data-tooltip="Полудействие прицеливания — небольшой бонус">ПД</div>
-                    <div class="aim-opt" data-aim="full" data-tooltip="Полное действие прицеливания — большой бонус">Полное</div>
-                  </div>
+            <div class="skill-subtitle skill-collapse-toggle" style="margin-top:10px;" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Обстоятельства боя</span><span class="chevron">▾</span></div>
+            <div>
+              <div class="circumstances-grid">
+                <div style="display:flex;flex-direction:column;">
+                  <div class="toggle-row" data-toggle="rage" data-tooltip="Боец охвачен Праведным Гневом — бонус к атакам и урону"><span class="t-label">Праведный гнев</span><div class="toggle-dot"></div></div>
+                  <div class="toggle-row" data-toggle="fatigue" data-tooltip="Боец устал и получает штраф к действиям"><span class="t-label">Усталость</span><div class="toggle-dot"></div></div>
+                  <div class="toggle-row" data-toggle="dark" data-tooltip="Видимость снижена — штраф к атакам и восприятию"><span class="t-label">Темнота</span><div class="toggle-dot"></div></div>
+                  <div class="toggle-row" data-toggle="terrain" data-tooltip="Боец затруднён при движении через препятствия"><span class="t-label">Пересечение местности</span><div class="toggle-dot"></div></div>
+                  <div class="toggle-row" data-toggle="suppressed" data-tooltip="Противник подавляет огнём"><span class="t-label">Подавлен огнём</span><div class="toggle-dot"></div></div>
+                  <div class="toggle-row" data-toggle="weather" data-tooltip="Необычные условия или погода влияют на бой"><span class="t-label">Необычные / Погодные условия</span><div class="toggle-dot"></div></div>
                 </div>
-                <div class="toggle-row" data-toggle="careful" data-tooltip="Осторожная атака"><span class="t-label">Осторожная атака</span><div class="toggle-dot"></div></div>
-                <div class="toggle-row" data-toggle="stun" data-tooltip="Попытка оглушить врага"><span class="t-label">Оглушение</span><div class="toggle-dot"></div></div>
+                <div style="display:flex;flex-direction:column;">
+                  <div class="toggle-row" data-toggle="called" data-tooltip="Атака целится в конкретную часть тела"><span class="t-label">Точечная атака</span><div class="toggle-dot"></div></div>
+                  <div class="aim-row">
+                    <span class="t-label">Прицеливание</span>
+                    <div class="aim-toggle">
+                      <div class="aim-opt" data-aim="half" data-tooltip="Полудействие прицеливания — небольшой бонус">ПД</div>
+                      <div class="aim-opt" data-aim="full" data-tooltip="Полное действие прицеливания — большой бонус">Полное</div>
+                    </div>
+                  </div>
+                  <div class="toggle-row" data-toggle="careful" data-tooltip="Осторожная атака"><span class="t-label">Осторожная атака</span><div class="toggle-dot"></div></div>
+                  <div class="toggle-row" data-toggle="stun" data-tooltip="Попытка оглушить врага"><span class="t-label">Оглушение</span><div class="toggle-dot"></div></div>
+                </div>
               </div>
             </div>
           </div>
@@ -731,14 +840,10 @@ html,body{max-width:100%;overflow-x:hidden;}
       </div>
 
       <div class="panel col-span-1">
-        <div class="section-title"><span>Умения</span><span class="chevron">▾</span></div>
+        <div class="section-title"><span>Личное снаряжение</span><span class="chevron">▾</span></div>
         <div class="panel-body">
-          <div class="skill-subtitle">Базовые</div>
-          <div data-list="skills_basic"></div>
-          <button class="add-row-btn" data-add="skills_basic">+ Добавить базовое умение</button>
-          <div class="skill-subtitle" style="margin-top:14px;">Продвинутые</div>
-          <div data-list="skills_adv"></div>
-          <button class="add-row-btn" data-add="skills_adv">+ Добавить продвинутое умение</button>
+          <div data-list="gear"></div>
+          <button class="add-row-btn" data-add="gear">+ Добавить предмет</button>
         </div>
       </div>
 
@@ -880,25 +985,56 @@ html,body{max-width:100%;overflow-x:hidden;}
 
   <!-- TAB 6: УЛУЧШЕНИЕ / РЕКВИЗИЦИЯ -->
   <div class="tab-content" id="tab-advancement">
-    <div class="advancement-wrapper" style="padding:18px 22px;">
-      <!-- Подвкладки -->
-      <div class="advancement-subtabs" style="display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border-gold);">
-        <button class="advancement-subtab active" data-subadv="improvements" style="flex:1;padding:10px;background:#100f11;border:1px solid var(--border-dark);border-bottom:none;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);cursor:pointer;font-family:'Cinzel',serif;font-weight:600;">Улучшения</button>
-        <button class="advancement-subtab" data-subadv="requisition" style="flex:1;padding:10px;background:#100f11;border:1px solid var(--border-dark);border-bottom:none;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);cursor:pointer;font-family:'Cinzel',serif;font-weight:600;">Реквизиция</button>
+    <div class="advancement-wrapper">
+
+      <!-- XP INFO — ВСЁ ВВЕРХУ -->
+      <div class="adv-xp-bar">
+        <div class="adv-xp-info">
+          <span class="adv-xp-label">Доступно:</span>
+          <span class="adv-xp-value" id="adv-xp-available">0 XP</span>
+        </div>
+        <div class="adv-xp-info">
+          <span class="adv-xp-label">Потрачено:</span>
+          <span class="adv-xp-value spent" id="adv-xp-spent">0 XP</span>
+        </div>
+        <div class="adv-xp-info">
+          <span class="adv-xp-label">Получено:</span>
+          <span class="adv-xp-value total" id="adv-xp-total">0 XP</span>
+        </div>
+      </div>
+
+      <!-- Подвкладки: Улучшения / Реквизиция -->
+      <div class="advancement-subtabs">
+        <button class="advancement-subtab active" data-subadv="improvements">Улучшения</button>
+        <button class="advancement-subtab" data-subadv="requisition">Реквизиция</button>
       </div>
 
       <!-- ПОДВКЛАДКА: УЛУЧШЕНИЯ -->
       <div id="adv-improvements" class="advancement-content active">
-        <div class="advancement-header" style="margin-bottom:16px;">
-          <input type="text" id="adv-search" placeholder="Поиск улучшения..." style="width:100%;padding:8px 10px;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);font-family:inherit;">
+
+        <!-- Источники: Общие / Специализация / Орден -->
+        <div class="adv-source-tabs">
+          <button class="adv-source-tab active" data-source="general">Общие</button>
+          <button class="adv-source-tab" data-source="specialization">Специализация</button>
+          <button class="adv-source-tab" data-source="chapter">Орден</button>
         </div>
+
+        <!-- Фильтр + Поиск -->
+        <div class="adv-controls">
+          <select id="adv-filter" class="adv-filter-select">
+            <option value="all">Все</option>
+          </select>
+          <input type="text" id="adv-search" placeholder="Поиск улучшения..." class="adv-search-input">
+        </div>
+
+        <!-- Список улучшений -->
         <div id="adv-list" class="advancement-list"></div>
       </div>
 
       <!-- ПОДВКЛАДКА: РЕКВИЗИЦИЯ -->
       <div id="adv-requisition" class="advancement-content" style="display:none;">
-        <div class="advancement-header">
-          <p style="color:var(--text-dim);text-align:center;padding:20px 0">Реквизиция — приобретение вооружения и снаряжения (позже)</p>
+        <div style="color:var(--text-dim);text-align:center;padding:40px 0">
+          Реквизиция — приобретение вооружения и снаряжения (позже)
         </div>
       </div>
     </div>
@@ -957,10 +1093,29 @@ html,body{max-width:100%;overflow-x:hidden;}
 
 <div class="modal-overlay" id="xp-modal">
   <div class="modal-box">
-    <h3>Расходование опыта</h3>
+    <h3>Опыт персонажа</h3>
+    <div class="xp-add-row">
+      <input type="number" id="xp-amount-input" value="0" min="0" class="xp-amount-input">
+      <button class="modal-confirm" onclick="addXpManual()">+ Добавить</button>
+      <button class="modal-close" onclick="subXpManual()">− Отнять</button>
+    </div>
+    <div class="modal-divider"></div>
     <div id="xp-entries"></div>
     <div class="modal-total" id="xp-total">Итого потрачено: 0 XP</div>
     <button class="modal-close" onclick="closeSheetModal('xp-modal')">Закрыть</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="renown-modal">
+  <div class="modal-box">
+    <h3>Слава персонажа</h3>
+    <div class="renown-current" id="renown-current-display">Текущая слава: 0</div>
+    <div class="xp-add-row">
+      <input type="number" id="renown-amount-input" value="0" min="0" class="xp-amount-input">
+      <button class="modal-confirm" onclick="addRenown()">+ Добавить</button>
+      <button class="modal-close" onclick="subRenown()">− Отнять</button>
+    </div>
+    <button class="modal-close" onclick="closeSheetModal('renown-modal')">Закрыть</button>
   </div>
 </div>
 
@@ -1115,6 +1270,32 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+function debounce(fn, ms){
+  let t;
+  return function(...args){
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
+const DOM = {};
+function cacheDom(){
+  ['sh-name','sh-rank','sh-xpspent','sh-xpbar','sh-renown',
+   'xp-available','editBtn','deleteBtn','sheet-root','tooltip',
+   'stats-body','vitals-body','pick-title','pick-results',
+   'pick-search','pick-manual','psy-rating-base','psy-rating-display',
+   'psy-corruption','psy-corr-bar','armour-name','info-title','info-desc',
+   'timeline-events','timeline-rolls','tl-add-btn','chr-title','chr-role',
+   'chronicle-list','character-list','gm-character-list','dash-user',
+   'injuries-list'].forEach(id => DOM[id] = $(id));
+}
+
+function setLoading(el, loading){
+  if (!el) return;
+  if (loading) el.classList.add('loading');
+  else el.classList.remove('loading');
+}
+
 let toastTimer;
 function toast(msg){
   const t = $('toast');
@@ -1142,8 +1323,11 @@ function showScreen(name){
 async function doLogin(){
   const name = $('login-name').value.trim();
   if (!name) return toast('Введите вокс-аутентификатор');
+  const btn = document.querySelector('#screen-login button');
+  setLoading(btn, true);
   const { data, error } = await sb.from('users_simple')
     .select('id, username').eq('username', name).maybeSingle();
+  setLoading(btn, false);
   if (error) return toast('Ошибка: ' + error.message);
   if (!data) return toast('Аутентификатор не найден. Зарегистрируйте его.');
   S.user = data;
@@ -1181,6 +1365,7 @@ async function showDash(){
 
 async function loadChronicles(){
   const box = $('chronicle-list');
+  box.innerHTML = '<div class="empty">Загрузка хроник...</div>';
   const { data, error } = await sb.from('chronicle_members')
     .select('role, chronicles(id, name, creator_id)')
     .eq('user_id', S.user.id);
@@ -1283,6 +1468,8 @@ function charCard(c){
 async function loadCharacters(){
   const box = $('character-list'), gmBox = $('gm-character-list');
   const isGm = S.role === 'gm';
+  box.innerHTML = '<div class="empty">Загрузка...</div>';
+  gmBox.innerHTML = '';
 
   let q = sb.from('characters')
     .select('id, name, is_gm_character, user_id, users_simple(username)')
@@ -1309,7 +1496,7 @@ async function loadCharacters(){
 // ==== ХРОНОЛОГИЯ ====
 async function loadEvents(){
   const box = $('timeline-events');
-  box.innerHTML = '<div class="empty">Загрузка...</div>';
+  box.innerHTML = '<div class="empty">Загрузка событий...</div>';
   const { data, error } = await sb.from('chronicle_events')
     .select('id, title, body, event_date')
     .eq('chronicle_id', S.chronicle.id).order('id', { ascending: false });
@@ -1355,6 +1542,7 @@ async function deleteEvent(id){
 async function createCharacter(){
   const name = $('char-name-input').value.trim();
   if (!name) return toast('Введите имя');
+  await loadSkillsFromDB();
   const { error } = await sb.from('characters').insert({
     name,
     chronicle_id: S.chronicle.id,
@@ -1399,7 +1587,6 @@ const STATS = [
 const VITALS = [
   ['wounds','max_wounds','Раны','Текущее здоровье персонажа','', ''],
   ['fate','max_fate','Очки Судьбы','Очки судьбы позволяют переписать историю и избежать верной смерти','fate',''],
-  ['cohesion','max_cohesion','Сплочённость','Боевой дух и единство отряда','fate',''],
   ['corruption','max_corruption','Порча','Воздействие Хаоса и тёмных сил','corruption',''],
   ['insanity','insanity_threshold','Безумие','Психологический урон и навязчивые мысли','corruption','']
 ];
@@ -1471,6 +1658,22 @@ async function loadSpecializations(){
   }
 }
 
+let DB_SKILLS = [];
+
+async function loadSkillsFromDB(){
+  if (DB_SKILLS.length) return DB_SKILLS;
+  const { data, error } = await sb.from('skills')
+    .select('id, name, characteristic, category, description')
+    .order('name');
+  if (error){ console.error('loadSkillsFromDB:', error); return []; }
+  DB_SKILLS = data || [];
+  return DB_SKILLS;
+}
+
+function makeSkillRow(s){
+  return { name: s.name, characteristic: s.characteristic, level: 'untrained', gifted: false, desc: s.description || '' };
+}
+
 function blankSheet(){
   const d = {
     info:{ chapter:'', specialization:'', campaign:'', demeanour:'',
@@ -1485,18 +1688,42 @@ function blankSheet(){
   d.vitals.max_wounds = 22; d.vitals.fate = 3; d.vitals.max_fate = 3;
   d.vitals.max_cohesion = 10; d.vitals.max_corruption = 50;
   d.vitals.insanity_threshold = 50;
+  d.vitals.crit_wounds = 0;
   d.vitals.rank = 1; d.vitals.renown = 0;
   d.vitals.xp_total = 0; d.vitals.xp_spent = 0;
   Object.keys(SECTIONS).forEach(k => d[k] = []);
   return d;
 }
 
+const STAT_KEY_MAP = { s:'sil', t:'wyn', ag:'lov', bs:'bb', wp:'sv', ws:'db', fel:'obsh', int:'int', per:'vos' };
+
+function normalizeSkillArray(arr){
+  if (!Array.isArray(arr)) return [];
+  return arr.map(r => {
+    if (typeof r === 'string') return { name: r, characteristic:'', level:'untrained', gifted:false, desc:'', groups_enabled:false, groups:[] };
+    return {
+      name: r.name || '',
+      characteristic: r.characteristic || '',
+      level: r.level || 'untrained',
+      gifted: !!r.gifted,
+      desc: r.desc || r.description || '',
+      groups_enabled: !!r.groups_enabled,
+      groups: Array.isArray(r.groups) ? r.groups.map(g => ({
+        name: g.name || '', level: g.level || 'untrained', characteristic: g.characteristic || ''
+      })) : []
+    };
+  });
+}
+
 function normalize(raw){
   const b = blankSheet();
   const d = raw || {};
+  const inStats = d.stats || {};
+  const mapped = {};
+  Object.keys(inStats).forEach(k => { mapped[STAT_KEY_MAP[k] || k] = inStats[k]; });
   const out = {
     info:   Object.assign(b.info, d.info || {}),
-    stats:  Object.assign(b.stats, d.stats || {}),
+    stats:  Object.assign(b.stats, mapped),
     vitals: Object.assign(b.vitals, d.vitals || {}),
     armour: Object.assign(b.armour, d.armour || {}),
     circumstances: d.circumstances || {},
@@ -1508,6 +1735,15 @@ function normalize(raw){
   };
   Object.keys(SECTIONS).forEach(k => out[k] = Array.isArray(d[k]) ? d[k] : []);
   if (Array.isArray(d.skills) && d.skills.length) out.skills_basic = d.skills;
+  out.skills_basic = normalizeSkillArray(out.skills_basic);
+  out.skills_adv = normalizeSkillArray(out.skills_adv);
+  if (!out.skills_basic.length && !out.skills_adv.length && DB_SKILLS.length){
+    DB_SKILLS.forEach(s => {
+      const row = makeSkillRow(s);
+      if (s.category === 'Базовое') out.skills_basic.push(row);
+      else out.skills_adv.push(row);
+    });
+  }
   return out;
 }
 
@@ -1536,8 +1772,11 @@ function checkEasterEgg(raw){
 
 // ==== ОТКРЫТИЕ ЛИСТА ====
 async function openSheet(id){
+  setLoading($('sheet-root'), true);
+  await loadSkillsFromDB();
   const { data, error } = await sb.from('characters')
     .select('*, users_simple(username)').eq('id', id).single();
+  setLoading($('sheet-root'), false);
   if (error) return toast('Ошибка: ' + error.message);
   S.character = data;
   S.character.character_data = normalize(data.character_data);
@@ -1545,6 +1784,7 @@ async function openSheet(id){
 
   if (CHAPTERS.length === 0) await loadChapters();
   if (SPECIALIZATIONS.length === 0) await loadSpecializations();
+  if (ADV_CATALOG.length === 0) await loadAdvCatalog();
 
   showScreen('sheet');
   renderSheet();
@@ -1573,6 +1813,7 @@ renderTagsAfterSpec();
   renderVitals();
   renderHeaderXp();
   Object.keys(SECTIONS).forEach(renderList);
+  renderSkills();
   renderInjuries();
   renderArmour();
   renderPsy();
@@ -1582,6 +1823,33 @@ renderTagsAfterSpec();
   bindTooltips();
   bindCollapse();
   setEditButtons();
+}
+
+function updateStatsOnly(){
+  if (!S.character) return;
+  const d = S.character.character_data;
+
+  const chapterTag = document.getElementById('chapter-wrapper');
+  document.querySelector('[data-selector="chapter"]').textContent = d.info.chapter || 'Орден не определен';
+  chapterTag.style.display = '';
+
+  const specTag = document.getElementById('specialization-wrapper');
+  document.querySelector('[data-selector="specialization"]').textContent = d.info.specialization || 'Специализация не определена';
+  specTag.style.display = '';
+
+  renderTagsAfterSpec();
+
+  STATS.forEach(([k, nm]) => {
+    const bx = $('bx-' + k);
+    if (bx) bx.textContent = bonusOf(d.stats[k]);
+    const tot = document.querySelector(`[data-roll="${k}"]`);
+    if (tot) tot.textContent = d.stats[k];
+    const inp = document.querySelector(`[data-stat="${k}"]`);
+    if (inp) inp.value = d.stats[k];
+  });
+  renderHeaderXp();
+  updateDerived();
+  renderPsy();
 }
 
 // ========== СИСТЕМА ТЭГОВ ==========
@@ -1675,6 +1943,7 @@ function renderStats(){
       const tot = $('stats-body').querySelector(`[data-roll="${k}"]`);
       tot.textContent = d.stats[k];
       updateDerived();
+      debouncedSave();
     });
   });
   bindRolls();
@@ -1682,31 +1951,59 @@ function renderStats(){
 
 function renderVitals(){
   const d = S.character.character_data, v = d.vitals;
-  $('vitals-body').innerHTML = VITALS.map(([cur, max, nm, tip, cls], i) => {
+  let html = '';
+
+  html += VITALS.filter(([k]) => k !== 'insanity').map(([cur, max, nm, tip, cls], i) => {
     const pct = v[max] ? Math.min(100, Math.round(v[cur] / v[max] * 100)) : 0;
+    const critBlock = cur === 'wounds' && v.wounds === 0 ? `
+      <div class="vital-row" style="margin-top:10px">
+        <span class="label" data-tooltip="Критические ранения">Крит. ранения</span>
+        <span class="row tight" style="gap:2px;align-items:center">
+          <button class="vit-arrow" data-vit-down="crit_wounds">◀</button>
+          <input class="vnum" type="number" value="${v.crit_wounds || 0}" data-vit="crit_wounds">
+          <span style="color:#9a958a">/</span>
+          <input class="vnum" type="number" value="10" readonly>
+          <button class="vit-arrow" data-vit-up="crit_wounds">▶</button>
+        </span>
+      </div>
+      <div class="bar-wrap"><div class="bar-fill crit-wounds" data-bar="crit_wounds" style="width:${(v.crit_wounds||0)*10}%"></div></div>` : '';
     return `<div class="vital-row" ${i ? 'style="margin-top:14px"' : ''}>
         <span class="label" data-tooltip="${esc(tip)}">${nm}</span>
-        <span class="row tight" style="gap:4px">
+        <span class="row tight" style="gap:2px;align-items:center">
+          <button class="vit-arrow" data-vit-down="${cur}">◀</button>
           <input class="vnum" type="number" value="${v[cur]}" data-vit="${cur}">
           <span style="color:#9a958a">/</span>
           <input class="vnum" type="number" value="${v[max]}" data-vit="${max}">
+          <button class="vit-arrow" data-vit-up="${cur}">▶</button>
         </span>
       </div>
-      <div class="bar-wrap"><div class="bar-fill ${cls}" data-bar="${cur}" style="width:${pct}%"></div></div>`;
-  }).join('') + `
-    <div class="vital-row" style="margin-top:14px">
-      <span class="label" data-tooltip="Ранг в Карауле Смерти">Ранг</span>
-      <input class="vnum" type="number" value="${v.rank}" data-vit="rank">
+      <div class="bar-wrap"><div class="bar-fill ${cls}" data-bar="${cur}" style="width:${pct}%"></div></div>${critBlock}`;
+  }).join('');
+
+  const ins = v.insanity || 0;
+  const thresholds = [30, 60, 90, 100];
+  html += `<div class="vital-row" style="margin-top:14px">
+      <span class="label" data-tooltip="Психологический урон и навязчивые мысли">Безумие</span>
+      <span class="row tight" style="gap:2px;align-items:center">
+        <button class="vit-arrow" data-vit-down="insanity">◀</button>
+        <input class="vnum" type="number" value="${ins}" data-vit="insanity">
+        <span style="color:#9a958a">/</span>
+        <input class="vnum" type="number" value="${v.insanity_threshold || 100}" data-vit="insanity_threshold">
+        <button class="vit-arrow" data-vit-up="insanity">▶</button>
+      </span>
     </div>
-    <div class="vital-row">
-      <span class="label" data-tooltip="Очки славы">Слава</span>
-      <input class="vnum" type="number" value="${v.renown}" data-vit="renown">
-    </div>
-    <div class="vital-row">
-      <span class="label">Опыт получен</span>
-      <input class="vnum" type="number" value="${v.xp_total}" data-vit="xp_total">
-    </div>
-    <div class="injuries-section" id="injuries-section">
+    <div class="madness-bar">
+      ${thresholds.map((thr, i) => {
+        const prev = i === 0 ? 0 : thresholds[i-1];
+        let cls = '';
+        if (ins >= thr) cls = 'filled';
+        else if (ins > prev) cls = 'partial';
+        const fillPct = cls === 'partial' ? ((ins - prev) / (thr - prev) * 100) : 0;
+        return `<div class="madness-seg ${cls}" data-threshold="${thr}" ${cls==='partial'?`style="--fill:${fillPct}%"`:''}></div>`;
+      }).join('')}
+    </div>`;
+
+  html += `<div class="injuries-section" id="injuries-section">
       <div class="section-title"><span>Критические травмы</span><span class="chevron">▾</span></div>
       <div class="panel-body">
         <ul class="injuries-list" id="injuries-list"></ul>
@@ -1714,10 +2011,26 @@ function renderVitals(){
       </div>
     </div>`;
 
+  $('vitals-body').innerHTML = html;
+
   $('vitals-body').querySelectorAll('[data-vit]').forEach(inp => {
     inp.addEventListener('input', () => {
       v[inp.dataset.vit] = Number(inp.value) || 0;
-      refreshBars(); renderHeaderXp(); renderPsy();
+      renderVitals(); refreshBars(); renderHeaderXp(); renderPsy(); debouncedSave();
+    });
+  });
+  $('vitals-body').querySelectorAll('[data-vit-up]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.vitUp;
+      v[k] = Math.min((v[k] || 0) + 1, 999);
+      renderVitals(); refreshBars(); renderHeaderXp(); renderPsy(); debouncedSave();
+    });
+  });
+  $('vitals-body').querySelectorAll('[data-vit-down]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.vitDown;
+      v[k] = Math.max((v[k] || 0) - 1, 0);
+      renderVitals(); refreshBars(); renderHeaderXp(); renderPsy(); debouncedSave();
     });
   });
   bindCollapse($('injuries-section'));
@@ -1729,26 +2042,107 @@ function refreshBars(){
     const bar = document.querySelector(`[data-bar="${cur}"]`);
     if (bar) bar.style.width = (v[max] ? Math.min(100, v[cur] / v[max] * 100) : 0) + '%';
   });
+  const cwBar = document.querySelector('[data-bar="crit_wounds"]');
+  if (cwBar) cwBar.style.width = ((v.crit_wounds||0) * 10) + '%';
+  const ins = v.insanity || 0;
+  document.querySelectorAll('.madness-seg').forEach(seg => {
+    const thr = Number(seg.dataset.threshold);
+    const prev = thr === 30 ? 0 : (thr === 60 ? 30 : (thr === 90 ? 60 : 90));
+    seg.classList.remove('filled','partial');
+    seg.style.removeProperty('--fill');
+    if (ins >= thr) seg.classList.add('filled');
+    else if (ins > prev) {
+      seg.classList.add('partial');
+      seg.style.setProperty('--fill', ((ins - prev) / (thr - prev) * 100) + '%');
+    }
+  });
 }
 
+const RANK_RANGES = [
+  {rank:1, min:13000, max:16999},
+  {rank:2, min:17000, max:20999},
+  {rank:3, min:21000, max:24999},
+  {rank:4, min:25000, max:29999},
+  {rank:5, min:30000, max:34999},
+  {rank:6, min:35000, max:39999},
+  {rank:7, min:40000, max:44999},
+  {rank:8, min:45000, max:49999},
+];
+
+const RENOWN_TIERS = [
+  {min:0, max:19, title:'Новичок'},
+  {min:30, max:39, title:'Уважаемый'},
+  {min:40, max:59, title:'Заслуженный'},
+  {min:60, max:79, title:'Прославленный'},
+  {min:80, max:Infinity, title:'Герой'},
+];
+
+const RANK_ICONS = {
+  0: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%201.png',
+  1: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%201.png',
+  2: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%202.png',
+  3: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%203.png',
+  4: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%204.png',
+  5: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%205.png',
+  6: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%206.png',
+  7: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%207.png',
+  8: 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/rank-icons/rank%208.png',
+};
+
+const CHAPTER_ICONS = {
+  'Ультрамарины': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/ultramarines.png',
+};
+
 function renderHeaderXp(){
-  const v = S.character.character_data.vitals;
-  const spent = (S.character.character_data.xp_log || [])
-    .reduce((a, x) => a + (Number(x.cost) || 0), 0) || v.xp_spent || 0;
-  const free = (v.xp_total || 0) - spent;
-  $('sh-xpspent').textContent = spent;
-  $('xp-available').textContent = free;
-  $('sh-xpbar').style.width = (v.xp_total ? Math.min(100, spent / v.xp_total * 100) : 0) + '%';
-  $('sh-rank').textContent = 'Караул Смерти Ранг — ' + (v.rank || 1);
-  $('sh-renown').textContent = renownTitle(v.renown || 0);
+  const d = S.character.character_data;
+  const v = d.vitals;
+  const total = v.xp_total || 0;
+  const spent = (d.xp_log || []).reduce((a,x) => a + (Number(x.cost)||0), 0);
+
+  const hasDW = (d.tags || []).includes('Караул Смерти');
+  const ch = d.info?.chapter || 'Орден';
+  const chEl = $('sh-chapter');
+  if (chEl) chEl.textContent = ch;
+  const chImg = $('sh-chapter-img');
+  if (chImg) chImg.src = CHAPTER_ICONS[ch] || '';
+
+  const rank = total >= 13000 ? Math.min(8, Math.floor((total - 13000) / 4000) + 1) : 0;
+  v.rank = rank;
+  const rankEl = $('sh-rank-num');
+  if (rankEl) rankEl.textContent = rank;
+  const rankImg = $('sh-rank-img');
+  if (rankImg) rankImg.src = RANK_ICONS[rank] || '';
+
+  const range = RANK_RANGES.find(r => r.rank === rank) || RANK_RANGES[0];
+  const progress = rank === 0 ? 0 : Math.min(100, Math.max(0, ((total - range.min) / (range.max - range.min)) * 100));
+  const xpBar = $('sh-xpbar');
+  const xpText = $('sh-xptext');
+  if (xpBar) xpBar.style.width = progress + '%';
+  if (xpText) xpText.textContent = rank === 0 ? total.toLocaleString('ru') + ' / 13 000' : total.toLocaleString('ru') + ' / ' + range.max.toLocaleString('ru');
+
+  const renown = v.renown || 0;
+  const tier = RENOWN_TIERS.find(t => renown >= t.min && renown <= t.max) || RENOWN_TIERS[0];
+  const tierIdx = RENOWN_TIERS.indexOf(tier);
+  const nextTier = RENOWN_TIERS[tierIdx + 1];
+  const renownProgress = nextTier ? Math.min(100, ((renown - tier.min) / (nextTier.min - tier.min)) * 100) : 100;
+  const rnName = $('sh-renown');
+  const rnBar = $('sh-renownbar');
+  const rnText = $('sh-renowntext');
+  if (rnName) rnName.textContent = tier.title;
+  if (rnBar) rnBar.style.width = renownProgress + '%';
+  if (rnText) rnText.textContent = renown + ' / ' + (nextTier ? nextTier.min : '∞');
+
+  const aAvail = $('adv-xp-available');
+  const aSpent = $('adv-xp-spent');
+  const aTotal = $('adv-xp-total');
+  if (aAvail) aAvail.textContent = (total - spent) + ' XP';
+  if (aSpent) aSpent.textContent = spent + ' XP';
+  if (aTotal) aTotal.textContent = total + ' XP';
 }
 
 function renownTitle(r){
-  if (r >= 80) return 'Легендарный';
-  if (r >= 60) return 'Прославленный';
-  if (r >= 40) return 'Уважаемый';
-  if (r >= 20) return 'Признанный';
-  return 'Посвящённый';
+  const tier = RENOWN_TIERS.find(t => r >= t.min && r <= t.max);
+  return tier ? tier.title : 'Новичок';
 }
 
 function renderList(key){
@@ -1761,15 +2155,6 @@ function renderList(key){
     return;
   }
   host.innerHTML = rows.map((r, i) => {
-    if (style === 'skill'){
-      const lvl = r.level || 'Trained';
-      const cls = /^\+/.test(lvl) ? '' : 'trained';
-      return `<div class="skill-item" data-open="${key}:${i}">
-        <span class="skill-name">${esc(r.name)}</span>
-        <span class="skill-level ${cls}" data-cycle="${key}:${i}">${esc(lvl)}</span>
-        <button class="remove-row-btn" data-del="${key}:${i}">✕</button>
-      </div>`;
-    }
     if (style === 'gear'){
       return `<div class="gear-item" data-open="${key}:${i}">
         <span class="g-name">${esc(r.name)}</span>
@@ -1795,16 +2180,6 @@ function bindListEvents(host){
       S.character.character_data[key].splice(Number(i), 1);
       renderList(key);
     }));
-  host.querySelectorAll('[data-cycle]').forEach(b =>
-    b.addEventListener('click', e => {
-      if (!editMode) return;
-      e.stopPropagation();
-      const [key, i] = b.dataset.cycle.split(':');
-      const row = S.character.character_data[key][Number(i)];
-      const seq = ['Trained', '+10', '+20'];
-      row.level = seq[(seq.indexOf(row.level || 'Trained') + 1) % seq.length];
-      renderList(key);
-    }));
   host.querySelectorAll('[data-open]').forEach(el =>
     el.addEventListener('click', () => {
       const [key, i] = el.dataset.open.split(':');
@@ -1813,10 +2188,186 @@ function bindListEvents(host){
     }));
 }
 
-document.addEventListener('click', e => {
-  const btn = e.target.closest('[data-add]');
-  if (btn) openPicker(btn.dataset.add);
-});
+const SKILL_LEVELS = ['untrained','trained','+10','+20'];
+const SKILL_LEVEL_LABELS = { untrained:'Не трен', trained:'Трен', '+10':'+10', '+20':'+20' };
+const SKILL_STAT_NAMES = { sil:'Сила', wyn:'Выносливость', lov:'Ловкость', int:'Интеллект', vos:'Восприятие', sv:'Сила воли', obsh:'Общительность', bb:'Баллистика', db:'Защита' };
+const CHARACTERISTICS = ['Сила','Выносливость','Ловкость','Интеллект','Восприятие','Сила воли','Общительность','Баллистика','Защита'];
+
+function chSelect(key, idx, val, extra){
+  const sel = `<select class="skill-ch-select" data-skill-ch="${key}:${idx}${extra||''}">`;
+  return sel + CHARACTERISTICS.map(c => `<option value="${c}"${c===val?' selected':''}>${c}</option>`).join('') + '</select>';
+}
+
+let currentSkillKey = null;
+let currentSkillIdx = null;
+
+function renderSkills(){
+  const hideBasic = $('hide-untrained-basic') && $('hide-untrained-basic').checked;
+  const hideAdv = $('hide-untrained-adv') && $('hide-untrained-adv').checked;
+  [['skills_basic',hideBasic],['skills_adv',hideAdv]].forEach(([key,hideUntrained]) => {
+    const container = document.getElementById(key === 'skills_basic' ? 'skills-basic-render' : 'skills-adv-render');
+    if (!container) return;
+    const rows = S.character.character_data[key] || [];
+    if (!rows.length){ container.innerHTML = ''; return; }
+    const sorted = rows.map((r,i) => ({...r, _idx:i})).sort((a,b) => {
+      const ca = (a.characteristic || '').localeCompare(b.characteristic || '');
+      if (ca !== 0) return ca;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    let html = '';
+    sorted.forEach(r => {
+      const lvl = r.level || 'untrained';
+      if (hideUntrained && lvl === 'untrained' && !r.groups_enabled) return;
+      if (hideUntrained && r.groups_enabled) return;
+      const cls = lvl === 'untrained' ? 'untrained' : (r.gifted ? 'gifted' : (lvl === 'trained' ? 'trained' : ''));
+      const hasGroups = r.groups_enabled && r.groups && r.groups.length;
+      const showLevel = !hasGroups;
+      html += `<div class="skill-item" data-skill-open="${key}:${r._idx}">
+        <span class="skill-name">${chSelect(key, r._idx, r.characteristic || '')} ${esc(r.name)}</span>`;
+      if (showLevel){
+        html += `<span class="skill-level ${cls}" data-skill-cycle="${key}:${r._idx}">${esc(SKILL_LEVEL_LABELS[lvl] || lvl)}</span>`;
+      }
+      html += `</div>`;
+      if (hasGroups){
+        html += `<div class="skill-groups-wrap">`;
+        r.groups.forEach((g, gi) => {
+          if (hideUntrained && (g.level || 'untrained') === 'untrained') return;
+          const glvl = g.level || 'untrained';
+          const gcls = glvl === 'untrained' ? '' : (r.gifted ? 'gifted' : '');
+          html += `<div class="skill-group-row">
+            <span class="skill-group-name">${esc(g.name)}</span>
+            ${chSelect(key, r._idx, g.characteristic || r.characteristic || '', ':'+gi)}
+            <span class="skill-group-lvl ${gcls}" data-skill-cycle-group="${key}:${r._idx}:${gi}">${esc(SKILL_LEVEL_LABELS[glvl] || glvl)}</span>
+            <button class="skill-group-del" data-skill-del-group="${key}:${r._idx}:${gi}">&times;</button>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+    });
+    container.innerHTML = html;
+    bindSkillEvents(container, key);
+  });
+}
+
+function bindSkillEvents(container, key){
+  container.querySelectorAll('[data-skill-ch]').forEach(el =>
+    el.addEventListener('change', e => {
+      e.stopPropagation();
+      const parts = el.dataset.skillCh.split(':');
+      const k = parts[0];
+      const idx = Number(parts[1]);
+      const gi = parts[2] !== undefined ? Number(parts[2]) : null;
+      if (gi !== null){
+        S.character.character_data[k][idx].groups[gi].characteristic = el.value;
+      } else {
+        S.character.character_data[k][idx].characteristic = el.value;
+      }
+      renderSkills();
+      debouncedSave();
+    }));
+  container.querySelectorAll('[data-skill-cycle]').forEach(el =>
+    el.addEventListener('click', e => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const [k, idx] = el.dataset.skillCycle.split(':');
+      openSkillDetail(k, Number(idx));
+    }));
+  container.querySelectorAll('[data-skill-cycle-group]').forEach(el =>
+    el.addEventListener('click', e => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const [k, idx] = el.dataset.skillCycleGroup.split(':');
+      openSkillDetail(k, Number(idx));
+    }));
+  container.querySelectorAll('[data-skill-del-group]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const [k, idx, gi] = el.dataset.skillDelGroup.split(':');
+      S.character.character_data[k][Number(idx)].groups.splice(Number(gi), 1);
+      renderSkills();
+      debouncedSave();
+    }));
+  container.querySelectorAll('[data-skill-open]').forEach(el =>
+    el.addEventListener('click', e => {
+      if (e.target.tagName === 'SELECT') return;
+      const [k, idx] = el.dataset.skillOpen.split(':');
+      openSkillDetail(k, Number(idx));
+    }));
+}
+
+function openSkillDetail(key, idx){
+  currentSkillKey = key;
+  currentSkillIdx = idx;
+  const row = S.character.character_data[key][idx];
+  $('sd-name').textContent = row.name;
+  $('sd-ch-select').innerHTML = `<select id="sd-ch" class="skill-ch-select" style="max-width:180px;font-size:12px;padding:3px 14px 3px 6px;">` +
+    CHARACTERISTICS.map(c => `<option value="${c}"${c===row.characteristic?' selected':''}>${c}</option>`).join('') + '</select>';
+  $('sd-ch').onchange = function(){
+    row.characteristic = this.value;
+    renderSkills();
+    debouncedSave();
+  };
+  $('sd-gifted').checked = !!row.gifted;
+  $('sd-groups-toggle').checked = !!row.groups_enabled;
+  $('sd-desc').innerHTML = row.desc || 'Описание отсутствует.';
+  $('sd-groups-section').style.display = row.groups_enabled ? '' : 'none';
+  renderSkillGroupsList();
+  $('sd-gifted').onchange = function(){
+    row.gifted = this.checked;
+    renderSkills();
+    debouncedSave();
+  };
+  $('sd-groups-toggle').onchange = function(){
+    row.groups_enabled = this.checked;
+    $('sd-groups-section').style.display = this.checked ? '' : 'none';
+    if (this.checked && !row.groups) row.groups = [];
+    renderSkills();
+    debouncedSave();
+  };
+  openSheetModal('skill-detail-modal');
+}
+
+function renderSkillGroupsList(){
+  if (currentSkillKey === null || currentSkillIdx === null) return;
+  const row = S.character.character_data[currentSkillKey][currentSkillIdx];
+  const list = $('sd-groups-list');
+  if (!row.groups || !row.groups.length){ list.innerHTML = '<div class="desc" style="padding:4px 0;font-size:12px;color:var(--text-dim);">Нет групп. Включите переключатель «Умение с группами?» и добавьте группы через описание умения.</div>'; return; }
+  list.innerHTML = row.groups.map((g, i) => {
+    const lvl = g.level || 'untrained';
+    const lbl = SKILL_LEVEL_LABELS[lvl] || lvl;
+    const chVal = g.characteristic || row.characteristic || '';
+    const chOpts = CHARACTERISTICS.map(c => `<option value="${c}"${c===chVal?' selected':''}>${c}</option>`).join('');
+    return `<div class="skill-group-row">
+      <span class="skill-group-name">${esc(g.name)}</span>
+      <select class="skill-ch-select" data-modal-ch-group="${i}">${chOpts}</select>
+      <span class="skill-group-lvl" data-modal-cycle-group="${i}">${esc(lbl)}</span>
+      <button class="skill-group-del" data-modal-del-group="${i}">&times;</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-modal-ch-group]').forEach(el =>
+    el.addEventListener('change', () => {
+      row.groups[Number(el.dataset.modalChGroup)].characteristic = el.value;
+      renderSkillGroupsList();
+      renderSkills();
+      debouncedSave();
+    }));
+  list.querySelectorAll('[data-modal-cycle-group]').forEach(el =>
+    el.addEventListener('click', () => {
+      const g = row.groups[Number(el.dataset.modalCycleGroup)];
+      const cur = SKILL_LEVELS.indexOf(g.level || 'untrained');
+      g.level = SKILL_LEVELS[(cur + 1) % SKILL_LEVELS.length];
+      renderSkillGroupsList();
+      renderSkills();
+      debouncedSave();
+    }));
+  list.querySelectorAll('[data-modal-del-group]').forEach(el =>
+    el.addEventListener('click', () => {
+      row.groups.splice(Number(el.dataset.modalDelGroup), 1);
+      renderSkillGroupsList();
+      renderSkills();
+      debouncedSave();
+    }));
+}
 
 let pickTarget = null;
 let pickRows = [];
@@ -1861,7 +2412,6 @@ function pickManual(){
 
 function addRow(key, name, desc){
   const row = { name, desc };
-  if (SECTIONS[key][2] === 'skill') row.level = 'Trained';
   S.character.character_data[key].push(row);
   renderList(key);
   closeSheetModal('pick-modal');
@@ -2054,6 +2604,8 @@ async function saveSheet(){
   toast('Лист сохранён');
 }
 
+const debouncedSave = debounce(saveSheet, 800);
+
 async function deleteCharacter(){
   if (!confirm('Удалить персонажа? Действие необратимо.')) return;
   const { error } = await sb.from('characters').delete().eq('id', S.character.id);
@@ -2062,51 +2614,55 @@ async function deleteCharacter(){
   backToChronicle();
 }
 
+// ==== ЕДИНЫЙ ОБРАБОТЧИК СОБЫТИЙ ====
 document.addEventListener('click', e => {
-  const tab = e.target.closest('#screen-sheet .tab-btn');
-  if (tab){
-    document.querySelectorAll('#screen-sheet .tab-btn')
-      .forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('#screen-sheet .tab-content')
-      .forEach(c => c.classList.remove('active'));
-    tab.classList.add('active');
-    $(tab.dataset.tab).classList.add('active');
-    return;
+  const btn = e.target.closest('[data-add]');
+  if (btn){ openPicker(btn.dataset.add); return; }
+  if (e.target.closest('#screen-sheet')){
+    const tab = e.target.closest('.tab-btn');
+    if (tab){
+      document.querySelectorAll('#screen-sheet .tab-btn')
+        .forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#screen-sheet .tab-content')
+        .forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      $(tab.dataset.tab).classList.add('active');
+      if (tab.dataset.tab === 'tab-advancement' && S.character) renderAdvCatalog();
+      return;
+    }
+    const tg = e.target.closest('[data-toggle]');
+    if (tg){
+      const d = S.character.character_data;
+      d.circumstances[tg.dataset.toggle] = !d.circumstances[tg.dataset.toggle];
+      tg.classList.toggle('active');
+      return;
+    }
+    const aim = e.target.closest('[data-aim]');
+    if (aim){
+      const d = S.character.character_data;
+      d.aim = d.aim === aim.dataset.aim ? '' : aim.dataset.aim;
+      renderCircumstances();
+      return;
+    }
+    const psy = e.target.closest('.psy-opt');
+    if (psy){
+      S.character.character_data.psy.mode = psy.dataset.psy;
+      renderPsy();
+      return;
+    }
+    if (e.target.closest('.modal-overlay') === e.target)
+      e.target.classList.remove('active');
   }
-  const tg = e.target.closest('#screen-sheet [data-toggle]');
-  if (tg){
-    const d = S.character.character_data;
-    d.circumstances[tg.dataset.toggle] = !d.circumstances[tg.dataset.toggle];
-    tg.classList.toggle('active');
-    return;
-  }
-  const aim = e.target.closest('#screen-sheet [data-aim]');
-  if (aim){
-    const d = S.character.character_data;
-    d.aim = d.aim === aim.dataset.aim ? '' : aim.dataset.aim;
-    renderCircumstances();
-    return;
-  }
-  const psy = e.target.closest('#screen-sheet .psy-opt');
-  if (psy){
-    S.character.character_data.psy.mode = psy.dataset.psy;
-    renderPsy();
-    return;
-  }
-  if (e.target.closest('.modal-overlay') === e.target)
-    e.target.classList.remove('active');
-});
-
-document.addEventListener('click', e => {
   const t = e.target.closest('#screen-chronicle [data-tl]');
-  if (!t) return;
-  document.querySelectorAll('#screen-chronicle [data-tl]')
-    .forEach(x => x.classList.remove('active'));
-  t.classList.add('active');
-  const isEvents = t.dataset.tl === 'events';
-  $('timeline-events').classList.toggle('hidden', !isEvents);
-  $('timeline-rolls').classList.toggle('hidden', isEvents);
-  $('tl-add-btn').classList.toggle('hidden', !isEvents || S.role !== 'gm');
+  if (t){
+    document.querySelectorAll('#screen-chronicle [data-tl]')
+      .forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    const isEvents = t.dataset.tl === 'events';
+    $('timeline-events').classList.toggle('hidden', !isEvents);
+    $('timeline-rolls').classList.toggle('hidden', isEvents);
+    $('tl-add-btn').classList.toggle('hidden', !isEvents || S.role !== 'gm');
+  }
 });
 
 document.addEventListener('input', e => {
@@ -2114,24 +2670,82 @@ document.addEventListener('input', e => {
   if (e.target.id === 'psy-rating-base'){
     S.character.character_data.psy.base = Number(e.target.value) || 0;
     updatePsyRating();
+    debouncedSave();
   }
-  if (e.target.dataset && e.target.dataset.infoField)
+  if (e.target.dataset && e.target.dataset.infoField){
     S.character.character_data.info[e.target.dataset.infoField] = e.target.value;
+    debouncedSave();
+  }
 });
 
-$('xp-available').addEventListener('click', () => {
-  const log = S.character.character_data.xp_log || [];
+$('xp-bar-click').addEventListener('click', () => {
+  const d = S.character.character_data;
+  const log = d.xp_log || [];
+  const total = d.vitals?.xp_total || 0;
+  const spent = log.reduce((a, x) => a + (Number(x.cost) || 0), 0);
   $('xp-entries').innerHTML = log.length
     ? log.map(x => `<div class="xp-entry"><span>${esc(x.name)}</span>
         <span class="cost">${Number(x.cost) || 0} XP</span></div>`).join('')
     : '<div class="desc">Записей о расходовании нет.</div>';
-  $('xp-total').textContent = 'Итого потрачено: ' +
-    log.reduce((a, x) => a + (Number(x.cost) || 0), 0) + ' XP';
+  $('xp-total').textContent = 'Итого потрачено: ' + spent + ' XP | Доступно: ' + (total - spent) + ' XP';
+  $('xp-amount-input').value = 0;
   openSheetModal('xp-modal');
 });
 
+function addXpManual(){
+  const d = S.character.character_data;
+  const amt = Number($('xp-amount-input').value) || 0;
+  if (amt <= 0) return toast('Введите положительное число');
+  d.vitals.xp_total = (d.vitals.xp_total || 0) + amt;
+  renderHeaderXp();
+  saveSheet();
+  toast('+' + amt + ' XP');
+  closeSheetModal('xp-modal');
+}
+
+function subXpManual(){
+  const d = S.character.character_data;
+  const amt = Number($('xp-amount-input').value) || 0;
+  if (amt <= 0) return toast('Введите положительное число');
+  d.vitals.xp_total = Math.max(0, (d.vitals.xp_total || 0) - amt);
+  renderHeaderXp();
+  saveSheet();
+  toast('−' + amt + ' XP');
+  closeSheetModal('xp-modal');
+}
+
+$('renown-bar-click').addEventListener('click', () => {
+  const d = S.character.character_data;
+  const renown = d.vitals?.renown || 0;
+  $('renown-current-display').textContent = 'Текущая слава: ' + renown + ' (' + renownTitle(renown) + ')';
+  $('renown-amount-input').value = 0;
+  openSheetModal('renown-modal');
+});
+
+function addRenown(){
+  const d = S.character.character_data;
+  const amt = Number($('renown-amount-input').value) || 0;
+  if (amt <= 0) return toast('Введите положительное число');
+  d.vitals.renown = (d.vitals.renown || 0) + amt;
+  renderHeaderXp();
+  saveSheet();
+  toast('+' + amt + ' к славе');
+  closeSheetModal('renown-modal');
+}
+
+function subRenown(){
+  const d = S.character.character_data;
+  const amt = Number($('renown-amount-input').value) || 0;
+  if (amt <= 0) return toast('Введите положительное число');
+  d.vitals.renown = Math.max(0, (d.vitals.renown || 0) - amt);
+  renderHeaderXp();
+  saveSheet();
+  toast('−' + amt + ' к славе');
+  closeSheetModal('renown-modal');
+}
+
 $('editBtn').addEventListener('click', async () => {
-  if (editMode){ await saveSheet(); editMode = false; renderSheet(); }
+  if (editMode){ await saveSheet(); editMode = false; updateStatsOnly(); setEditButtons(); }
   else { editMode = true; setEditButtons(); }
 });
 $('deleteBtn').addEventListener('click', () => {
@@ -2140,6 +2754,7 @@ $('deleteBtn').addEventListener('click', () => {
 });
 
 (async function init(){
+  cacheDom();
   const saved = localStorage.getItem('dw_user');
   if (saved){
     try {
@@ -2174,7 +2789,7 @@ function changeChapter(name){
   if (!S.character) return;
   S.character.character_data.info.chapter = name;
   closeChapterModal();
-  renderSheet();
+  updateStatsOnly();
   saveSheet();
 }
 
@@ -2222,7 +2837,7 @@ function changeSpecialization(name){
   if (!S.character) return;
   S.character.character_data.info.specialization = name;
   closeSpecializationModal();
-  renderSheet();
+  updateStatsOnly();
   saveSheet();
 }
 
@@ -2253,6 +2868,242 @@ function openAdvancedSpecializationModal(){
 function openRaceModal(){
   toast('Выбор расы будет доступен позже');
 }
+
+// ========== СИСТЕМА XP ==========
+
+const STAT_NAME_MAP = {
+  'СИЛ':'sil','Сила':'sil','ВЫН':'wyn','Выносливость':'wyn',
+  'ЛОВ':'lov','Ловкость':'lov','ББ':'bb','Балистика':'bb',
+  'ДБ':'db','Защита':'db',
+  'ИНТ':'int','Интеллект':'int',
+  'ВОС':'vos','Восприятие':'vos','Вос':'vos',
+  'СВ':'sv','Сила Воли':'sv',
+  'ОБЩ':'obsh','Общительность':'obsh',
+};
+
+let ADV_CATALOG = [];
+let ADV_SOURCE = 'general';
+let ADV_FILTER = 'all';
+let ADV_SEARCH = '';
+
+async function loadAdvCatalog(){
+  const { data, error } = await sb.from('tables')
+    .select('id, rank, name, requirements, req_advanced, cost, source')
+    .order('source, rank, name');
+  if (error){ toast('Ошибка загрузки каталога: ' + error.message); return; }
+  ADV_CATALOG = data || [];
+}
+
+function checkRequirement(reqStr, charData){
+  if (!reqStr) return true;
+  const parts = reqStr.split(';').map(s => s.trim());
+  return parts.every(part => {
+    const psyMatch = part.match(/^Пси-рейтинг\s+(\d+)$/);
+    if (psyMatch){
+      const needed = Number(psyMatch[1]);
+      let rating = Number(charData.psy?.base) || 0;
+      if (charData.psy?.mode === 'bound') rating = Math.ceil(rating / 2);
+      else if (charData.psy?.mode === 'push') rating += 3;
+      return rating >= needed;
+    }
+    if (part === 'Пси-рейтинг') return (Number(charData.psy?.base) || 0) > 0;
+
+    const statMatch = part.match(/^(.+?)\s*(\d+)$/);
+    if (statMatch){
+      const [, statName, val] = statMatch;
+      const key = STAT_NAME_MAP[statName] || STAT_NAME_MAP[part] || STAT_NAME_MAP[statName.trim()];
+      if (key) return (Number(charData.stats?.[key]) || 0) >= Number(val);
+    }
+
+    const log = charData.xp_log || [];
+    return log.some(e => e.name === part);
+  });
+}
+
+function getAdvStatus(item, charData){
+  const log = charData.xp_log || [];
+  const spent = log.reduce((a, x) => a + (Number(x.cost) || 0), 0);
+  const available = (charData.vitals?.xp_total || 0) - spent;
+  if (log.some(e => e.table_id === item.id)) return 'purchased';
+  if (available < item.cost) return 'locked';
+  if (item.requirements && !checkRequirement(item.requirements, charData)) return 'locked';
+  return 'available';
+}
+
+function renderAdvCatalog(){
+  const d = S.character.character_data;
+  const log = d.xp_log || [];
+  const spent = log.reduce((a, x) => a + (Number(x.cost) || 0), 0);
+  const total = d.vitals?.xp_total || 0;
+  const available = total - spent;
+
+  const availEl = $('adv-xp-available');
+  const spentEl = $('adv-xp-spent');
+  const totalEl = $('adv-xp-total');
+  if (availEl) availEl.textContent = available + ' XP';
+  if (spentEl) spentEl.textContent = spent + ' XP';
+  if (totalEl) totalEl.textContent = total + ' XP';
+
+  let items = ADV_CATALOG;
+  if (ADV_SOURCE === 'general'){
+    items = items.filter(i => i.source === 'Общие улучшения');
+  } else if (ADV_SOURCE === 'specialization'){
+    const spec = d.info?.specialization;
+    items = spec ? items.filter(i => i.source === spec) : [];
+  } else if (ADV_SOURCE === 'chapter'){
+    const ch = d.info?.chapter;
+    items = ch ? items.filter(i => i.source === ch) : [];
+  }
+
+  if (ADV_FILTER !== 'all') items = items.filter(i => i.source === ADV_FILTER);
+
+  if (ADV_SEARCH){
+    const q = ADV_SEARCH.toLowerCase();
+    items = items.filter(i => i.name.toLowerCase().includes(q));
+  }
+
+  const list = $('adv-list');
+  if (!list) return;
+  if (!items.length){
+    list.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:30px 0">Нет улучшений для отображения</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(item => {
+    const status = getAdvStatus(item, d);
+    const reqText = item.requirements ? 'Требуется: ' + item.requirements : '';
+    const reqMet = !item.requirements || checkRequirement(item.requirements, d);
+    const priceCls = available >= item.cost ? 'ok' : 'expensive';
+    const buyLabel = status === 'locked'
+      ? (available < item.cost ? 'Купить (недостаточно XP)' : 'Купить (требования не выполнены)')
+      : 'Купить';
+
+    return `<div class="advancement-item ${status}" data-adv-id="${item.id}">
+      <div class="adv-head">
+        <div>
+          <div class="adv-name">${esc(item.name)}</div>
+          ${item.rank ? `<div class="adv-rank-badge">Ранг ${item.rank}</div>` : ''}
+        </div>
+        <div class="adv-price ${priceCls}">${item.cost} XP</div>
+      </div>
+      ${reqText ? `<div class="adv-req ${!reqMet ? 'not-met' : ''}">${esc(reqText)}</div>` : ''}
+      <div class="adv-purchased-badge">✓ Куплено</div>
+      <button class="adv-buy-btn">${buyLabel}</button>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.advancement-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = Number(el.dataset.advId);
+      const item = ADV_CATALOG.find(i => i.id === id);
+      if (item) openBuyModal(item);
+    });
+  });
+}
+
+function openBuyModal(item){
+  const d = S.character.character_data;
+  const status = getAdvStatus(item, d);
+  if (status === 'purchased') return toast('Это улучшение уже куплено');
+
+  const log = d.xp_log || [];
+  const spent = log.reduce((a, x) => a + (Number(x.cost) || 0), 0);
+  const available = (d.vitals?.xp_total || 0) - spent;
+
+  const warnings = [];
+  if (available < item.cost) warnings.push('Недостаточно XP (нужно ' + item.cost + ', доступно ' + available + ')');
+  if (item.requirements && !checkRequirement(item.requirements, d)) warnings.push('Требования не выполнены: ' + item.requirements);
+
+  $('buy-modal-title').textContent = item.name;
+  $('buy-modal-cost').textContent = 'Стоимость: ' + item.cost + ' XP';
+  $('buy-modal-available').textContent = 'Доступно: ' + available + ' XP';
+  $('buy-modal-warnings').innerHTML = warnings.length
+    ? warnings.map(w => '<div class="buy-warning">' + esc(w) + '</div>').join('')
+    : '';
+  $('buy-modal-confirm').textContent = warnings.length ? 'Купить всё равно' : 'Подтвердить покупку';
+  $('buy-modal-confirm').dataset.advId = item.id;
+  openSheetModal('buy-modal');
+}
+
+function confirmBuy(){
+  const id = Number($('buy-modal-confirm').dataset.advId);
+  const item = ADV_CATALOG.find(i => i.id === id);
+  if (!item) return;
+
+  const d = S.character.character_data;
+  if (!d.xp_log) d.xp_log = [];
+  d.xp_log.push({
+    table_id: item.id,
+    name: item.name,
+    cost: item.cost,
+    date: new Date().toISOString().slice(0, 10)
+  });
+
+  closeSheetModal('buy-modal');
+  renderAdvCatalog();
+  renderHeaderXp();
+  saveSheet();
+  toast('Куплено: ' + item.name + ' (' + item.cost + ' XP)');
+}
+
+function updateAdvFilter(){
+  const d = S.character.character_data;
+  const select = $('adv-filter');
+  if (!select) return;
+  let sources = [];
+
+  if (ADV_SOURCE === 'general'){
+    sources = ['Общие улучшения'];
+  } else if (ADV_SOURCE === 'specialization'){
+    const spec = d.info?.specialization;
+    sources = spec ? [spec] : [];
+  } else if (ADV_SOURCE === 'chapter'){
+    const ch = d.info?.chapter;
+    sources = ch ? [ch] : [];
+  }
+
+  select.innerHTML = '<option value="all">Все</option>' +
+    sources.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+}
+
+// Привязка событий XP-вкладки
+document.addEventListener('click', e => {
+  const srcTab = e.target.closest('.adv-source-tab');
+  if (srcTab){
+    document.querySelectorAll('.adv-source-tab').forEach(t => t.classList.remove('active'));
+    srcTab.classList.add('active');
+    ADV_SOURCE = srcTab.dataset.source;
+    ADV_FILTER = 'all';
+    updateAdvFilter();
+    renderAdvCatalog();
+    return;
+  }
+
+  const subTab = e.target.closest('.advancement-subtab');
+  if (subTab){
+    document.querySelectorAll('.advancement-subtab').forEach(t => t.classList.remove('active'));
+    subTab.classList.add('active');
+    const isImp = subTab.dataset.subadv === 'improvements';
+    $('adv-improvements').style.display = isImp ? '' : 'none';
+    $('adv-requisition').style.display = isImp ? 'none' : '';
+    if (isImp) renderAdvCatalog();
+    return;
+  }
+});
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'adv-search'){
+    ADV_SEARCH = e.target.value;
+    renderAdvCatalog();
+  }
+});
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'adv-filter'){
+    ADV_FILTER = e.target.value;
+    renderAdvCatalog();
+  }
+});
 
 </script>
 
@@ -2316,6 +3167,43 @@ function openRaceModal(){
       <button class="chapter-custom-btn" onclick="saveCustomTag()" style="flex:1">Добавить</button>
       <button class="chapter-close-btn" onclick="closeCustomTagModal()" style="flex:1">Отмена</button>
     </div>
+  </div>
+</div>
+
+<!-- ========== SKILL DETAIL MODAL ========== -->
+<div class="modal-overlay" id="skill-detail-modal">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="skill-detail-header">
+      <div>
+        <div class="skill-detail-name" id="sd-name"></div>
+        <div id="sd-ch-select"></div>
+      </div>
+    </div>
+    <div class="skill-toggle-row">
+      <span class="skill-toggle-label">Одарённый</span>
+      <label class="skill-toggle"><input type="checkbox" id="sd-gifted"><span class="slider"></span></label>
+    </div>
+    <div class="skill-toggle-row">
+      <span class="skill-toggle-label">Умение с группами?</span>
+      <label class="skill-toggle"><input type="checkbox" id="sd-groups-toggle"><span class="slider"></span></label>
+    </div>
+    <div id="sd-groups-section" style="display:none;margin-top:8px;">
+      <div id="sd-groups-list"></div>
+    </div>
+    <div class="skill-desc-box" id="sd-desc"></div>
+    <button class="modal-close" style="margin-top:12px;width:100%;" onclick="closeSheetModal('skill-detail-modal')">Закрыть</button>
+  </div>
+</div>
+
+<!-- ========== BUY MODAL ========== -->
+<div class="modal-overlay" id="buy-modal">
+  <div class="modal-box">
+    <h3 id="buy-modal-title" style="margin-bottom:12px"></h3>
+    <div class="buy-info" id="buy-modal-cost"></div>
+    <div class="buy-info" id="buy-modal-available" style="color:var(--text-dim);margin-bottom:14px"></div>
+    <div id="buy-modal-warnings" style="margin-bottom:14px"></div>
+    <button class="modal-confirm" id="buy-modal-confirm" onclick="confirmBuy()">Подтвердить</button>
+    <button class="modal-close" onclick="closeSheetModal('buy-modal')">Отмена</button>
   </div>
 </div>
 
