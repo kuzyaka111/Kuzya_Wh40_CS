@@ -346,6 +346,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .injuries-section .section-title{margin:0;}
 .injuries-section.collapsed .section-title .chevron{transform:rotate(-90deg);}
 .injuries-section.collapsed .panel-body{display:none;}
+.injuries-section .injuries-section{background:var(--bg-main);margin-top:8px;}
+.injuries-section .injuries-section .section-title{background:linear-gradient(90deg,rgba(201,162,75,.15),transparent);border-left:3px solid var(--gold);padding:8px 12px;}
 
 /* EDITABLE */
 .editable-field{background:transparent;border:1px solid transparent;color:inherit;font-family:inherit;font-size:13px;padding:2px 4px;width:100%;resize:none;line-height:1.6;}
@@ -355,6 +357,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .sheet .base-label{display:none;}
 .sheet.edit-mode .base-input{pointer-events:auto;opacity:1;width:44px;height:auto;padding:2px 0;border:1px solid var(--border-dark);overflow:visible;background:var(--bg-main);color:var(--text-dim);font-family:'Oswald',sans-serif;font-size:11px;text-align:center;}
 .sheet.edit-mode .base-label{display:block;}
+.sheet .vnum-max{pointer-events:none;opacity:.55;}
+.sheet.edit-mode .vnum-max{pointer-events:auto;opacity:1;background:#1a1a1c;border-color:var(--border-gold);color:var(--text-main);}
 .sheet.edit-mode .base-input,.sheet.edit-mode .vnum{pointer-events:auto;opacity:1;background:#1a1a1c;border-color:var(--border-gold);color:var(--text-main);}
 .sheet.edit-mode .stat-box .total{cursor:default;}
 .sheet.edit-mode .stat-box .total:hover{color:var(--gold);text-shadow:none;}
@@ -367,7 +371,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .sheet.edit-mode .add-injury-btn{display:block;}
 
 /* FOOTER */
-.footer-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border-dark);flex-wrap:wrap;}
+.footer-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 22px;border-top:1px solid var(--border-dark);flex-wrap:wrap;}
 .sheet .btn{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:12px;padding:9px 18px;border:1px solid var(--border-gold);background:var(--bg-panel-alt);color:var(--gold);cursor:pointer;}
 .sheet .btn.danger{border-color:var(--red-bright);color:#e06a6a;}
 .sheet .btn:hover{background:#242024;}
@@ -742,6 +746,15 @@ html,body{max-width:100%;overflow-x:hidden;}
     <div class="rank-icon" id="sh-rank-icon"><img id="sh-rank-img" src="" alt="Rank"></div>
   </div>
 
+  <!-- ACTIONS -->
+  <div class="footer-actions" style="border-top:none;padding-top:0;">
+    <div style="display:flex;gap:10px;">
+      <button class="btn cancel" onclick="backToChronicle()">← К хронике</button>
+      <button class="btn" id="editBtn">Редактировать</button>
+    </div>
+    <button class="btn danger" id="deleteBtn">Удалить персонажа</button>
+  </div>
+
   <!-- TABS -->
   <div class="tabs-nav">
     <button class="tab-btn active" data-tab="tab-combat">Боевые параметры</button>
@@ -770,18 +783,30 @@ html,body{max-width:100%;overflow-x:hidden;}
       </div>
 
       <div class="panel col-span-2">
-        <div class="section-title"><span>Умения</span><span class="chevron">▾</span></div>
+        <div class="section-title"><span>Проверки</span><span class="chevron">▾</span></div>
         <div class="panel-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div>
-              <div class="skill-subtitle skill-collapse-toggle" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Базовые</span><span class="chevron">▾</span></div>
-              <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-basic');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-basic" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
-              <div id="skills-basic-render"></div>
+          <div class="injuries-section" id="checks-skills-section">
+            <div class="section-title"><span>Умения</span><span class="chevron">▾</span></div>
+            <div class="panel-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                  <div class="skill-subtitle skill-collapse-toggle" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Базовые</span><span class="chevron">▾</span></div>
+                  <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-basic');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-basic" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
+                  <div id="skills-basic-render"></div>
+                </div>
+                <div>
+                  <div class="skill-subtitle skill-collapse-toggle" style="margin-top:0;" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Продвинутые</span><span class="chevron">▾</span></div>
+                  <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-adv');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-adv" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
+                  <div id="skills-adv-render"></div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div class="skill-subtitle skill-collapse-toggle" style="margin-top:0;" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Продвинутые</span><span class="chevron">▾</span></div>
-              <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-adv');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-adv" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
-              <div id="skills-adv-render"></div>
+          </div>
+          <div class="injuries-section" id="checks-gear-section">
+            <div class="section-title"><span>Личное снаряжение</span><span class="chevron">▾</span></div>
+            <div class="panel-body">
+              <div data-list="gear"></div>
+              <button class="add-row-btn" data-add="gear">+ Добавить предмет</button>
             </div>
           </div>
         </div>
@@ -836,14 +861,6 @@ html,body{max-width:100%;overflow-x:hidden;}
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Личное снаряжение</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
-          <div data-list="gear"></div>
-          <button class="add-row-btn" data-add="gear">+ Добавить предмет</button>
         </div>
       </div>
 
@@ -1076,13 +1093,6 @@ html,body{max-width:100%;overflow-x:hidden;}
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- FOOTER -->
-  <div class="footer-actions">
-    <button class="btn cancel" onclick="backToChronicle()">← К хронике</button>
-    <button class="btn" id="editBtn">Редактировать</button>
-    <button class="btn danger" id="deleteBtn">Удалить персонажа</button>
   </div>
 
  </div>
@@ -1685,9 +1695,9 @@ function blankSheet(){
   };
   STATS.forEach(([k]) => d.stats[k] = 30);
   VITALS.forEach(([c,m]) => { d.vitals[c] = 0; d.vitals[m] = 0; });
-  d.vitals.max_wounds = 22; d.vitals.fate = 3; d.vitals.max_fate = 3;
-  d.vitals.max_cohesion = 10; d.vitals.max_corruption = 50;
-  d.vitals.insanity_threshold = 50;
+  d.vitals.max_wounds = 18; d.vitals.fate = 3; d.vitals.max_fate = 3;
+  d.vitals.max_cohesion = 10; d.vitals.max_corruption = 100;
+  d.vitals.insanity_threshold = 100;
   d.vitals.crit_wounds = 0;
   d.vitals.rank = 1; d.vitals.renown = 0;
   d.vitals.xp_total = 0; d.vitals.xp_spent = 0;
@@ -1962,7 +1972,7 @@ function renderVitals(){
           <button class="vit-arrow" data-vit-down="crit_wounds">◀</button>
           <input class="vnum" type="number" value="${v.crit_wounds || 0}" data-vit="crit_wounds">
           <span style="color:#9a958a">/</span>
-          <input class="vnum" type="number" value="10" readonly>
+          <input class="vnum vnum-max" type="number" value="10" data-vit="crit_wounds_max" ${editMode?'':'readonly'}>
           <button class="vit-arrow" data-vit-up="crit_wounds">▶</button>
         </span>
       </div>
@@ -1973,7 +1983,7 @@ function renderVitals(){
           <button class="vit-arrow" data-vit-down="${cur}">◀</button>
           <input class="vnum" type="number" value="${v[cur]}" data-vit="${cur}">
           <span style="color:#9a958a">/</span>
-          <input class="vnum" type="number" value="${v[max]}" data-vit="${max}">
+          <input class="vnum vnum-max" type="number" value="${v[max]}" data-vit="${max}" ${editMode?'':'readonly'}>
           <button class="vit-arrow" data-vit-up="${cur}">▶</button>
         </span>
       </div>
@@ -1988,7 +1998,7 @@ function renderVitals(){
         <button class="vit-arrow" data-vit-down="insanity">◀</button>
         <input class="vnum" type="number" value="${ins}" data-vit="insanity">
         <span style="color:#9a958a">/</span>
-        <input class="vnum" type="number" value="${v.insanity_threshold || 100}" data-vit="insanity_threshold">
+        <input class="vnum vnum-max" type="number" value="${v.insanity_threshold || 100}" data-vit="insanity_threshold" ${editMode?'':'readonly'}>
         <button class="vit-arrow" data-vit-up="insanity">▶</button>
       </span>
     </div>
@@ -2034,6 +2044,8 @@ function renderVitals(){
     });
   });
   bindCollapse($('injuries-section'));
+  bindCollapse($('checks-skills-section'));
+  bindCollapse($('checks-gear-section'));
 }
 
 function refreshBars(){
@@ -2270,14 +2282,22 @@ function bindSkillEvents(container, key){
       if (!editMode) return;
       e.stopPropagation();
       const [k, idx] = el.dataset.skillCycle.split(':');
-      openSkillDetail(k, Number(idx));
+      const row = S.character.character_data[k][Number(idx)];
+      const cur = SKILL_LEVELS.indexOf(row.level || 'untrained');
+      row.level = SKILL_LEVELS[(cur + 1) % SKILL_LEVELS.length];
+      renderSkills();
+      debouncedSave();
     }));
   container.querySelectorAll('[data-skill-cycle-group]').forEach(el =>
     el.addEventListener('click', e => {
       if (!editMode) return;
       e.stopPropagation();
-      const [k, idx] = el.dataset.skillCycleGroup.split(':');
-      openSkillDetail(k, Number(idx));
+      const [k, idx, gi] = el.dataset.skillCycleGroup.split(':');
+      const group = S.character.character_data[k][Number(idx)].groups[Number(gi)];
+      const cur = SKILL_LEVELS.indexOf(group.level || 'untrained');
+      group.level = SKILL_LEVELS[(cur + 1) % SKILL_LEVELS.length];
+      renderSkills();
+      debouncedSave();
     }));
   container.querySelectorAll('[data-skill-del-group]').forEach(el =>
     el.addEventListener('click', e => {
@@ -2583,12 +2603,15 @@ function showInfo(title, desc){
 
 function setEditButtons(){
   const eb = $('editBtn'), db = $('deleteBtn');
+  const raceEl = document.querySelector('[data-selector="race"]');
+  const hasDW = raceEl && raceEl.textContent.trim() === 'Адептус Астартес';
   if (editMode){
     eb.textContent = 'Сохранить'; eb.classList.add('save');
     db.textContent = 'Отменить'; db.classList.remove('danger'); db.classList.add('cancel');
   } else {
     eb.textContent = 'Редактировать'; eb.classList.remove('save');
-    db.textContent = 'Удалить персонажа'; db.classList.remove('cancel'); db.classList.add('danger');
+    db.textContent = hasDW ? 'Вернуть Геносемя' : 'Удалить персонажа';
+    db.classList.remove('cancel'); db.classList.add('danger');
   }
   $('sheet-root').classList.toggle('edit-mode', editMode);
   document.querySelectorAll('[data-info-field]').forEach(el => el.readOnly = !editMode);
