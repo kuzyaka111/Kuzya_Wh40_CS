@@ -61,9 +61,16 @@ button.sm{padding:5px 10px; font-size:11px}
   display:flex; justify-content:space-between; align-items:center; gap:10px;
   background:var(--panel2); border:1px solid var(--line);
   border-left:3px solid var(--gold-dim); padding:10px 12px; margin-bottom:8px;
+  clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);
+  position:relative;overflow:visible;
 }
 .list-item .nm{font-family:Georgia,serif; font-size:15px; color:var(--txt)}
 .list-item .meta{font-size:11px; color:var(--txt-dim); margin-top:3px}
+.list-item .tags-row{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.list-item .chr-tag{font-size:9px;padding:1px 5px;border:1px solid var(--line);color:var(--txt-dim);background:rgba(255,255,255,.03)}
+.chr-delete{display:none;position:absolute;top:-1px;right:-1px;background:rgba(140,28,28,.7);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;line-height:1;width:22px;height:22px;border-radius:50%;z-index:2;align-items:center;justify-content:center;padding:0}
+.chr-delete:hover{background:rgba(180,40,40,.9)}
+.list-item:hover .chr-delete{display:flex}
 .clickable{cursor:pointer}
 .clickable:hover{border-left-color:var(--gold); background:#252915}
 .badge{
@@ -1484,14 +1491,34 @@ async function enterChronicle(id, name, role){
 }
 
 function charCard(c){
+  const cd = c.character_data || {};
+  const info = cd.info || {};
+  const rawTags = cd.tags || [];
+  const builtIn = ['Адептус Астартес'];
+  if (info.chapter) builtIn.push(info.chapter);
+  if (info.specialization) builtIn.push(info.specialization);
+  const allTags = [...builtIn, ...rawTags.filter(t => !builtIn.includes(t))];
+  const tagsHtml = allTags.map(t => `<span class="chr-tag">${esc(t)}</span>`).join('');
   return `<div class="list-item clickable" onclick="openCharTab(${c.id})">
-      <div>
+      <button class="chr-delete" onclick="event.stopPropagation();deleteCharFromList(${c.id},'${esc(c.name)}')" title="Удалить персонажа">&times;</button>
+      <div style="min-width:0;flex:1">
         <div class="nm">${esc(c.name)}</div>
-        <div class="meta">${esc(c.users_simple?.username || '—')}</div>
+        ${tagsHtml ? `<div class="tags-row">${tagsHtml}</div>` : ''}
       </div>
-      <span class="badge ${c.is_gm_character ? 'gm' : ''}">
-        ${c.is_gm_character ? 'Мастер' : 'Игрок'}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span class="meta">${esc(c.users_simple?.username || '—')}</span>
+        <span class="badge ${c.is_gm_character ? 'gm' : ''}">
+          ${c.is_gm_character ? 'Мастер' : 'Игрок'}</span>
+      </div>
     </div>`;
+}
+
+async function deleteCharFromList(id, name){
+  if (!confirm(`Удалить персонажа «${name}»?`)) return;
+  const { error } = await sb.from('characters').delete().eq('id', id);
+  if (error){ toast('Ошибка: ' + error.message); return; }
+  toast('Персонаж удалён');
+  await loadCharacters();
 }
 
 async function loadCharacters(){
@@ -1501,7 +1528,7 @@ async function loadCharacters(){
   gmBox.innerHTML = '';
 
   let q = sb.from('characters')
-    .select('id, name, is_gm_character, user_id, users_simple(username)')
+    .select('id, name, is_gm_character, user_id, character_data, users_simple(username)')
     .eq('chronicle_id', S.chronicle.id).order('id');
   if (!isGm) q = q.eq('user_id', S.user.id).eq('is_gm_character', false);
 
