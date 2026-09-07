@@ -36,9 +36,6 @@ a{color:var(--gold)}
 .row.tight{gap:6px}
 .spread{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
 .grid{display:grid; gap:10px}
-.g2{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
-.g3{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
-.g4{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 input,select,textarea,button{font-family:inherit; font-size:14px; color:var(--txt)}
 input,select,textarea{
   background:#0a0b07; border:1px solid var(--line); padding:8px 10px; width:100%;
@@ -60,9 +57,6 @@ button.danger:hover{border-color:var(--red); background:#2a1210}
 button.ghost{background:none; color:var(--txt-dim)}
 button.ghost:hover{color:var(--gold)}
 button.sm{padding:5px 10px; font-size:11px}
-.stat{background:var(--panel2); border:1px solid var(--line); padding:10px; text-align:center}
-.stat .nm{font-size:11px; color:var(--txt-dim); letter-spacing:.1em; margin-bottom:6px}
-.stat .bn{font-size:10px; color:var(--gold-dim); margin-top:4px}
 .list-item{
   display:flex; justify-content:space-between; align-items:center; gap:10px;
   background:var(--panel2); border:1px solid var(--line);
@@ -153,7 +147,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .modal-overlay.active{display:flex;}
 .modal-box{background:#161618;border:2px solid #a8862f;padding:20px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;color:#e6e2d8;}
 .modal-box h3{font-family:'Cinzel',serif;color:#c9a24b;margin:0 0 12px;font-size:16px;}
-.modal-box .desc{font-size:13px;color:#9a958a;line-height:1.6;margin-bottom:12px;}
+.desc{font-size:13px;color:#9a958a;line-height:1.6;margin-bottom:12px;}
 .modal-close,.modal-confirm{padding:8px 16px;background:#1c1c1f;border:1px solid #a8862f;color:#c9a24b;cursor:pointer;font-size:12px;text-transform:uppercase;font-family:'Oswald',sans-serif;margin-right:8px;}
 .modal-close:hover,.modal-confirm:hover{background:#242024;}
 .injury-select-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
@@ -209,8 +203,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .sheet .panel{background:var(--bg-panel-alt);border:1px solid var(--border-dark);padding:16px;}
 
 /* STAT BOXES */
-.stat-box{border:1px solid var(--border-dark);background:#101012;text-align:center;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
-.stat-box .name{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;}
+.stat-box{border:none;background:#1e1e21;text-align:center;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);}
+.stat-box .name{font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;}
 .stat-box .value-row{display:flex;align-items:center;gap:6px;}
 .stat-box .bonus-box{width:26px;height:34px;background:rgba(140,28,28,.18);border:1px solid var(--red-bright);color:var(--red-bright);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;}
 .stat-box .total{font-size:26px;font-weight:700;color:var(--gold);cursor:pointer;transition:color .15s;user-select:none;}
@@ -225,7 +219,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .vital-row .value{font-weight:600;color:var(--text-main);font-size:16px;cursor:help;}
 .vital-row .vnum{width:52px;background:var(--bg-main);border:1px solid var(--border-dark);color:var(--text-main);font-family:'Oswald',sans-serif;font-size:14px;text-align:center;padding:2px 0;}
 .bar-wrap{width:100%;height:20px;background:#101012;border:1px solid var(--border-dark);margin-top:4px;overflow:hidden;}
-.bar-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--red-bright));}
+.bar-fill.wounds{height:100%;background:linear-gradient(90deg,var(--red),var(--red-bright));}
 .bar-fill.fate{background:linear-gradient(90deg,#2c5f8a,#4a90c9);}
 .bar-fill.corruption{background:linear-gradient(90deg,#4a2c5f,#7a4a9c);}
 .bar-fill.crit-wounds{background:linear-gradient(90deg,#8b0000,#cc0000);}
@@ -243,6 +237,12 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .param-row .label{color:var(--text-dim);text-transform:uppercase;font-size:11px;letter-spacing:1px;flex:1;margin:0;}
 .param-chips{display:flex;gap:4px;flex-wrap:wrap;}
 .param-chip{display:inline-flex;align-items:center;justify-content:center;background:#101012;border:1px solid var(--border-dark);padding:4px 8px;font-size:12px;color:var(--gold);font-weight:600;min-width:50px;}
+.param-name-input{background:transparent;border:none;border-bottom:1px solid var(--border-dark);color:var(--text-main);font-size:12px;font-family:'Oswald',sans-serif;padding:2px 4px;width:120px;text-transform:uppercase;letter-spacing:.5px;}
+.param-name-input:focus{outline:none;border-bottom-color:var(--border-gold);}
+.param-speed-input{background:#101012;border:1px solid var(--border-dark);color:var(--gold);font-size:12px;font-weight:600;padding:4px 6px;width:50px;text-align:center;font-family:'Oswald',sans-serif;}
+.param-speed-input:focus{outline:none;border-color:var(--border-gold);}
+.sheet .add-alt-speed-li{display:none;}
+.sheet.edit-mode .add-alt-speed-li{display:list-item;}
 
 /* ARMOUR ZONES */
 .armour-list{list-style:none;margin:0;padding:0;}
@@ -338,6 +338,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .injuries-list{list-style:none;margin:8px 0;padding:0;}
 .injury-entry{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#101012;border:1px solid var(--border-dark);margin-bottom:6px;cursor:pointer;transition:border-color .15s;}
 .injury-entry:hover{border-color:var(--border-gold);}
+.injury-entry .i-title{color:var(--text-main);font-size:13px;font-weight:600;margin-bottom:2px;}
 .injury-entry .i-name{color:var(--gold);font-weight:600;font-size:12px;}
 .injury-entry .i-type{font-size:10px;color:var(--text-dim);margin:2px 0 0;}
 .add-injury-btn{width:100%;margin-top:8px;padding:8px;background:var(--bg-panel-alt);border:1px dashed var(--border-gold);color:var(--gold);cursor:pointer;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:11px;}
@@ -372,11 +373,13 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 
 /* FOOTER */
 .footer-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 22px;border-top:1px solid var(--border-dark);flex-wrap:wrap;}
-.sheet .btn{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:12px;padding:9px 18px;border:1px solid var(--border-gold);background:var(--bg-panel-alt);color:var(--gold);cursor:pointer;}
-.sheet .btn.danger{border-color:var(--red-bright);color:#e06a6a;}
-.sheet .btn:hover{background:#242024;}
-.sheet .btn.save{border-color:var(--green);color:#8fd19e;}
-.sheet .btn.cancel{border-color:var(--border-dark);color:var(--text-dim);}
+.sheet .btn{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:12px;padding:9px 18px;border:none;background:rgba(201,162,75,.15);color:var(--gold);cursor:pointer;clip-path:polygon(0 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px));}
+.sheet .btn.danger{background:rgba(140,28,28,.2);color:#c47070;}
+.sheet .btn:hover{background:rgba(201,162,75,.25);}
+.sheet .btn.cancel:hover{background:rgba(201,162,75,.35);}
+.sheet .btn.danger:hover{background:rgba(140,28,28,.4);}
+.sheet .btn.save{background:rgba(80,180,80,.2);color:#8fd19e;}
+.sheet .btn.cancel{background:rgba(201,162,75,.15);color:var(--gold);}
 
 @media(max-width:900px){
   .body-grid{grid-template-columns:1fr;}
@@ -434,36 +437,45 @@ html,body{max-width:100%;overflow-x:hidden;}
   .adv-source-tab.active{color:var(--gold);border-color:var(--border-gold);background:#161618;}
 
   /* CONTROLS */
-  .adv-controls{display:flex;gap:8px;margin-bottom:12px;}
-  .adv-filter-select{background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);padding:7px 10px;font-family:inherit;font-size:12px;min-width:180px;}
+  .adv-controls{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
+  .adv-filter-select{flex:0 0 auto;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);padding:7px 10px;font-family:inherit;font-size:12px;min-width:180px;}
   .adv-filter-select:focus{outline:none;border-color:var(--border-gold);}
-  .adv-search-input{flex:1;padding:7px 10px;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);font-family:inherit;font-size:12px;}
+  .adv-search-input{flex:1 1 auto;min-width:0;padding:7px 10px;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);font-family:inherit;font-size:12px;}
   .adv-search-input:focus{outline:none;border-color:var(--border-gold);}
+
+  /* RANK GROUP */
+  .adv-rank-group{margin-bottom:12px;}
+  .adv-rank-header{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#0a0b07;border:1px solid var(--border-dark);cursor:pointer;user-select:none;font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+  .adv-rank-header:hover{border-color:var(--border-gold);}
+  .adv-rank-header .chevron{margin-left:auto;transition:transform .15s;}
+  .adv-rank-header.collapsed .chevron{transform:rotate(-90deg);}
+  .adv-rank-body{padding:6px 0 0;}
+  .adv-rank-header.collapsed + .adv-rank-body{display:none;}
 
   /* LIST ITEMS */
   .advancement-list{max-height:55vh;overflow-y:auto;padding-right:4px;}
-  .advancement-item{background:#101012;border:1px solid var(--border-dark);padding:12px;margin-bottom:8px;cursor:pointer;transition:all .15s;}
+  .advancement-item{display:flex;align-items:center;gap:8px;background:#101012;border:1px solid var(--border-dark);padding:8px 10px;margin-bottom:4px;cursor:pointer;transition:all .15s;}
   .advancement-item:hover{border-color:var(--border-gold);}
   .advancement-item.available{border-left:3px solid var(--green);}
   .advancement-item.locked{opacity:.55;border-left:3px solid var(--border-dark);}
   .advancement-item.purchased{opacity:.4;border-left:3px solid var(--gold);cursor:default;}
 
-  .adv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:2px;}
-  .adv-name{font-weight:600;color:var(--gold);font-size:13px;}
-  .adv-rank-badge{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
-  .adv-price{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}
-  .adv-price.ok{color:var(--green);}
-  .adv-price.expensive{color:var(--red-bright);}
-  .adv-req{font-size:10px;color:var(--text-dim);margin-top:4px;line-height:1.4;}
+  .adv-item-info{flex:1 1 auto;min-width:0;}
+  .adv-name{font-weight:600;color:var(--gold);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .adv-req{font-size:10px;color:var(--text-dim);margin-top:2px;line-height:1.3;}
   .adv-req.not-met{color:var(--red-bright);font-weight:600;}
 
-  .adv-buy-btn{display:none;width:100%;margin-top:8px;padding:6px;border:none;font-size:11px;text-transform:uppercase;font-weight:600;cursor:pointer;letter-spacing:.5px;transition:background .12s;}
+  .adv-price{flex:0 0 auto;font-weight:600;font-size:11px;white-space:nowrap;text-align:right;}
+  .adv-price.ok{color:var(--green);}
+  .adv-price.expensive{color:var(--red-bright);}
+
+  .adv-buy-btn{flex:0 0 auto;display:none;padding:4px 10px;border:none;font-size:10px;text-transform:uppercase;font-weight:600;cursor:pointer;letter-spacing:.5px;transition:background .12s;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);}
   .advancement-item.available .adv-buy-btn{display:block;background:var(--green);color:#000;}
   .advancement-item.available .adv-buy-btn:hover{background:#5fd185;}
   .advancement-item.locked .adv-buy-btn{display:block;background:var(--red);color:#fff;}
   .advancement-item.locked .adv-buy-btn:hover{background:var(--red-bright);}
   .advancement-item.purchased .adv-buy-btn{display:none;}
-  .adv-purchased-badge{display:none;font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-top:6px;}
+  .adv-purchased-badge{display:none;font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;}
   .advancement-item.purchased .adv-purchased-badge{display:block;}
 
   /* BUY MODAL */
@@ -515,6 +527,14 @@ html,body{max-width:100%;overflow-x:hidden;}
     flex-direction:column;
     gap:6px;
   }
+  .chapter-search-input{
+    width:100%;background:#0a0b07;
+    border:1px solid var(--border-dark);
+    color:var(--text-main);
+    padding:8px 10px;font-size:12px;
+    font-family:inherit;margin-bottom:10px;
+  }
+  .chapter-search-input:focus{outline:none;border-color:var(--border-gold);}
   .chapter-group-label{
     font-size:10px;
     text-transform:uppercase;
@@ -698,7 +718,7 @@ html,body{max-width:100%;overflow-x:hidden;}
   <div class="header">
     <div class="icon"><img id="sh-chapter-img" src="" alt="Chapter"></div>
     <div class="titles">
-      <h1 id="sh-name">—</h1>
+      <h1 id="sh-name" contenteditable="false" onblur="saveCharName()" style="outline:none;cursor:default;">—</h1>
       <div class="sub" id="sh-tags">
         <!-- РАСА (всегда видна) -->
         [<span class="bracket-tag" data-selector="race" 
@@ -787,7 +807,7 @@ html,body{max-width:100%;overflow-x:hidden;}
         <div class="panel-body">
           <div class="injuries-section" id="checks-skills-section">
             <div class="section-title"><span>Умения</span><span class="chevron">▾</span></div>
-            <div class="panel-body">
+            <div class="panel-body" style="padding-top:8px;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
                 <div>
                   <div class="skill-subtitle skill-collapse-toggle" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Базовые</span><span class="chevron">▾</span></div>
@@ -826,8 +846,12 @@ html,body{max-width:100%;overflow-x:hidden;}
                   <div class="param-chip" id="speed-run">0</div>
                 </div>
               </li>
+              <li id="alt-speeds-list-container"></li>
+              <li class="param-row add-alt-speed-li" id="add-alt-speed">
+                <button class="add-row-btn" style="width:100%;">+ Добавить скорость</button>
+              </li>
               <li class="param-row">
-                <span class="label">Сила</span>
+                <span class="label">Грузоподъёмность</span>
                 <div class="param-chips">
                   <div class="param-chip" id="carry-val">—</div>
                   <div class="param-chip" id="lift-val">—</div>
@@ -836,7 +860,6 @@ html,body{max-width:100%;overflow-x:hidden;}
               </li>
             </ul>
             <div class="skill-subtitle skill-collapse-toggle" style="margin-top:10px;" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Обстоятельства боя</span><span class="chevron">▾</span></div>
-            <div>
               <div class="circumstances-grid">
                 <div style="display:flex;flex-direction:column;">
                   <div class="toggle-row" data-toggle="rage" data-tooltip="Боец охвачен Праведным Гневом — бонус к атакам и урону"><span class="t-label">Праведный гнев</span><div class="toggle-dot"></div></div>
@@ -860,7 +883,6 @@ html,body{max-width:100%;overflow-x:hidden;}
                 </div>
               </div>
             </div>
-          </div>
         </div>
       </div>
 
@@ -1034,14 +1056,14 @@ html,body{max-width:100%;overflow-x:hidden;}
           <button class="adv-source-tab active" data-source="general">Общие</button>
           <button class="adv-source-tab" data-source="specialization">Специализация</button>
           <button class="adv-source-tab" data-source="chapter">Орден</button>
+          <button class="adv-source-tab" data-source="deathwatch" id="adv-tab-deathwatch" style="display:none;">Караул Смерти</button>
         </div>
 
-        <!-- Фильтр + Поиск -->
-        <div class="adv-controls">
+        <!-- Фильтр (только для Специализаций) -->
+        <div class="adv-controls" id="adv-controls" style="display:none;">
           <select id="adv-filter" class="adv-filter-select">
             <option value="all">Все</option>
           </select>
-          <input type="text" id="adv-search" placeholder="Поиск улучшения..." class="adv-search-input">
         </div>
 
         <!-- Список улучшений -->
@@ -1157,6 +1179,10 @@ html,body{max-width:100%;overflow-x:hidden;}
         <div class="injury-radio"><input type="radio" name="damageType" value="slash" id="dt-slash"><label for="dt-slash">Резаный</label></div>
         <div class="injury-radio"><input type="radio" name="damageType" value="explosive" id="dt-explosive"><label for="dt-explosive">Взрывной</label></div>
       </div>
+    </div>
+    <div style="margin-top:12px;">
+      <input type="text" id="injury-title" placeholder="Название травмы (необязательно)" style="width:100%;background:#101012;border:1px solid var(--border-dark);color:var(--text-main);padding:8px;font-size:12px;margin-bottom:8px;">
+      <textarea id="injury-desc" placeholder="Описание (необязательно)" style="width:100%;background:#101012;border:1px solid var(--border-dark);color:var(--text-main);padding:8px;font-size:12px;min-height:60px;resize:vertical;"></textarea>
     </div>
     <button class="modal-confirm" onclick="confirmInjury()">Подтвердить и получить травму</button>
     <button class="modal-close" onclick="closeSheetModal('injury-modal')">Отменить</button>
@@ -1275,10 +1301,14 @@ const S = {
   tab: 'main'
 };
 
+const charChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('char_updates') : null;
+const currentCharId = new URLSearchParams(location.search).get('char');
+
 // ==== УТИЛИТЫ ====
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function calcTotalXpSpent(d){ return (d.xp_log || []).reduce((a, x) => a + (Number(x.cost) || 0), 0); }
 
 function debounce(fn, ms){
   let t;
@@ -1288,17 +1318,6 @@ function debounce(fn, ms){
   };
 }
 
-const DOM = {};
-function cacheDom(){
-  ['sh-name','sh-rank','sh-xpspent','sh-xpbar','sh-renown',
-   'xp-available','editBtn','deleteBtn','sheet-root','tooltip',
-   'stats-body','vitals-body','pick-title','pick-results',
-   'pick-search','pick-manual','psy-rating-base','psy-rating-display',
-   'psy-corruption','psy-corr-bar','armour-name','info-title','info-desc',
-   'timeline-events','timeline-rolls','tl-add-btn','chr-title','chr-role',
-   'chronicle-list','character-list','gm-character-list','dash-user',
-   'injuries-list'].forEach(id => DOM[id] = $(id));
-}
 
 function setLoading(el, loading){
   if (!el) return;
@@ -1465,7 +1484,7 @@ async function enterChronicle(id, name, role){
 }
 
 function charCard(c){
-  return `<div class="list-item clickable" onclick="openSheet(${c.id})">
+  return `<div class="list-item clickable" onclick="openCharTab(${c.id})">
       <div>
         <div class="nm">${esc(c.name)}</div>
         <div class="meta">${esc(c.users_simple?.username || '—')}</div>
@@ -1577,6 +1596,10 @@ async function deleteChronicle(){
 }
 
 function backToChronicle(){
+  if (new URLSearchParams(location.search).get('char')){
+    window.close();
+    return;
+  }
   S.character = null;
   enterChronicle(S.chronicle.id, S.chronicle.name, S.role);
 }
@@ -1595,7 +1618,7 @@ const STATS = [
 ];
 
 const VITALS = [
-  ['wounds','max_wounds','Раны','Текущее здоровье персонажа','', ''],
+  ['wounds','max_wounds','Раны','Текущее здоровье персонажа','wounds', ''],
   ['fate','max_fate','Очки Судьбы','Очки судьбы позволяют переписать историю и избежать верной смерти','fate',''],
   ['corruption','max_corruption','Порча','Воздействие Хаоса и тёмных сил','corruption',''],
   ['insanity','insanity_threshold','Безумие','Психологический урон и навязчивые мысли','corruption','']
@@ -1700,7 +1723,13 @@ function blankSheet(){
   d.vitals.insanity_threshold = 100;
   d.vitals.crit_wounds = 0;
   d.vitals.rank = 1; d.vitals.renown = 0;
-  d.vitals.xp_total = 0; d.vitals.xp_spent = 0;
+  d.vitals.xp_total = 12000; d.vitals.xp_spent = 12000;
+  d.xp_log.push({
+    table_id: null,
+    name: 'Стартовые улучшения Адептус Астартес',
+    cost: 12000,
+    date: new Date().toISOString().slice(0, 10)
+  });
   Object.keys(SECTIONS).forEach(k => d[k] = []);
   return d;
 }
@@ -1781,13 +1810,20 @@ function checkEasterEgg(raw){
 }
 
 // ==== ОТКРЫТИЕ ЛИСТА ====
+function openCharTab(id){
+  window.open('cs.html?char=' + id, '_blank');
+}
+
 async function openSheet(id){
   setLoading($('sheet-root'), true);
   await loadSkillsFromDB();
   const { data, error } = await sb.from('characters')
     .select('*, users_simple(username)').eq('id', id).single();
   setLoading($('sheet-root'), false);
-  if (error) return toast('Ошибка: ' + error.message);
+  if (error) {
+    $('sheet-root').innerHTML = '<div style="padding:40px;text-align:center;color:var(--red);"><h2>Ошибка загрузки персонажа</h2><p style="margin-top:12px;color:var(--text-dim);">' + esc(error.message) + '</p><button onclick="backToChronicle()" style="margin-top:20px;padding:8px 20px;background:var(--gold);color:#000;border:none;cursor:pointer;">Вернуться</button></div>';
+    return;
+  }
   S.character = data;
   S.character.character_data = normalize(data.character_data);
   editMode = false;
@@ -1804,19 +1840,7 @@ function renderSheet(){
   const c = S.character, d = c.character_data;
   $('sh-name').textContent = c.name;
   document.querySelector('[data-selector="race"]').textContent = 'Адептус Астартес';
-  
-const chapterTag = document.getElementById('chapter-wrapper');
-const chapterText = d.info.chapter || 'Орден не определен';
-document.querySelector('[data-selector="chapter"]').textContent = chapterText;
-chapterTag.style.display = '';
-
-const specTag = document.getElementById('specialization-wrapper');
-const specText = d.info.specialization || 'Специализация не определена';
-document.querySelector('[data-selector="specialization"]').textContent = specText;
-specTag.style.display = '';
-
-renderTagsAfterSpec();
-
+  renderHeaderTags();
   $('sheet-root').classList.toggle('edit-mode', editMode);
 
   renderStats();
@@ -1832,23 +1856,19 @@ renderTagsAfterSpec();
   updateDerived();
   bindTooltips();
   bindCollapse();
+  const addAltBtn = $('add-alt-speed');
+  if (addAltBtn) addAltBtn.onclick = () => {
+    S.character.character_data.alternative_speeds.push({...ALT_SPEED_INIT});
+    renderAltSpeeds();
+    debouncedSave();
+  };
   setEditButtons();
 }
 
 function updateStatsOnly(){
   if (!S.character) return;
   const d = S.character.character_data;
-
-  const chapterTag = document.getElementById('chapter-wrapper');
-  document.querySelector('[data-selector="chapter"]').textContent = d.info.chapter || 'Орден не определен';
-  chapterTag.style.display = '';
-
-  const specTag = document.getElementById('specialization-wrapper');
-  document.querySelector('[data-selector="specialization"]').textContent = d.info.specialization || 'Специализация не определена';
-  specTag.style.display = '';
-
-  renderTagsAfterSpec();
-
+  renderHeaderTags();
   STATS.forEach(([k, nm]) => {
     const bx = $('bx-' + k);
     if (bx) bx.textContent = bonusOf(d.stats[k]);
@@ -1864,6 +1884,18 @@ function updateStatsOnly(){
 
 // ========== СИСТЕМА ТЭГОВ ==========
 
+function renderHeaderTags(){
+  if (!S.character) return;
+  const d = S.character.character_data;
+  const chapterTag = document.getElementById('chapter-wrapper');
+  document.querySelector('[data-selector="chapter"]').textContent = d.info.chapter || 'Орден не определен';
+  chapterTag.style.display = '';
+  const specTag = document.getElementById('specialization-wrapper');
+  document.querySelector('[data-selector="specialization"]').textContent = d.info.specialization || 'Специализация не определена';
+  specTag.style.display = '';
+  renderTagsAfterSpec();
+}
+
 function renderTagsAfterSpec(){
   if (!S.character) return;
   const d = S.character.character_data;
@@ -1872,7 +1904,7 @@ function renderTagsAfterSpec(){
 
   const tags = d.tags || [];
   tagContainer.innerHTML = tags.map(tag => `
-    [<span class="bracket-tag" style="cursor:pointer" onclick="removeTag('${esc(tag).replace(/'/g,"\\'")}')">
+    [<span class="bracket-tag" style="cursor:pointer" data-remove-tag="${esc(tag)}">
       ${esc(tag)}
     </span>]
   `).join('');
@@ -1884,17 +1916,26 @@ function addTag(name){
   if (!d.tags) d.tags = [];
   if (d.tags.includes(name)) return toast('Такой тэг уже есть');
   d.tags.push(name);
+  if (name === 'Караул Смерти'){
+    d.vitals.xp_total = (d.vitals.xp_total || 0) + 1000;
+    toast('+1000 XP за Караул Смерти');
+  }
   renderSheet();
-  saveSheet();
+  debouncedSave();
 }
 
 function removeTag(name){
   if (!S.character) return;
+  if (!confirm('Удалить тег «' + name + '»?')) return;
   const d = S.character.character_data;
   if (!d.tags) return;
   d.tags = d.tags.filter(t => t !== name);
+  if (name === 'Караул Смерти'){
+    d.vitals.xp_total = Math.max(0, (d.vitals.xp_total || 0) - 1000);
+    toast('-1000 XP: тег Караул Смерти удалён');
+  }
   renderSheet();
-  saveSheet();
+  debouncedSave();
 }
 
 // ========== ДОЛГОЕ БДЕНИЕ ==========
@@ -1907,6 +1948,10 @@ function addDeathwatchVigil(){
 // ========== МЕНЮ [+] МОДАЛЬНОЕ ==========
 
 function openPlusMenu(){
+  const d = S.character?.character_data;
+  const hasDW = (d?.tags || []).includes('Караул Смерти');
+  const dwItem = $('plus-deathwatch');
+  if (dwItem) dwItem.style.display = hasDW ? 'none' : '';
   $('plus-modal').classList.add('active');
 }
 
@@ -2083,7 +2128,7 @@ const RANK_RANGES = [
 
 const RENOWN_TIERS = [
   {min:0, max:19, title:'Новичок'},
-  {min:30, max:39, title:'Уважаемый'},
+  {min:20, max:39, title:'Уважаемый'},
   {min:40, max:59, title:'Заслуженный'},
   {min:60, max:79, title:'Прославленный'},
   {min:80, max:Infinity, title:'Герой'},
@@ -2103,22 +2148,74 @@ const RANK_ICONS = {
 
 const CHAPTER_ICONS = {
   'Ультрамарины': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/ultramarines.png',
+  'Кровавые Ангелы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/krovavie%20angeli.png',
+  'Чёрные Храмовники': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/chernie%20hramovniki.png',
+  'Тёмные Ангелы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/temnie%20angeli.png',
+  'Космические Волки': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/kosmicheskie%20volki.png',
+  'Штормовые Стражи': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/shtormovie%20straji.png',
+  'Белые Шрамы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/belie%20shrami.png',
+  'Саламандры': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/salamandri.png',
+  'Косы Императора': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/kosi%20imperatora.png',
+  'Кровопийцы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/krovopiyci.png',
+  'Серые Стражи': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/serie%20straji.png',
+  'Имперские Кулаки': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/imperskie%20kulaki.png',
+  'Гвардия Ворона': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/gwardia%20vorona.png',
+  'Багровые Кулаки': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/bagrovie%20kulaki.png',
+  'Кровавые Вороны': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/krovavie%20voroni.png',
+  'Расчленители': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/raschleniteli.png',
+  'Странствующие Десантники': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/stranstvuyushie%20desantniki.png',
+  'Красные Скорпионы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/krasnie%20skorpioni.png',
+  'Воющие Грифоны': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/voushie%20grifoni.png',
+  'Новадесантники': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Novamarines.png',
+  'Кархарадоны': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Carcharodons.png',
+  'Рапторы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/raptors.png',
+  'Белые Консулы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/MP_White_Consuls.png',
+  'Чёрные Консулы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Black_Consuls_Badge.png',
+  'Мортифакторы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Mortifactors-Photoroom.png',
+  'Орден Генезиса': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Genesis_Chapter.png',
+  'Святители': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/svyatiteli.png',
+  'Ангелы Искупления': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Angels%20of%20Redemption.png',
+  'Ангелы Очищения': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Angels%20of%20Absolution-Photoroom.png',
+  'Ангелы Мщения': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Angels_of_Vengeance_Livery-Photoroom.png',
+  'Апостолы Калибана': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Apostles%20of%20Caliban-Photoroom.png',
+  'Хранители Завета': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Guardians_of_the_Covenant_Livery2-Photoroom.png',
+  'Орлы Обречённости': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/DoomEaglesBadge2-Photoroom.png',
+  'Огненные Ангелы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Fire_Angels_Livery-Photoroom.png',
+  'Серебряные Черепа': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/SilverSkullsBadge2-Photoroom.png',
+  'Рыцари Ворона': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Knights_of_the_Raven_Livery-Photoroom.png',
+  'Сыны Медузы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Sons_of_Medusa_Livery-Photoroom.png',
+  'Огненные Ястребы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Fire%20Hawks.png',
+  'Астральные Когти': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Astral-Claws-Photoroom.png',
+  'Экзорцисты': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Exorcists.png',
+  'Повелители Огня': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Fire_Lords_Livery-Photoroom.png',
+  'Минотавры': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Minotaurs_Livery-Photoroom.png',
+  'Звёздные Фантомы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Star_Phantoms_Livery-Photoroom.png',
+  'Посыпогатели': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/posyagateli.png',
+  'Легион Проклятых': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Legion%20of%20the%20Damned.png',
+  'Сангвиновые Ангелы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Sanguinary%20Angels.png',
+  'Вермилионовые Ангелы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Vermilion%20Angels.png',
+  'Ангелы Обагрённые': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/angeli%20obagrennie.png',
+  'Плакальщики': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/plakalshiki.png',
+  'Рыцари Крови': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/ricari%20krovi.png',
+  'Молоты Дорна': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Hammers%20of%20Dorn.png',
+  'Покорители': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/pokoriteli.png',
 };
 
 function renderHeaderXp(){
   const d = S.character.character_data;
   const v = d.vitals;
   const total = v.xp_total || 0;
-  const spent = (d.xp_log || []).reduce((a,x) => a + (Number(x.cost)||0), 0);
+  const spent = calcTotalXpSpent(d);
 
   const hasDW = (d.tags || []).includes('Караул Смерти');
-  const ch = d.info?.chapter || 'Орден';
+  const originalCh = d.info?.chapter || 'Орден';
+  const ch = hasDW ? 'Караул Смерти' : originalCh;
   const chEl = $('sh-chapter');
   if (chEl) chEl.textContent = ch;
   const chImg = $('sh-chapter-img');
-  if (chImg) chImg.src = CHAPTER_ICONS[ch] || '';
+  if (chImg) chImg.src = CHAPTER_ICONS[originalCh] || '';
 
-  const rank = total >= 13000 ? Math.min(8, Math.floor((total - 13000) / 4000) + 1) : 0;
+  const rank = Math.min(8, Math.floor(Math.max(0, spent - 13000) / 4000) + 1);
   v.rank = rank;
   const rankEl = $('sh-rank-num');
   if (rankEl) rankEl.textContent = rank;
@@ -2126,11 +2223,11 @@ function renderHeaderXp(){
   if (rankImg) rankImg.src = RANK_ICONS[rank] || '';
 
   const range = RANK_RANGES.find(r => r.rank === rank) || RANK_RANGES[0];
-  const progress = rank === 0 ? 0 : Math.min(100, Math.max(0, ((total - range.min) / (range.max - range.min)) * 100));
+  const progress = Math.min(100, Math.max(0, ((spent - range.min) / (range.max - range.min)) * 100));
   const xpBar = $('sh-xpbar');
   const xpText = $('sh-xptext');
   if (xpBar) xpBar.style.width = progress + '%';
-  if (xpText) xpText.textContent = rank === 0 ? total.toLocaleString('ru') + ' / 13 000' : total.toLocaleString('ru') + ' / ' + range.max.toLocaleString('ru');
+  if (xpText) xpText.textContent = spent.toLocaleString('ru') + ' / ' + range.max.toLocaleString('ru');
 
   const renown = v.renown || 0;
   const tier = RENOWN_TIERS.find(t => renown >= t.min && renown <= t.max) || RENOWN_TIERS[0];
@@ -2449,6 +2546,7 @@ function renderInjuries(){
   list.innerHTML = rows.map((r, i) => `
     <li class="injury-entry" data-inj="${i}">
       <div>
+        ${r.title ? `<div class="i-title">${esc(r.title)}</div>` : ''}
         <div class="i-name">${esc(r.name)}</div>
         <div class="i-type">${esc(r.desc || 'Описание отсутствует')}</div>
       </div>
@@ -2473,15 +2571,20 @@ async function confirmInjury(){
   if (!bp || !dt) return toast('Выберите часть тела и тип урона');
   const name = BP_MAP[bp.value] + ' / ' + DMG_MAP[dt.value];
   let desc = '';
-  const { data } = await sb.from('critical_effects')
+  const { data, error: injErr } = await sb.from('critical_effects')
     .select('name, effect, description').eq('zone', BP_MAP[bp.value])
     .eq('damage_type', DMG_MAP[dt.value]).limit(1);
+  if (injErr) console.warn('Ошибка загрузки крит. травмы:', injErr.message);
   if (data && data.length) desc = data[0].effect || data[0].description || '';
-  S.character.character_data.injuries.push({ name, desc });
+  const title = $('injury-title').value.trim();
+  const userDesc = $('injury-desc').value.trim();
+  S.character.character_data.injuries.push({ title, name, desc: userDesc || desc });
   renderInjuries();
   closeSheetModal('injury-modal');
   document.querySelectorAll('input[name="bodypart"],input[name="damageType"]')
     .forEach(i => i.checked = false);
+  $('injury-title').value = '';
+  $('injury-desc').value = '';
 }
 
 function renderArmour(){
@@ -2510,8 +2613,50 @@ function updateDerived(){
   $('carry-val').textContent = carry;
   $('lift-val').textContent = lift;
   $('push-val').textContent = push;
+  renderAltSpeeds();
   updateArmour();
 }
+
+function renderAltSpeeds(){
+  const d = S.character.character_data;
+  if (!d.alternative_speeds) d.alternative_speeds = [];
+  const container = $('alt-speeds-list-container');
+  if (!container) return;
+  const isEdit = editMode;
+  container.innerHTML = d.alternative_speeds.map((s, i) => `
+    <li class="param-row">
+      <input class="param-name-input" value="${esc(s.name || '')}" data-alt-name="${i}" placeholder="Название" ${isEdit ? '' : 'readonly'}>
+      <div class="param-chips">
+        <input class="param-speed-input" type="number" value="${s.half||0}" data-alt-val="${i}:half" ${isEdit ? '' : 'readonly'}>
+        <input class="param-speed-input" type="number" value="${s.full||0}" data-alt-val="${i}:full" ${isEdit ? '' : 'readonly'}>
+        <input class="param-speed-input" type="number" value="${s.charge||0}" data-alt-val="${i}:charge" ${isEdit ? '' : 'readonly'}>
+        <input class="param-speed-input" type="number" value="${s.run||0}" data-alt-val="${i}:run" ${isEdit ? '' : 'readonly'}>
+      </div>
+      <button class="remove-row-btn" data-del-alt="${i}" ${isEdit ? '' : 'style="display:none"'}>✕</button>
+    </li>`).join('');
+  container.querySelectorAll('[data-alt-name]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      d.alternative_speeds[Number(inp.dataset.altName)].name = inp.value;
+      debouncedSave();
+    });
+  });
+  container.querySelectorAll('[data-alt-val]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const [idx, key] = inp.dataset.altVal.split(':');
+      d.alternative_speeds[Number(idx)][key] = Number(inp.value) || 0;
+      debouncedSave();
+    });
+  });
+  container.querySelectorAll('[data-del-alt]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      d.alternative_speeds.splice(Number(btn.dataset.delAlt), 1);
+      renderAltSpeeds();
+      debouncedSave();
+    });
+  });
+}
+
+const ALT_SPEED_INIT = {name:'', half:0, full:0, charge:0, run:0};
 
 function renderPsy(){
   const d = S.character.character_data, v = d.vitals;
@@ -2615,15 +2760,40 @@ function setEditButtons(){
   }
   $('sheet-root').classList.toggle('edit-mode', editMode);
   document.querySelectorAll('[data-info-field]').forEach(el => el.readOnly = !editMode);
+  const nameEl = $('sh-name');
+  if (nameEl) {
+    nameEl.contentEditable = editMode ? 'true' : 'false';
+    nameEl.style.cursor = editMode ? 'text' : 'default';
+  }
+}
+
+function saveCharName(){
+  if (!S.character) return;
+  const nameEl = $('sh-name');
+  const newName = nameEl.textContent.trim();
+  if (newName && newName !== S.character.name) {
+    S.character.name = newName;
+    debouncedSave();
+  } else if (!newName) {
+    nameEl.textContent = S.character.name;
+  }
 }
 
 async function saveSheet(){
   const d = S.character.character_data;
-  d.vitals.xp_spent = (d.xp_log || []).reduce((a, x) => a + (Number(x.cost) || 0), 0)
+  d.vitals.xp_spent = calcTotalXpSpent(d)
     || d.vitals.xp_spent || 0;
+  const nameEl = $('sh-name');
+  if (nameEl) {
+    const newName = nameEl.textContent.trim();
+    if (newName) S.character.name = newName;
+  }
   const { error } = await sb.from('characters')
-    .update({ character_data: d }).eq('id', S.character.id);
+    .update({ character_data: d, name: S.character.name }).eq('id', S.character.id);
   if (error) return toast('Ошибка: ' + error.message);
+  if (charChannel && S.character){
+    charChannel.postMessage({ charId: S.character.id, ts: Date.now() });
+  }
   toast('Лист сохранён');
 }
 
@@ -2639,6 +2809,10 @@ async function deleteCharacter(){
 
 // ==== ЕДИНЫЙ ОБРАБОТЧИК СОБЫТИЙ ====
 document.addEventListener('click', e => {
+  const rmTag = e.target.closest('[data-remove-tag]');
+  if (rmTag){ removeTag(rmTag.dataset.removeTag); return; }
+  const chItem = e.target.closest('[data-chapter]');
+  if (chItem){ changeChapter(chItem.dataset.chapter); return; }
   const btn = e.target.closest('[data-add]');
   if (btn){ openPicker(btn.dataset.add); return; }
   if (e.target.closest('#screen-sheet')){
@@ -2686,6 +2860,28 @@ document.addEventListener('click', e => {
     $('timeline-rolls').classList.toggle('hidden', isEvents);
     $('tl-add-btn').classList.toggle('hidden', !isEvents || S.role !== 'gm');
   }
+  const srcTab = e.target.closest('.adv-source-tab');
+  if (srcTab){
+    document.querySelectorAll('.adv-source-tab').forEach(t => t.classList.remove('active'));
+    srcTab.classList.add('active');
+    ADV_SOURCE = srcTab.dataset.source;
+    ADV_FILTER = 'all';
+    const controls = $('adv-controls');
+    if (controls) controls.style.display = ADV_SOURCE === 'specialization' ? '' : 'none';
+    updateAdvFilter();
+    renderAdvCatalog();
+    return;
+  }
+  const subTab = e.target.closest('.advancement-subtab');
+  if (subTab){
+    document.querySelectorAll('.advancement-subtab').forEach(t => t.classList.remove('active'));
+    subTab.classList.add('active');
+    const isImp = subTab.dataset.subadv === 'improvements';
+    $('adv-improvements').style.display = isImp ? '' : 'none';
+    $('adv-requisition').style.display = isImp ? 'none' : '';
+    if (isImp) renderAdvCatalog();
+    return;
+  }
 });
 
 document.addEventListener('input', e => {
@@ -2701,7 +2897,15 @@ document.addEventListener('input', e => {
   }
 });
 
+document.addEventListener('change', e => {
+  if (e.target.id === 'adv-filter'){
+    ADV_FILTER = e.target.value;
+    renderAdvCatalog();
+  }
+});
+
 $('xp-bar-click').addEventListener('click', () => {
+  if (!S.character) return;
   const d = S.character.character_data;
   const log = d.xp_log || [];
   const total = d.vitals?.xp_total || 0;
@@ -2721,7 +2925,7 @@ function addXpManual(){
   if (amt <= 0) return toast('Введите положительное число');
   d.vitals.xp_total = (d.vitals.xp_total || 0) + amt;
   renderHeaderXp();
-  saveSheet();
+  debouncedSave();
   toast('+' + amt + ' XP');
   closeSheetModal('xp-modal');
 }
@@ -2732,12 +2936,13 @@ function subXpManual(){
   if (amt <= 0) return toast('Введите положительное число');
   d.vitals.xp_total = Math.max(0, (d.vitals.xp_total || 0) - amt);
   renderHeaderXp();
-  saveSheet();
+  debouncedSave();
   toast('−' + amt + ' XP');
   closeSheetModal('xp-modal');
 }
 
 $('renown-bar-click').addEventListener('click', () => {
+  if (!S.character) return;
   const d = S.character.character_data;
   const renown = d.vitals?.renown || 0;
   $('renown-current-display').textContent = 'Текущая слава: ' + renown + ' (' + renownTitle(renown) + ')';
@@ -2751,7 +2956,7 @@ function addRenown(){
   if (amt <= 0) return toast('Введите положительное число');
   d.vitals.renown = (d.vitals.renown || 0) + amt;
   renderHeaderXp();
-  saveSheet();
+  debouncedSave();
   toast('+' + amt + ' к славе');
   closeSheetModal('renown-modal');
 }
@@ -2762,22 +2967,22 @@ function subRenown(){
   if (amt <= 0) return toast('Введите положительное число');
   d.vitals.renown = Math.max(0, (d.vitals.renown || 0) - amt);
   renderHeaderXp();
-  saveSheet();
+  debouncedSave();
   toast('−' + amt + ' к славе');
   closeSheetModal('renown-modal');
 }
 
 $('editBtn').addEventListener('click', async () => {
-  if (editMode){ await saveSheet(); editMode = false; updateStatsOnly(); setEditButtons(); }
-  else { editMode = true; setEditButtons(); }
+  if (editMode){ await saveSheet(); editMode = false; updateStatsOnly(); setEditButtons(); renderAltSpeeds(); }
+  else { editMode = true; setEditButtons(); renderAltSpeeds(); }
 });
 $('deleteBtn').addEventListener('click', () => {
-  if (editMode){ editMode = false; openSheet(S.character.id); }
+  if (editMode){ editMode = false; openSheet(S.character.id); renderAltSpeeds(); }
   else deleteCharacter();
 });
 
 (async function init(){
-  cacheDom();
+  const charId = new URLSearchParams(location.search).get('char');
   const saved = localStorage.getItem('dw_user');
   if (saved){
     try {
@@ -2785,27 +2990,60 @@ $('deleteBtn').addEventListener('click', () => {
       const u = JSON.parse(saved);
       const { data } = await sb.from('users_simple')
         .select('id, username').eq('id', u.id).maybeSingle();
-      if (data){ S.user = data; return showDash(); }
+      if (data){
+        S.user = data;
+        if (charId){ await openSheet(Number(charId)); return; }
+        return showDash();
+      }
     } catch(e){}
     localStorage.removeItem('dw_user');
   }
   showScreen('login');
 })();
 
+// ==== ANTI-STALE (BroadcastChannel) ====
+function showStaleOverlay(){
+  let ov = document.getElementById('stale-overlay');
+  if (!ov){
+    ov = document.createElement('div');
+    ov.id = 'stale-overlay';
+    ov.innerHTML = '<div style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;"><div style="text-align:center;color:var(--text-main);"><h2>Данные устарели</h2><p style="color:var(--text-dim);margin:12px 0;">Данные устарели, требуется перезагрузка данных.</p><button onclick="location.reload()" style="padding:8px 24px;background:var(--gold);color:#000;border:none;cursor:pointer;font-size:14px;">Перезагрузка</button></div></div>';
+    document.body.appendChild(ov);
+  }
+}
+if (charChannel){
+  charChannel.onmessage = (e) => {
+    if (currentCharId && e.data.charId === Number(currentCharId)){
+      showStaleOverlay();
+    }
+  };
+}
+
 // ========== CHAPTER SELECTOR ==========
 
 async function openChapterModal(){
   if (!S.character) return;
   if (CHAPTERS.length === 0) await loadChapters();
+  renderChapterList('');
+  $('custom-chapter-input').value = '';
+  $('chapter-search').value = '';
+  $('chapter-search').oninput = function(){ renderChapterList(this.value); };
+  $('chapter-modal').classList.add('active');
+}
+
+function renderChapterList(query){
   const list = $('chapter-list');
   const cur  = S.character.character_data.info.chapter || '';
-  list.innerHTML = CHAPTERS.map(ch =>
+  const q = (query || '').toLowerCase();
+  const filtered = q ? CHAPTERS.filter(ch => ch.name.toLowerCase().includes(q)) : CHAPTERS;
+  list.innerHTML = filtered.map(ch =>
     `<div class="chapter-item${cur === ch.name ? ' selected' : ''}"
-      onclick="changeChapter('${esc(ch.name).replace(/'/g,"\\'")}')">
+      data-chapter="${esc(ch.name)}">
       ${esc(ch.name)}</div>`
   ).join('');
-  $('custom-chapter-input').value = '';
-  $('chapter-modal').classList.add('active');
+  list.querySelectorAll('.chapter-item').forEach(el => {
+    el.addEventListener('click', () => changeChapter(el.dataset.chapter));
+  });
 }
 
 function changeChapter(name){
@@ -2813,7 +3051,7 @@ function changeChapter(name){
   S.character.character_data.info.chapter = name;
   closeChapterModal();
   updateStatsOnly();
-  saveSheet();
+  debouncedSave();
 }
 
 function saveCustomChapter(){
@@ -2861,7 +3099,7 @@ function changeSpecialization(name){
   S.character.character_data.info.specialization = name;
   closeSpecializationModal();
   updateStatsOnly();
-  saveSheet();
+  debouncedSave();
 }
 
 function saveCustomSpecialization(){
@@ -2907,7 +3145,6 @@ const STAT_NAME_MAP = {
 let ADV_CATALOG = [];
 let ADV_SOURCE = 'general';
 let ADV_FILTER = 'all';
-let ADV_SEARCH = '';
 
 async function loadAdvCatalog(){
   const { data, error } = await sb.from('tables')
@@ -2956,7 +3193,7 @@ function getAdvStatus(item, charData){
 function renderAdvCatalog(){
   const d = S.character.character_data;
   const log = d.xp_log || [];
-  const spent = log.reduce((a, x) => a + (Number(x.cost) || 0), 0);
+  const spent = calcTotalXpSpent(d);
   const total = d.vitals?.xp_total || 0;
   const available = total - spent;
 
@@ -2967,6 +3204,11 @@ function renderAdvCatalog(){
   if (spentEl) spentEl.textContent = spent + ' XP';
   if (totalEl) totalEl.textContent = total + ' XP';
 
+  // Show/hide deathwatch tab
+  const tags = d.tags || [];
+  const dwTab = $('adv-tab-deathwatch');
+  if (dwTab) dwTab.style.display = tags.includes('Караул Смерти') ? '' : 'none';
+
   let items = ADV_CATALOG;
   if (ADV_SOURCE === 'general'){
     items = items.filter(i => i.source === 'Общие улучшения');
@@ -2976,14 +3218,11 @@ function renderAdvCatalog(){
   } else if (ADV_SOURCE === 'chapter'){
     const ch = d.info?.chapter;
     items = ch ? items.filter(i => i.source === ch) : [];
+  } else if (ADV_SOURCE === 'deathwatch'){
+    items = items.filter(i => i.source === 'Караул Смерти');
   }
 
   if (ADV_FILTER !== 'all') items = items.filter(i => i.source === ADV_FILTER);
-
-  if (ADV_SEARCH){
-    const q = ADV_SEARCH.toLowerCase();
-    items = items.filter(i => i.name.toLowerCase().includes(q));
-  }
 
   const list = $('adv-list');
   if (!list) return;
@@ -2992,32 +3231,60 @@ function renderAdvCatalog(){
     return;
   }
 
-  list.innerHTML = items.map(item => {
-    const status = getAdvStatus(item, d);
-    const reqText = item.requirements ? 'Требуется: ' + item.requirements : '';
-    const reqMet = !item.requirements || checkRequirement(item.requirements, d);
-    const priceCls = available >= item.cost ? 'ok' : 'expensive';
-    const buyLabel = status === 'locked'
-      ? (available < item.cost ? 'Купить (недостаточно XP)' : 'Купить (требования не выполнены)')
-      : 'Купить';
+  // Group by rank
+  const groups = {};
+  items.forEach(item => {
+    const r = item.rank || 0;
+    if (!groups[r]) groups[r] = [];
+    groups[r].push(item);
+  });
 
-    return `<div class="advancement-item ${status}" data-adv-id="${item.id}">
-      <div class="adv-head">
-        <div>
-          <div class="adv-name">${esc(item.name)}</div>
-          ${item.rank ? `<div class="adv-rank-badge">Ранг ${item.rank}</div>` : ''}
-        </div>
-        <div class="adv-price ${priceCls}">${item.cost} XP</div>
+  const rankKeys = Object.keys(groups).sort((a,b) => Number(a) - Number(b));
+
+  list.innerHTML = rankKeys.map(rank => {
+    const rankItems = groups[rank];
+    const rankLabel = Number(rank) > 0 ? 'Ранг ' + rank : 'Без ранга';
+    return `<div class="adv-rank-group">
+      <div class="adv-rank-header" onclick="this.classList.toggle('collapsed')">
+        <span>${esc(rankLabel)}</span>
+        <span class="chevron">▾</span>
       </div>
-      ${reqText ? `<div class="adv-req ${!reqMet ? 'not-met' : ''}">${esc(reqText)}</div>` : ''}
-      <div class="adv-purchased-badge">✓ Куплено</div>
-      <button class="adv-buy-btn">${buyLabel}</button>
+      <div class="adv-rank-body">
+        ${rankItems.map(item => {
+          const status = getAdvStatus(item, d);
+          const reqText = item.requirements ? 'Треб.: ' + item.requirements : '';
+          const reqMet = !item.requirements || checkRequirement(item.requirements, d);
+          const priceCls = available >= item.cost ? 'ok' : 'expensive';
+          const buyLabel = status === 'locked'
+            ? (available < item.cost ? 'Купить (недостаточно XP)' : 'Купить (требования не выполнены)')
+            : 'Купить';
+
+          return `<div class="advancement-item ${status}" data-adv-id="${item.id}">
+            <div class="adv-item-info">
+              <div class="adv-name">${esc(item.name)}</div>
+              ${reqText ? `<div class="adv-req ${!reqMet ? 'not-met' : ''}">${esc(reqText)}</div>` : ''}
+            </div>
+            <div class="adv-price ${priceCls}">${item.cost} XP</div>
+            <button class="adv-buy-btn">${buyLabel}</button>
+            <div class="adv-purchased-badge">✓ Куплено</div>
+          </div>`;
+        }).join('')}
+      </div>
     </div>`;
   }).join('');
 
   list.querySelectorAll('.advancement-item').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.adv-buy-btn')) return;
       const id = Number(el.dataset.advId);
+      const item = ADV_CATALOG.find(i => i.id === id);
+      if (item) openBuyModal(item);
+    });
+  });
+  list.querySelectorAll('.adv-buy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = Number(btn.closest('.advancement-item').dataset.advId);
       const item = ADV_CATALOG.find(i => i.id === id);
       if (item) openBuyModal(item);
     });
@@ -3065,7 +3332,7 @@ function confirmBuy(){
   closeSheetModal('buy-modal');
   renderAdvCatalog();
   renderHeaderXp();
-  saveSheet();
+  debouncedSave();
   toast('Куплено: ' + item.name + ' (' + item.cost + ' XP)');
 }
 
@@ -3083,50 +3350,13 @@ function updateAdvFilter(){
   } else if (ADV_SOURCE === 'chapter'){
     const ch = d.info?.chapter;
     sources = ch ? [ch] : [];
+  } else if (ADV_SOURCE === 'deathwatch'){
+    sources = ['Караул Смерти'];
   }
 
   select.innerHTML = '<option value="all">Все</option>' +
     sources.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
 }
-
-// Привязка событий XP-вкладки
-document.addEventListener('click', e => {
-  const srcTab = e.target.closest('.adv-source-tab');
-  if (srcTab){
-    document.querySelectorAll('.adv-source-tab').forEach(t => t.classList.remove('active'));
-    srcTab.classList.add('active');
-    ADV_SOURCE = srcTab.dataset.source;
-    ADV_FILTER = 'all';
-    updateAdvFilter();
-    renderAdvCatalog();
-    return;
-  }
-
-  const subTab = e.target.closest('.advancement-subtab');
-  if (subTab){
-    document.querySelectorAll('.advancement-subtab').forEach(t => t.classList.remove('active'));
-    subTab.classList.add('active');
-    const isImp = subTab.dataset.subadv === 'improvements';
-    $('adv-improvements').style.display = isImp ? '' : 'none';
-    $('adv-requisition').style.display = isImp ? 'none' : '';
-    if (isImp) renderAdvCatalog();
-    return;
-  }
-});
-
-document.addEventListener('input', e => {
-  if (e.target.id === 'adv-search'){
-    ADV_SEARCH = e.target.value;
-    renderAdvCatalog();
-  }
-});
-
-document.addEventListener('change', e => {
-  if (e.target.id === 'adv-filter'){
-    ADV_FILTER = e.target.value;
-    renderAdvCatalog();
-  }
-});
 
 </script>
 
@@ -3134,6 +3364,7 @@ document.addEventListener('change', e => {
 <div id="chapter-modal">
   <div class="chapter-modal-box">
     <h3>Выбрать Орден</h3>
+    <input type="text" id="chapter-search" placeholder="Поиск ордена..." class="chapter-search-input">
     <div class="chapter-list" id="chapter-list"></div>
     <div class="chapter-custom">
       <input type="text" id="custom-chapter-input" placeholder="Или введите свой орден..." maxlength="50">
@@ -3161,7 +3392,7 @@ document.addEventListener('change', e => {
   <div class="chapter-modal-box">
     <h3>Дополнительные опции</h3>
     <div class="plus-menu-list">
-      <div class="plus-menu-modal-item" onclick="addDeathwatchVigil();closePlusMenuModal()">
+      <div class="plus-menu-modal-item" id="plus-deathwatch" onclick="addDeathwatchVigil();closePlusMenuModal()">
         <div class="plus-item-label">Начать Долгое Бдение в Карауле Смерти</div>
         <div class="plus-item-desc">Добавляет тэг [Караул Смерти]</div>
       </div>
