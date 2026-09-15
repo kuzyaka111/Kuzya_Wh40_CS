@@ -9,7 +9,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Oswald:wght@400;500;600&display=swap');
 :root{
   --bg:#0c0d0b; --panel:#16180f; --panel2:#1e2114;
-  --line:#3b3f26; --gold:#c9a227; --gold-dim:#8a7220;
+  --line:#3b3f26; --gold:#c9a227; --gold-bright:#e8c76a; --gold-dim:#8a7220;
   --txt:#d8d4c2; --txt-dim:#8d8974; --red:#7e2217; --green:#3f5c2a;
 }
 *{box-sizing:border-box}
@@ -146,7 +146,12 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .renown-name{font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--gold);text-transform:uppercase;}
 
 /* TOOLTIP */
-.tooltip{display:none;position:fixed;background:rgba(16,16,18,.95);border:1px solid #a8862f;border-radius:3px;padding:8px 12px;font-size:11px;color:#9a958a;max-width:200px;z-index:1000;pointer-events:none;line-height:1.4;font-family:'Oswald',sans-serif;}
+.tooltip{display:none;position:fixed;background:rgba(16,16,18,.97);border:1px solid #a8862f;border-radius:3px;padding:8px 12px;font-size:11px;color:#9a958a;max-width:300px;z-index:1000;pointer-events:none;line-height:1.45;font-family:'Oswald',sans-serif;}
+.tooltip table{width:100%;border-collapse:collapse;margin-top:6px;}
+.tooltip th,.tooltip td{border:1px solid #3a3a3d;padding:4px 7px;text-align:left;vertical-align:top;}
+.tooltip th{color:var(--gold);font-weight:600;background:rgba(201,162,75,.08);}
+.tooltip td:first-child{white-space:nowrap;color:#c7c2b8;}
+.tooltip b{color:#d8d2c4;font-weight:600;}
 .tooltip.active{display:block;}
 
 /* SHEET MODALS */
@@ -174,7 +179,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 /* SKILL DETAIL MODAL */
 .skill-detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .skill-detail-name{font-size:16px;color:var(--gold);font-weight:600;}
-.skill-detail-ch{font-size:12px;color:var(--text-dim);}
+.renown-label{font-family:'Cinzel',serif;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#8c8578;margin-bottom:2px;}
 .skill-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-dark);margin-top:8px;}
 .skill-toggle-label{font-size:13px;color:var(--text-main);}
 .skill-toggle{position:relative;width:40px;height:22px;cursor:pointer;}
@@ -198,6 +203,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .section-title{font-family:'Cinzel',serif;font-weight:700;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:10px 16px;background:linear-gradient(90deg,rgba(140,28,28,.25),transparent);border-left:3px solid var(--red-bright);margin:0 0 12px 0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
 .section-title .chevron{font-size:18px;transition:transform .2s;color:var(--text-dim);}
 .panel.collapsed .section-title .chevron{transform:rotate(-90deg);}
+.section-title[data-no-collapse]{margin-bottom:0;cursor:default;}
 .panel.collapsed .panel-body{display:none;}
 
 /* LAYOUT */
@@ -205,8 +211,11 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .stats-strip{display:flex;gap:10px;}
 .stats-strip .stat-box{flex:1;}
 .body-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;padding:18px 22px 22px;}
+.combat-grid{grid-template-columns:repeat(6,1fr);}
 .col-span-2{grid-column:span 2;}
 .col-span-3{grid-column:span 3;}
+.combat-grid .col-span-2{grid-column:span 2;}
+.combat-grid .col-span-3{grid-column:span 3;}
 .sheet .panel{background:var(--bg-panel-alt);border:1px solid var(--border-dark);padding:16px;}
 
 /* STAT BOXES */
@@ -227,15 +236,37 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .vital-row .vnum{width:52px;background:var(--bg-main);border:1px solid var(--border-dark);color:var(--text-main);font-family:'Oswald',sans-serif;font-size:14px;text-align:center;padding:2px 0;}
 .bar-wrap{width:100%;height:20px;background:#101012;border:1px solid var(--border-dark);margin-top:4px;overflow:hidden;}
 .bar-fill.wounds{height:100%;background:linear-gradient(90deg,var(--red),var(--red-bright));}
+.bar-fill.fatigue{background:linear-gradient(90deg,#5c7a3a,#8fbf57);}
 .bar-fill.fate{background:linear-gradient(90deg,#2c5f8a,#4a90c9);}
 .bar-fill.corruption{background:linear-gradient(90deg,#4a2c5f,#7a4a9c);}
+.bar-fill.insanity{background:linear-gradient(90deg,#2c5f52,#4a9c85);}
 .bar-fill.crit-wounds{background:linear-gradient(90deg,#8b0000,#cc0000);}
 .vit-arrow{background:none;border:1px solid var(--border-dark);color:var(--text-dim);width:20px;height:20px;cursor:pointer;font-size:9px;display:inline-flex;align-items:center;justify-content:center;border-radius:2px;flex-shrink:0;}
 .vit-arrow:hover{border-color:var(--border-gold);color:var(--gold);}
-.madness-bar{display:flex;gap:2px;width:100%;height:20px;margin-top:4px;}
-.madness-seg{flex:1;background:#101012;border:1px solid var(--border-dark);overflow:hidden;}
-.madness-seg.filled{background:#2a1540;border-color:#4a2060;}
-.madness-seg.partial{background:linear-gradient(90deg,#2a1540 var(--fill),#101012 var(--fill));border-color:#4a2060;}
+
+/* VITALS STRIP (header) */
+.vitals-strip-wrap{padding:14px 22px 0;}
+.vitals-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.vit-box{background:#1e1e21;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);padding:10px 8px 10px 10px;display:flex;flex-direction:column;gap:8px;min-width:0;position:relative;}
+.vit-name{font-family:'Oswald',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;text-align:center;cursor:help;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vit-box.crit .vit-name{color:var(--red-bright);}
+.vit-control{display:flex;align-items:center;gap:5px;}
+.vit-control .bar-wrap{flex:1;margin:0;height:18px;position:relative;}
+.vit-box .bar-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1px;font-family:'Oswald',sans-serif;font-size:12px;color:var(--text-main);pointer-events:none;}
+.vit-box .bar-num input,.vit-box .vit-static-max{pointer-events:auto;}
+.vit-inline{background:transparent;border:none;color:inherit;font:inherit;text-align:center;width:30px;padding:0;min-width:0;}
+.vit-inline:focus{outline:1px solid var(--border-gold);color:var(--text-main);}
+.vit-box .vit-max-sep,.vit-box .vit-static-max{color:rgba(255,255,255,.55);}
+.sheet .vit-max{pointer-events:none;opacity:.55;}
+.sheet.edit-mode .vit-max{pointer-events:auto;opacity:1;}
+.vit-box .vit-arrow{width:18px;height:18px;font-size:8px;}
+.vit-inline::-webkit-outer-spin-button,.vit-inline::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.vit-inline{-moz-appearance:textfield;appearance:textfield;}
+.vit-box .madness-bar{display:flex;gap:2px;width:100%;height:18px;}
+.vit-box .madness-seg{flex:1;background:#101012;border:1px solid var(--border-dark);overflow:hidden;}
+.vit-box .madness-seg.filled{background:#2a1540;border-color:#4a2060;}
+.vit-box .madness-seg.partial{background:linear-gradient(90deg,#2a1540 var(--fill),#101012 var(--fill));border-color:#4a2060;}
+.vit-level{color:var(--gold);font-size:10px;font-weight:600;margin-left:5px;letter-spacing:0;}
 
 /* PARAM LIST */
 .param-list{list-style:none;margin:0;padding:0;}
@@ -252,42 +283,57 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .sheet.edit-mode .add-alt-speed-li{display:list-item;}
 
 /* ARMOUR ZONES */
-.armour-list{list-style:none;margin:0;padding:0;}
-.armour-row{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border-dark);font-size:13px;gap:8px;}
+.armour-list{margin:12px 0 0;padding:0;}
+.armour-th,.armour-row{display:grid;grid-template-columns:1fr 40px 40px 40px;gap:6px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-dark);font-size:11px;}
+.armour-th{border-bottom:2px solid var(--border-dark);padding:4px;font-size:9px;}
+.armour-th .label{color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}
+.armour-th .cab{color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;text-align:center;}
 .armour-row:last-child{border-bottom:none;}
-.armour-row .label{color:var(--text-dim);text-transform:uppercase;font-size:11px;letter-spacing:1px;flex:1;margin:0;}
-.armour-row .value{background:#101012;border:1px solid var(--border-dark);color:var(--gold);font-weight:600;padding:4px 10px;min-width:60px;text-align:center;font-size:13px;}
-/* BATTLE CIRCUMSTANCES */
-.circumstances-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer;user-select:none;transition:background .15s;}
-.toggle-row:hover{background:rgba(74,144,201,.05);}
-.toggle-row.active{background:rgba(140,28,28,.1);}
-.toggle-row .t-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;cursor:help;}
-.toggle-row.active .t-label{color:var(--text-main);}
-.toggle-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border-dark);flex-shrink:0;transition:background .15s,border-color .15s;}
-.toggle-row.active .toggle-dot{background:var(--red-bright);border-color:var(--red-bright);}
-.aim-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;}
-.aim-row .t-label{flex:1;font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;}
-.aim-toggle{display:flex;border:1px solid var(--border-dark);overflow:hidden;}
-.aim-opt{flex:1;text-align:center;padding:8px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);background:#101012;cursor:pointer;border-right:1px solid var(--border-dark);transition:background .15s,color .15s;}
-.aim-opt:last-child{border-right:none;}
-.aim-opt.active{background:rgba(74,144,201,.2);color:var(--blue);box-shadow:inset 0 -3px 0 var(--blue);}
+.armour-row .label{color:var(--text-dim);text-transform:uppercase;font-size:10px;letter-spacing:1px;}
+.armour-row .val{background:#101012;border:1px solid var(--border-dark);color:var(--gold);font-weight:600;padding:4px 2px;text-align:center;font-size:13px;min-height:22px;box-sizing:border-box;border-radius:2px;}
+.armour-row .val.shield{color:#c7d0d8;cursor:pointer;user-select:none;}
+.armour-row .val.shield.on{color:#edf2f7;border-color:#6c7884;background:#15181c;}
+.armour-row .val.shield.off{opacity:.55;}
+.armour-row .val.shield.hide{visibility:hidden;cursor:default;}
+.armour-row .val.shield input{color:#edf2f7;}
+.armour-row .val.ap{color:#e8c76a;}
+.armour-row .val.end{color:#ff6b3d;}
+.armour-row .val input{width:100%;background:none;border:none;color:var(--gold-bright);text-align:center;font:inherit;font-weight:600;padding:0;outline:none;}
+
+/* ARMOUR SILHOUETTE WIDGET */
+.armour-sil{position:relative;width:100%;}
+.armour-sil svg{display:block;width:100%;height:auto;}
+.armour-sil #az-geom *{fill:#c9b88a !important;}
+.armour-sil .zone{
+  fill:rgba(201,162,75,.05);
+  stroke:none;
+  pointer-events:none;
+}
+.armour-sil .zone.arm{fill:rgba(201,162,75,.10);}
+.armour-sil .zone.weak{fill:rgba(140,28,28,.12);}
+.armour-sil .zone.dead{fill:rgba(15,15,18,.35);}
+.armour-sil .zone-badge{
+  font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;
+  fill:#ffffff;text-anchor:middle;pointer-events:none;
+  paint-order:stroke;stroke:#0d0d0f;stroke-width:3px;
+}
+.armour-sil .zone.extend .zone-badge{fill:#ffffff;}
 
 /* SKILLS */
-.skill-list{list-style:none;margin:0;padding:0;}
 .skill-subtitle{font-family:'Cinzel',serif;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#8c8578;padding-bottom:4px;border-bottom:1px solid var(--border-dark);margin-bottom:4px;}
 .skill-item{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-dark);font-size:13px;gap:8px;cursor:pointer;transition:background .15s;}
 .skill-item:hover{background:rgba(74,144,201,.1);}
 .skill-item:last-child{border-bottom:none;}
 .skill-name{color:var(--text-main);flex:1;display:flex;align-items:center;gap:6px;font-size:13px;}
-.skill-ch-inline{font-size:10px;color:var(--text-dim);letter-spacing:.5px;}
+.skill-chip{font-size:10px;line-height:1;padding:2px 6px;border:1px solid var(--border-dark);color:var(--text-dim);background:rgba(74,144,201,.08);border-radius:2px;white-space:nowrap;letter-spacing:.3px;}
+.sheet .skill-chip{display:inline-block;}
+.sheet.edit-mode .skill-chip{display:none;}
 .skill-ch-select{background:var(--bg-main);border:1px solid var(--border-dark);color:var(--text-dim);font-size:10px;padding:2px 14px 2px 4px;border-radius:2px;max-width:90px;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%239a958a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;background-size:6px 4px;}
 .sheet .skill-ch-select{pointer-events:none;opacity:0;width:0;padding:0;border:none;overflow:hidden;}
 .sheet.edit-mode .skill-ch-select{pointer-events:auto;opacity:1;width:auto;padding:2px 14px 2px 4px;border:1px solid var(--border-dark);overflow:visible;}
 .skill-ch-select:hover{border-color:var(--border-gold);}
 .skill-ch-select:focus{outline:none;border-color:var(--border-gold);color:var(--text-main);}
 .skill-ch-select option{background:var(--bg-main);color:var(--text-main);}
-.skill-ch{font-size:10px;color:var(--text-dim);min-width:70px;text-align:right;letter-spacing:.5px;}
 .skill-level{font-size:11px;padding:2px 8px;border:1px solid var(--border-gold);color:var(--gold);letter-spacing:.5px;min-width:42px;text-align:center;cursor:pointer;}
 .skill-level.trained{border-color:var(--border-dark);color:var(--text-dim);}
 .skill-level.gifted{border-color:#4a9e6e;color:#6ccf8e;}
@@ -295,8 +341,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .skill-groups-wrap{padding-left:12px;margin-top:2px;}
 .skill-group-row{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);}
 .skill-group-row:last-child{border-bottom:none;}
-.skill-group-name{flex:1;color:var(--text-dim);}
-.skill-group-ch{font-size:10px;color:var(--text-dim);min-width:60px;text-align:right;}
+.skill-group-name{flex:1;color:var(--text-dim);display:flex;align-items:center;gap:5px;}
 .skill-group-lvl{font-size:10px;padding:1px 6px;border:1px solid var(--border-dark);color:var(--text-dim);min-width:36px;text-align:center;cursor:pointer;}
 .skill-group-lvl.gifted{border-color:#4a9e6e;color:#6ccf8e;}
 .skill-group-add{display:flex;gap:4px;margin-top:6px;}
@@ -313,7 +358,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .skill-filter-toggle input{display:none;}
 .skill-filter-toggle input+span::before{content:'☐ ';font-size:13px;}
 .skill-filter-toggle input:checked+span::before{content:'☑ ';font-size:13px;color:#8fd19e;}
-#skills-basic-render,#skills-adv-render{max-height:400px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border-dark) transparent;}
+#skills-basic-render,#skills-adv-render{align-self:start;}
 
 /* TALENTS */
 .talent-item{padding:10px;background:#101012;border:1px solid var(--border-dark);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
@@ -327,8 +372,104 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .gear-item:hover{background:rgba(74,144,201,.1);}
 .gear-item:last-child{border-bottom:none;}
 .gear-item .g-name{flex:1;}
-.armour-name-row{padding:10px;background:#101012;border:1px solid var(--border-dark);margin-bottom:12px;font-size:14px;color:var(--gold);font-weight:600;cursor:pointer;transition:border-color .15s;}
-.armour-name-row:hover{border-color:var(--border-gold);}
+.gear-weapon-row{flex-direction:column;align-items:stretch;cursor:default;}
+.gear-weapon-row:hover{background:none;}
+.gear-head{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;width:100%;}
+.gear-weapon-row .g-name{flex:1;cursor:pointer;}
+.g-src-custom{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);background:rgba(201,162,75,.12);border:1px solid rgba(201,162,75,.25);padding:1px 6px;border-radius:3px;}
+.gw-quals{margin-top:4px;}
+.gw-q-pick{display:flex;flex-wrap:nowrap;gap:4px;overflow-x:auto;align-items:center;}
+.gw-qual-tr .gw-quals{margin:0;}
+.gw-qual-tr td{white-space:nowrap;overflow-x:hidden;}
+.gw-qual-tr .gw-quals>div{display:inline-flex;flex-wrap:nowrap;overflow-x:auto;max-width:100%;}
+.gw-q-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-dim);background:#101012;border:1px solid var(--border-dark);padding:2px 8px;border-radius:10px;cursor:pointer;user-select:none;}
+.gw-q-chip.on{color:var(--gold);border-color:var(--border-gold);background:rgba(201,162,75,.1);}
+.gw-q-chip.snack{cursor:help;}
+.gw-q-chip input{display:none;}
+
+.gw-group{margin-bottom:14px;}
+.gw-group-title{font-size:11px;color:#8c8578;text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px;}
+.gw-table-wrap{overflow-x:auto;}
+.gw-table{width:100%;border-collapse:collapse;font-size:13px;color:var(--text-main);table-layout:fixed;max-width:900px;}
+.gw-table th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);text-align:left;padding:5px 8px;border-bottom:1px solid var(--border-dark);white-space:nowrap;font-weight:400;}
+.gw-table td{padding:6px 8px;border-bottom:1px solid var(--border-dark);vertical-align:top;}
+.gw-table b{color:var(--gold);font-weight:600;}
+.gw-table .gw-name-td{white-space:nowrap;min-width:170px;}
+.gw-table tr:last-child td{border-bottom:none;}
+.gw-tr{cursor:pointer;}
+.gw-tr:hover td{background:rgba(74,144,201,.08);}
+.gw-tr .g-name{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;cursor:pointer;}
+.gw-qual-tr td{border-bottom:1px solid var(--border-dark);padding:2px 8px 4px;background:none;}
+.gw-tr:has(+ .gw-qual-tr) td{border-bottom:none;}
+.gw-table input{background:#101012;border:1px solid var(--border-dark);color:var(--text);font-size:12px;padding:3px 5px;width:100%;min-width:60px;font-family:inherit;}
+.gw-table input:focus{border-color:var(--border-gold);outline:none;}
+.gw-table select{background:#101012;border:1px solid var(--border-dark);color:var(--text);font-size:12px;padding:3px 5px;width:100%;min-width:90px;max-width:180px;font-family:inherit;}
+.gw-table select:focus{border-color:var(--border-gold);outline:none;}
+.gw-table .remove-row-btn{margin-left:8px;}
+.gw-dmg-cell{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;}
+.gw-dmg-cell input{min-width:70px;width:auto;flex:1;}
+.gw-dmg-cell select{flex:1;min-width:52px;max-width:auto;}
+.gw-sks-cell .gw-sks{display:flex;gap:3px;align-items:center;flex-wrap:nowrap;}
+.gw-sks-inp{display:inline-flex;flex-direction:column;gap:1px;}
+.gw-sks-lbl{font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-dim);}
+.gw-sks-inp input{width:40px;min-width:40px;padding:2px 3px;font-size:11px;text-align:center;}
+.gw-sks-sep{color:var(--text-dim);font-size:12px;align-self:center;}
+.gw-ammo-sel{min-width:140px;}
+.gw-equipped{padding:6px 2px 2px;}
+.gw-slot-grid{display:flex;flex-direction:column;gap:10px;margin:8px 0;}
+.gw-slot{border:1px solid var(--border-dark);border-radius:4px;padding:8px;background:#101012;display:flex;flex-direction:column;gap:8px;}
+.gw-slot-head{display:flex;justify-content:space-between;align-items:center;gap:6px;}
+.gw-slot-type{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);white-space:nowrap;}
+.gw-slot .gw-table{margin-top:2px;}
+.gw-slot-adds{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.gw-slot-add{background:none;border:1px dashed var(--border-dark);color:var(--text-dim);border-radius:3px;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 10px;}
+.gw-slot-add:hover{border-color:var(--border-gold);color:var(--gold);}
+.gw-slot-actions{display:flex;gap:6px;align-items:center;}
+.gw-slot-pick{background:#1c1c1f;border:1px solid var(--border-gold);color:var(--gold);border-radius:3px;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 10px;text-transform:uppercase;letter-spacing:.5px;}
+.gw-slot-pick:hover{background:#242024;}
+.gw-slot-unequip{background:none;border:1px solid var(--border-dark);color:var(--text-dim);border-radius:3px;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 10px;}
+.gw-slot-unequip:hover{border-color:#8c3a3a;color:#c96a6a;}
+.gw-slot-empty{font-size:11px;color:var(--text-dim);font-style:italic;}
+.panel-tabs{display:flex;border-bottom:2px solid var(--border-gold);background:#100f11;gap:0;}
+.panel-tab{flex:1;padding:12px 8px;text-align:center;font-family:'Cinzel',serif;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);background:transparent;border:none;border-right:1px solid var(--border-dark);cursor:pointer;transition:background .15s,color .15s;}
+.panel-tab:last-child{border-right:none;}
+.panel-tab:hover{background:#1c1a1d;color:var(--text-main);}
+.panel-tab.active{background:linear-gradient(180deg,rgba(140,28,28,.25),transparent);color:var(--gold);box-shadow:inset 0 -3px 0 var(--red-bright);}
+.panel-tab-body{display:none;}
+.panel-tab-body.active{display:block;padding:12px 14px;}
+
+#slot-pick-weapon{width:100%;padding:8px;background:#101012;border:1px solid var(--border-dark);color:var(--gold);font-family:inherit;}
+#slot-pick-weapon:focus{border-color:var(--border-gold);outline:none;}
+.sheet:not(.edit-mode) #slot-pick-add{display:none;}
+
+/* AMMO */
+.ammo-fold{display:flex;align-items:center;justify-content:space-between;font-family:'Cinzel',serif;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);cursor:pointer;user-select:none;padding:8px 12px;background:linear-gradient(90deg,rgba(201,162,75,.15),transparent);border-left:3px solid var(--gold);margin:12px 0 8px;}
+.ammo-fold:hover{background:linear-gradient(90deg,rgba(201,162,75,.25),transparent);}
+.ammo-fold .chevron{font-size:14px;transition:transform .2s;color:var(--text-dim);}
+.ammo-fold.collapsed .chevron{transform:rotate(-90deg);}
+#ammo-wrap.collapsed{display:none;}
+.ammo-item{display:flex;flex-direction:column;gap:6px;padding:7px 4px;border-bottom:1px solid var(--border-dark);font-size:13px;}
+.ammo-item:last-child{border-bottom:none;}
+.amount-head{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;flex-wrap:wrap;}
+.amount-head .g-name{flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:120px;}
+.ammo-class{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);background:rgba(74,144,201,.12);border:1px solid rgba(74,144,201,.3);padding:1px 6px;border-radius:3px;}
+.ammo-mag-ind{font-size:13px;color:var(--text-dim);white-space:nowrap;}
+.ammo-step{background:none;border:1px solid var(--border-dark);color:var(--text-main);width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border-radius:3px;font-size:14px;line-height:1;padding:0;}
+.ammo-step:hover{border-color:var(--border-gold);color:var(--gold);}
+.ammo-arrow{background:none;border:1px solid var(--border-dark);color:var(--gold);width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border-radius:3px;font-size:10px;padding:0;}
+.ammo-arrow:hover{border-color:var(--border-gold);color:#fff;}
+.ammo-curmax{display:flex;align-items:stretch;border:1px solid var(--border-dark);border-radius:3px;overflow:hidden;background:#101012;flex:none;}
+.ammo-curmax input{background:transparent;border:none;color:var(--text);font-size:12px;padding:4px 3px;width:50px;font-family:inherit;text-align:center;min-width:0;}
+.ammo-curmax input + input{border-left:1px solid var(--border-dark);}
+.ammo-curmax input:focus{outline:none;background:#17161a;}
+.ammo-body{display:flex;flex-direction:column;gap:8px;padding:6px 2px 2px;border-top:1px dashed var(--border-dark);margin-top:2px;}
+.ammo-weapon-row{display:flex;align-items:stretch;gap:8px;}
+.ammo-weapon-sel{background:#101012;border:1px solid var(--border-dark);color:var(--text);font-size:12px;padding:3px 5px;flex:1;min-width:0;font-family:inherit;}
+.ammo-weapon-sel:focus{border-color:var(--border-gold);outline:none;}
+.ammo-fire{background:rgba(74,144,201,.12);border:1px solid rgba(74,144,201,.4);color:#9fc3e6;font-size:11px;padding:4px 14px;border-radius:3px;cursor:pointer;font-family:inherit;white-space:nowrap;align-self:center;}
+.ammo-fire:hover:not(:disabled){border-color:var(--border-gold);color:#fff;}
+.ammo-fire:disabled{opacity:.35;cursor:not-allowed;}
+.ammo-fire-on{background:rgba(201,162,75,.14);border-color:var(--border-gold);color:var(--gold);}
 
 /* ABILITIES */
 .abilities-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
@@ -365,8 +506,6 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .sheet .base-label{display:none;}
 .sheet.edit-mode .base-input{pointer-events:auto;opacity:1;width:44px;height:auto;padding:2px 0;border:1px solid var(--border-dark);overflow:visible;background:var(--bg-main);color:var(--text-dim);font-family:'Oswald',sans-serif;font-size:11px;text-align:center;}
 .sheet.edit-mode .base-label{display:block;}
-.sheet .vnum-max{pointer-events:none;opacity:.55;}
-.sheet.edit-mode .vnum-max{pointer-events:auto;opacity:1;background:#1a1a1c;border-color:var(--border-gold);color:var(--text-main);}
 .sheet.edit-mode .base-input,.sheet.edit-mode .vnum{pointer-events:auto;opacity:1;background:#1a1a1c;border-color:var(--border-gold);color:var(--text-main);}
 .sheet.edit-mode .stat-box .total{cursor:default;}
 .sheet.edit-mode .stat-box .total:hover{color:var(--gold);text-shadow:none;}
@@ -388,10 +527,24 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .sheet .btn.save{background:rgba(80,180,80,.2);color:#8fd19e;}
 .sheet .btn.cancel{background:rgba(201,162,75,.15);color:var(--gold);}
 
+/* Закреплённая панель действий сверху (всегда) */
+.sheet .footer-actions{
+  position:fixed;
+  left:0; right:0; top:0;
+  z-index:150;
+  background:rgba(16,16,19,.97);
+  border-top:none;
+  border-bottom:1px solid var(--border-gold);
+  box-shadow:0 6px 24px rgba(0,0,0,.55);
+  padding:10px 22px;
+}
+.sheet{ padding-top:64px; }
+
 @media(max-width:900px){
   .body-grid{grid-template-columns:1fr;}
   .col-span-2,.col-span-3{grid-column:span 1;}
-  .circumstances-grid,.abilities-grid{grid-template-columns:1fr;}
+  .combat-grid{grid-template-columns:1fr;}
+  .abilities-grid{grid-template-columns:1fr;}
   .tabs-nav{flex-wrap:wrap;}
   .tab-btn{flex:1 1 45%;}
   .chr-grid{grid-template-columns:1fr !important;}
@@ -400,6 +553,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .sheet .titles{flex:1 1 200px;min-width:0;}
   .sheet .titles h1{font-size:21px;word-break:break-word;}
   .stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .vitals-strip{grid-template-columns:repeat(3,1fr);}
+  .vitals-strip-wrap{padding:14px 14px 0;}
   .stats-strip-wrap{padding:14px 14px 0;}
   .body-grid{padding:14px;gap:14px;}
   .sheet .panel{padding:12px;}
@@ -409,6 +564,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .sheet{border-width:1px;}
   .tab-btn{flex:1 1 100%;border-right:none;border-bottom:1px solid var(--border-dark);}
   .stats-strip{grid-template-columns:repeat(2,1fr);}
+  .vitals-strip{grid-template-columns:1fr;}
   .stat-box .total{font-size:22px;}
   .param-row{flex-wrap:wrap;}
   .param-chips{width:100%;}
@@ -416,6 +572,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .injury-select-grid{grid-template-columns:1fr;}
   .footer-actions{flex-direction:column;}
   .sheet .btn{width:100%;}
+  .sheet.edit-mode .footer-actions .btn{width:100%;}
+  .sheet{ padding-top:170px; }
   .vital-row .vnum{width:46px;}
 }
 html,body{max-width:100%;overflow-x:hidden;}
@@ -447,8 +605,6 @@ html,body{max-width:100%;overflow-x:hidden;}
   .adv-controls{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
   .adv-filter-select{flex:0 0 auto;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);padding:7px 10px;font-family:inherit;font-size:12px;min-width:180px;}
   .adv-filter-select:focus{outline:none;border-color:var(--border-gold);}
-  .adv-search-input{flex:1 1 auto;min-width:0;padding:7px 10px;background:#0a0b07;border:1px solid var(--border-dark);color:var(--text-main);font-family:inherit;font-size:12px;}
-  .adv-search-input:focus{outline:none;border-color:var(--border-gold);}
 
   /* RANK GROUP */
   .adv-rank-group{margin-bottom:12px;}
@@ -680,6 +836,7 @@ html,body{max-width:100%;overflow-x:hidden;}
     </div>
     <div class="row tight">
       <button class="ghost sm" onclick="showDash()">← Инфо-панель</button>
+      <button id="chr-chpass-btn" class="ghost sm hidden" onclick="openChpass()">Изменить пароль</button>
       <button id="chr-delete-btn" class="danger sm" onclick="openModal('modal-delete')">Удалить хронику</button>
     </div>
   </div>
@@ -774,7 +931,7 @@ html,body{max-width:100%;overflow-x:hidden;}
   </div>
 
   <!-- ACTIONS -->
-  <div class="footer-actions" style="border-top:none;padding-top:0;">
+  <div class="footer-actions" style="border-top:none;">
     <div style="display:flex;gap:10px;">
       <button class="btn cancel" onclick="backToChronicle()">← К хронике</button>
       <button class="btn" id="editBtn">Редактировать</button>
@@ -792,110 +949,95 @@ html,body{max-width:100%;overflow-x:hidden;}
     <button class="tab-btn" data-tab="tab-advancement">Улучшение / Реквизиция</button>
   </div>
 
-  <!-- CHARACTERISTICS -->
+  <!-- CHARACTERISTICS + VITALS -->
   <div class="stats-strip-wrap">
-    <div class="panel" style="padding:0;background:none;border:none">
-      <div class="section-title"><span>Характеристики</span><span class="chevron">▾</span></div>
-      <div class="stats-strip panel-body" id="stats-body"></div>
+    <div class="stats-strip" id="stats-body"></div>
+    <div class="vitals-strip-wrap">
+      <div class="vitals-strip" id="vitals-body"></div>
     </div>
   </div>
 
   <!-- TAB 1 -->
   <div class="tab-content active" id="tab-combat">
-    <div class="body-grid">
+    <div class="body-grid combat-grid">
 
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Показатели</span><span class="chevron">▾</span></div>
-        <div class="panel-body" id="vitals-body"></div>
-      </div>
-
-      <div class="panel col-span-2">
-        <div class="section-title"><span>Проверки</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
-          <div class="injuries-section" id="checks-skills-section">
-            <div class="section-title"><span>Умения</span><span class="chevron">▾</span></div>
-            <div class="panel-body" style="padding-top:8px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                <div>
-                  <div class="skill-subtitle skill-collapse-toggle" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Базовые</span><span class="chevron">▾</span></div>
-                  <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-basic');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-basic" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
-                  <div id="skills-basic-render"></div>
-                </div>
-                <div>
-                  <div class="skill-subtitle skill-collapse-toggle" style="margin-top:0;" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Продвинутые</span><span class="chevron">▾</span></div>
-                  <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-adv');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-adv" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
-                  <div id="skills-adv-render"></div>
-                </div>
-              </div>
+      <div class="panel col-span-3" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Умения</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <div class="skill-subtitle skill-collapse-toggle" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Базовые</span><span class="chevron">▾</span></div>
+              <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-basic');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-basic" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
+              <div id="skills-basic-render"></div>
+            </div>
+            <div>
+              <div class="skill-subtitle skill-collapse-toggle" style="margin-top:0;" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Продвинутые</span><span class="chevron">▾</span></div>
+              <div class="skill-filter-toggle" onclick="const cb=document.getElementById('hide-untrained-adv');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));"><input type="checkbox" id="hide-untrained-adv" onchange="renderSkills()"><span>Скрыть нетрен.</span></div>
+              <div id="skills-adv-render"></div>
             </div>
           </div>
-          <div class="injuries-section" id="checks-gear-section">
-            <div class="section-title"><span>Личное снаряжение</span><span class="chevron">▾</span></div>
+        </div>
+      </div>
+
+      <div class="panel col-span-3" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Снаряжение</span></div>
+        <div class="panel-tabs">
+          <button class="panel-tab active" data-panel-tab="equipped">Экипированное</button>
+          <button class="panel-tab" data-panel-tab="arsenal">Арсенал</button>
+        </div>
+        <div class="panel-tab-body active" data-panel-pane="equipped">
+          <div id="equipped-body"></div>
+          <div class="ammo-fold" data-ammo-fold="1"><span>Боеприпасы</span><span class="chevron">▾</span></div>
+          <div id="ammo-wrap">
+            <div data-list="ammo"></div>
+            <button class="add-row-btn" data-add="ammo">+ Добавить боеприпас</button>
+          </div>
+        </div>
+        <div class="panel-tab-body" data-panel-pane="arsenal">
+          <button class="add-row-btn" data-add="gear">+ Добавить снаряжение</button>
+          <div data-list="gear"></div>
+        </div>
+      </div>
+
+      <div class="panel col-span-2" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Дополнительные параметры</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px;">
+          <ul class="param-list">
+            <li class="param-row">
+              <span class="label">Скорость перемещения</span>
+              <div class="param-chips">
+                <div class="param-chip" id="speed-half">0</div>
+                <div class="param-chip" id="speed-full">0</div>
+                <div class="param-chip" id="speed-charge">0</div>
+                <div class="param-chip" id="speed-run">0</div>
+              </div>
+            </li>
+            <li id="alt-speeds-list-container"></li>
+            <li class="param-row add-alt-speed-li" id="add-alt-speed">
+              <button class="add-row-btn" style="width:100%;">+ Добавить скорость</button>
+            </li>
+            <li class="param-row">
+              <span class="label">Грузоподъёмность</span>
+              <div class="param-chips">
+                <div class="param-chip" id="carry-val">—</div>
+                <div class="param-chip" id="lift-val">—</div>
+                <div class="param-chip" id="push-val">—</div>
+              </div>
+            </li>
+          </ul>
+          <div class="injuries-section" id="injuries-section">
+            <div class="section-title ammo-fold"><span>Критические травмы</span><span class="chevron">▾</span></div>
             <div class="panel-body">
-              <div data-list="gear"></div>
-              <button class="add-row-btn" data-add="gear">+ Добавить предмет</button>
+              <ul class="injuries-list" id="injuries-list"></ul>
+              <button class="add-injury-btn" onclick="openSheetModal('injury-modal')">+ Добавить травму</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="col-span-1" style="display:flex;flex-direction:column;gap:18px;">
-        <div class="panel">
-          <div class="section-title"><span>Дополнительные параметры</span><span class="chevron">▾</span></div>
-          <div class="panel-body">
-            <ul class="param-list">
-              <li class="param-row">
-                <span class="label">Скорость перемещения</span>
-                <div class="param-chips">
-                  <div class="param-chip" id="speed-half">0</div>
-                  <div class="param-chip" id="speed-full">0</div>
-                  <div class="param-chip" id="speed-charge">0</div>
-                  <div class="param-chip" id="speed-run">0</div>
-                </div>
-              </li>
-              <li id="alt-speeds-list-container"></li>
-              <li class="param-row add-alt-speed-li" id="add-alt-speed">
-                <button class="add-row-btn" style="width:100%;">+ Добавить скорость</button>
-              </li>
-              <li class="param-row">
-                <span class="label">Грузоподъёмность</span>
-                <div class="param-chips">
-                  <div class="param-chip" id="carry-val">—</div>
-                  <div class="param-chip" id="lift-val">—</div>
-                  <div class="param-chip" id="push-val">—</div>
-                </div>
-              </li>
-            </ul>
-            <div class="skill-subtitle skill-collapse-toggle" style="margin-top:10px;" onclick="this.nextElementSibling.classList.toggle('skill-collapsed'); this.querySelector('.chevron').textContent = this.nextElementSibling.classList.contains('skill-collapsed') ? '▸' : '▾'"><span>Обстоятельства боя</span><span class="chevron">▾</span></div>
-              <div class="circumstances-grid">
-                <div style="display:flex;flex-direction:column;">
-                  <div class="toggle-row" data-toggle="rage" data-tooltip="Боец охвачен Праведным Гневом — бонус к атакам и урону"><span class="t-label">Праведный гнев</span><div class="toggle-dot"></div></div>
-                  <div class="toggle-row" data-toggle="fatigue" data-tooltip="Боец устал и получает штраф к действиям"><span class="t-label">Усталость</span><div class="toggle-dot"></div></div>
-                  <div class="toggle-row" data-toggle="dark" data-tooltip="Видимость снижена — штраф к атакам и восприятию"><span class="t-label">Темнота</span><div class="toggle-dot"></div></div>
-                  <div class="toggle-row" data-toggle="terrain" data-tooltip="Боец затруднён при движении через препятствия"><span class="t-label">Пересечение местности</span><div class="toggle-dot"></div></div>
-                  <div class="toggle-row" data-toggle="suppressed" data-tooltip="Противник подавляет огнём"><span class="t-label">Подавлен огнём</span><div class="toggle-dot"></div></div>
-                  <div class="toggle-row" data-toggle="weather" data-tooltip="Необычные условия или погода влияют на бой"><span class="t-label">Необычные / Погодные условия</span><div class="toggle-dot"></div></div>
-                </div>
-                <div style="display:flex;flex-direction:column;">
-                  <div class="toggle-row" data-toggle="called" data-tooltip="Атака целится в конкретную часть тела"><span class="t-label">Точечная атака</span><div class="toggle-dot"></div></div>
-                  <div class="aim-row">
-                    <span class="t-label">Прицеливание</span>
-                    <div class="aim-toggle">
-                      <div class="aim-opt" data-aim="half" data-tooltip="Полудействие прицеливания — небольшой бонус">ПД</div>
-                      <div class="aim-opt" data-aim="full" data-tooltip="Полное действие прицеливания — большой бонус">Полное</div>
-                    </div>
-                  </div>
-                  <div class="toggle-row" data-toggle="careful" data-tooltip="Осторожная атака"><span class="t-label">Осторожная атака</span><div class="toggle-dot"></div></div>
-                  <div class="toggle-row" data-toggle="stun" data-tooltip="Попытка оглушить врага"><span class="t-label">Оглушение</span><div class="toggle-dot"></div></div>
-                </div>
-              </div>
-            </div>
-        </div>
-      </div>
-
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Таланты и Черты</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-2" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Таланты и Черты</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px;">
           <div class="skill-subtitle">Таланты</div>
           <div data-list="talents"></div>
           <button class="add-row-btn" data-add="talents">+ Добавить талант</button>
@@ -905,9 +1047,9 @@ html,body{max-width:100%;overflow-x:hidden;}
         </div>
       </div>
 
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Почести и Отличия</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-2" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Почести и Отличия</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px;">
           <div class="skill-subtitle">Почести</div>
           <div data-list="honors"></div>
           <button class="add-row-btn" data-add="honors">+ Добавить почесть</button>
@@ -924,40 +1066,49 @@ html,body{max-width:100%;overflow-x:hidden;}
   <div class="tab-content" id="tab-gear">
     <div class="body-grid">
 
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Описание брони</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
-          <div class="armour-name-row" id="armour-name">—</div>
-          <ul class="armour-list">
-            <li class="armour-row"><span class="label">Голова</span><div class="value" id="armour-head">0</div></li>
-            <li class="armour-row"><span class="label">Корпус</span><div class="value" id="armour-torso">0</div></li>
-            <li class="armour-row"><span class="label">Левая рука</span><div class="value" id="armour-larm">0</div></li>
-            <li class="armour-row"><span class="label">Правая рука</span><div class="value" id="armour-rarm">0</div></li>
-            <li class="armour-row"><span class="label">Левая нога</span><div class="value" id="armour-lleg">0</div></li>
-            <li class="armour-row"><span class="label">Правая нога</span><div class="value" id="armour-rleg">0</div></li>
-          </ul>
+      <div class="panel col-span-1" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Описание брони</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
+          <select id="armour-select" style="width:100%;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit;margin-bottom:12px">
+            <option value="">— Выберите броню —</option>
+          </select>
+          <div class="armour-sil">
+            <svg id="armour-sil-svg" viewBox="0 0 380 498" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+              <g id="az-geom"></g>
+              <g id="az-zones-g"></g>
+            </svg>
+          </div>
+          <div class="armour-list">
+            <div class="armour-th"><span class="label">Зона</span><span class="cab">Щит</span><span class="cab">Броня</span><span class="cab">ВЫН</span></div>
+            <div id="armour-zone-rows"></div>
+          </div>
         </div>
       </div>
 
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Особенности брони</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
-          <div data-list="armour_features"></div>
-          <button class="add-row-btn" data-add="armour_features">+ Добавить особенность</button>
+      <div class="panel col-span-1" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Особенности брони</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
+          <div id="armour-aux-list"></div>
+          <button class="add-row-btn" data-add="armour_aux">+ Добавить особенность</button>
+          <div class="ammo-fold" data-ammo-fold="1"><span>История брони</span><span class="chevron">▾</span></div>
+          <div id="armour-history-wrap">
+            <div data-list="armour_history"></div>
+            <button class="add-row-btn" data-add="armour_history">+ Добавить историю брони</button>
+          </div>
         </div>
       </div>
 
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Аугментации космодесантника</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-1" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Аугментации космодесантника</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
           <div data-list="aug_chapter"></div>
           <button class="add-row-btn" data-add="aug_chapter">+ Добавить аугментацию</button>
         </div>
       </div>
 
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Личные аугментации</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-1" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Личные аугментации</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
           <div data-list="aug_personal"></div>
           <button class="add-row-btn" data-add="aug_personal">+ Добавить аугментацию</button>
         </div>
@@ -969,9 +1120,9 @@ html,body{max-width:100%;overflow-x:hidden;}
   <!-- TAB 3: СПОСОБНОСТИ -->
   <div class="tab-content" id="tab-abilities">
     <div class="body-grid">
-      <div class="panel col-span-3">
-        <div class="section-title"><span>Способности</span><span class="chevron">▾</span></div>
-        <div class="panel-body abilities-grid">
+      <div class="panel col-span-3" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Способности</span></div>
+        <div class="panel-body abilities-grid" style="padding:12px 16px 16px">
 
           <div>
             <div class="skill-subtitle">Одиночные способности</div>
@@ -1001,9 +1152,9 @@ html,body{max-width:100%;overflow-x:hidden;}
   <!-- TAB 4: ПСИ-СИЛЫ -->
   <div class="tab-content" id="tab-psy">
     <div class="body-grid">
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Показатели психика</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-1" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Показатели психика</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
           <div class="vital-row"><span class="label">Порча</span><span class="value" id="psy-corruption">0</span></div>
           <div class="bar-wrap"><div class="bar-fill corruption" id="psy-corr-bar" style="width:0%"></div></div>
           <div class="vital-row" style="margin-top:14px;">
@@ -1019,9 +1170,9 @@ html,body{max-width:100%;overflow-x:hidden;}
           </div>
         </div>
       </div>
-      <div class="panel col-span-2">
-        <div class="section-title"><span>Известные Пси-силы</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-2" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Известные Пси-силы</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
           <div data-list="psi"></div>
           <button class="add-row-btn" data-add="psi">+ Добавить Пси-силу</button>
         </div>
@@ -1089,33 +1240,33 @@ html,body{max-width:100%;overflow-x:hidden;}
   <!-- TAB 5: ЗАМЕТКИ -->
   <div class="tab-content" id="tab-notes">
     <div class="body-grid">
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Биография</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-1" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Биография</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
           <textarea class="editable-field" rows="6" readonly data-info-field="bio"></textarea>
         </div>
       </div>
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Орденский характер</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-1" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Орденский характер</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
           <textarea class="editable-field" rows="6" readonly data-info-field="chapter_demeanour"></textarea>
         </div>
       </div>
-      <div class="panel col-span-1">
-        <div class="section-title"><span>Личный характер</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-1" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Личный характер</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
           <textarea class="editable-field" rows="6" readonly data-info-field="demeanour"></textarea>
         </div>
       </div>
-      <div class="panel col-span-3">
-        <div class="section-title"><span>Проклятье примарха</span><span class="chevron">▾</span></div>
-        <div class="panel-body">
+      <div class="panel col-span-3" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Проклятье примарха</span></div>
+        <div class="panel-body" style="padding:12px 16px 16px">
           <textarea class="editable-field" rows="4" readonly data-info-field="primarch_curse"></textarea>
         </div>
       </div>
-      <div class="panel col-span-3">
-        <div class="section-title"><span>Досье</span><span class="chevron">▾</span></div>
-        <div class="panel-body body-grid" style="padding:0;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="panel col-span-3" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Досье</span></div>
+        <div class="panel-body body-grid" style="padding:12px 16px 16px;grid-template-columns:1fr 1fr 1fr;gap:12px">
           <div><div class="renown-label">Орден</div><input class="editable-field" readonly data-info-field="chapter"></div>
           <div><div class="renown-label">Специализация</div><input class="editable-field" readonly data-info-field="specialization"></div>
           <div><div class="renown-label">Хроника (событие)</div><input class="editable-field" readonly data-info-field="campaign"></div>
@@ -1174,10 +1325,10 @@ html,body{max-width:100%;overflow-x:hidden;}
         <h4>Часть тела</h4>
         <div class="injury-radio"><input type="radio" name="bodypart" value="head" id="bp-head"><label for="bp-head">Голова</label></div>
         <div class="injury-radio"><input type="radio" name="bodypart" value="torso" id="bp-torso"><label for="bp-torso">Корпус</label></div>
-        <div class="injury-radio"><input type="radio" name="bodypart" value="left-arm" id="bp-larm"><label for="bp-larm">Левая рука</label></div>
-        <div class="injury-radio"><input type="radio" name="bodypart" value="right-arm" id="bp-rarm"><label for="bp-rarm">Правая рука</label></div>
-        <div class="injury-radio"><input type="radio" name="bodypart" value="left-leg" id="bp-lleg"><label for="bp-lleg">Левая нога</label></div>
-        <div class="injury-radio"><input type="radio" name="bodypart" value="right-leg" id="bp-rleg"><label for="bp-rleg">Правая нога</label></div>
+        <div class="injury-radio"><input type="radio" name="bodypart" value="left-arm" id="bp-larm"><label for="bp-larm">Правая рука</label></div>
+        <div class="injury-radio"><input type="radio" name="bodypart" value="right-arm" id="bp-rarm"><label for="bp-rarm">Левая рука</label></div>
+        <div class="injury-radio"><input type="radio" name="bodypart" value="left-leg" id="bp-lleg"><label for="bp-lleg">Правая нога</label></div>
+        <div class="injury-radio"><input type="radio" name="bodypart" value="right-leg" id="bp-rleg"><label for="bp-rleg">Левая нога</label></div>
       </div>
       <div class="injury-column">
         <h4>Тип урона</h4>
@@ -1200,15 +1351,43 @@ html,body{max-width:100%;overflow-x:hidden;}
   <div class="modal-box">
     <h3 id="pick-title">Добавить</h3>
     <div style="margin-bottom:10px">
-      <input id="pick-search" placeholder="поиск по справочнику...">
+      <input id="pick-search" placeholder="введите название">
+    </div>
+    <div id="pick-type-wrap" hidden style="margin:10px 0">
+      <select id="arsenal-type" style="width:100%;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit">
+        <option value="">— Тип предмета —</option>
+        <option value="weapon_ranged">Дальнобойное оружие</option>
+        <option value="weapon_melee">Ближнее оружие</option>
+        <option value="shield">Щит</option>
+        <option value="field">Защитное поле</option>
+        <option value="tool">Инструмент</option>
+        <option value="consumables">Расходный материал</option>
+        <option value="other">Прочее</option>
+      </select>
     </div>
     <div id="pick-results" style="max-height:300px;overflow-y:auto"></div>
-    <hr style="border-color:#3a3a3d">
-    <div class="desc">Или введите вручную:</div>
-    <input id="pick-manual" placeholder="название...">
+    <div id="pick-ammo-class-wrap" style="margin:10px 0" hidden>
+      <select id="pick-ammo-class" style="width:100%;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit">
+        <option value="">— Класс боеприпаса —</option>
+      </select>
+    </div>
+    <div class="desc" style="margin-top:6px">Введите название в поле выше и нажмите «Добавить вручную» или выберите подходящий вариант из результатов поиска.</div>
     <div style="margin-top:12px">
       <button class="modal-confirm" onclick="pickManual()">Добавить вручную</button>
       <button class="modal-close" onclick="closeSheetModal('pick-modal')">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="slot-pick-modal">
+  <div class="modal-box">
+    <h3>Выбрать оружие</h3>
+    <div class="desc">Выберите оружие из арсенала для этого слота или добавьте новое.</div>
+    <select id="slot-pick-weapon"></select>
+    <div style="margin-top:12px">
+      <button class="modal-confirm" onclick="confirmSlotPick()">Выбрать</button>
+      <button class="modal-confirm" id="slot-pick-add" onclick="slotPickAdd()">+ Добавить оружие</button>
+      <button class="modal-close" onclick="closeSheetModal('slot-pick-modal')">Отмена</button>
     </div>
   </div>
 </div>
@@ -1231,9 +1410,35 @@ html,body{max-width:100%;overflow-x:hidden;}
     <h2>Новая хроника</h2>
     <label>Название хроники</label>
     <input id="chr-name-input" placeholder="название...">
+    <label style="margin-top:10px">Пароль Мастера</label>
+    <input id="chr-pass-input" type="password" placeholder="пароль для входа как Мастер...">
     <div class="row" style="margin-top:16px; justify-content:flex-end">
       <button class="ghost" onclick="closeModal('modal-chronicle')">Отмена</button>
       <button onclick="createChronicle()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-master-pass" class="modal hidden">
+  <div class="box">
+    <h2 id="master-pass-title">Вход как Мастер</h2>
+    <label>Пароль Мастера</label>
+    <input id="master-pass-input" type="password" placeholder="пароль Мастера...">
+    <div class="row" style="margin-top:16px; justify-content:flex-end">
+      <button class="ghost" onclick="closeModal('modal-master-pass')">Отмена</button>
+      <button onclick="confirmMasterPass()">Войти</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-chpass" class="modal hidden">
+  <div class="box">
+    <h2>Изменить пароль Мастера</h2>
+    <label>Новый пароль</label>
+    <input id="chpass-input" type="password" placeholder="новый пароль...">
+    <div class="row" style="margin-top:16px; justify-content:flex-end">
+      <button class="ghost" onclick="closeModal('modal-chpass')">Отмена</button>
+      <button onclick="changeChroniclePass()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -1317,15 +1522,6 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function calcTotalXpSpent(d){ return (d.xp_log || []).reduce((a, x) => a + (Number(x.cost) || 0), 0); }
 
-function debounce(fn, ms){
-  let t;
-  return function(...args){
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(this, args), ms);
-  };
-}
-
-
 function setLoading(el, loading){
   if (!el) return;
   if (loading) el.classList.add('loading');
@@ -1403,7 +1599,7 @@ async function loadChronicles(){
   const box = $('chronicle-list');
   box.innerHTML = '<div class="empty">Загрузка хроник...</div>';
   const { data, error } = await sb.from('chronicle_members')
-    .select('role, chronicles(id, name, creator_id)')
+    .select('role, chronicles(id, name, creator_id, has_pass)')
     .eq('user_id', S.user.id);
   if (error){ box.innerHTML = `<div class="empty">Ошибка: ${esc(error.message)}</div>`; return; }
   const rows = (data || []).filter(r => r.chronicles);
@@ -1413,13 +1609,17 @@ async function loadChronicles(){
   }
   box.innerHTML = rows.map(r => {
     const c = r.chronicles;
+    const hasPass = !!c.has_pass;
+    const masterClk = hasPass
+      ? `askMasterPass(${c.id},'${esc(c.name)}')`
+      : `enterChronicle(${c.id},'${esc(c.name)}','gm')`;
     return `<div class="list-item">
       <div>
         <div class="nm">${esc(c.name)}</div>
-        <div class="meta">${c.creator_id === S.user.id ? 'основатель' : 'участник'} · код ${c.id}</div>
+        <div class="meta">${c.creator_id === S.user.id ? 'основатель' : 'участник'} · код ${c.id}${hasPass ? '' : ' · нет пароля Мастера'}</div>
       </div>
       <div class="row tight">
-        <button class="sm" onclick="enterChronicle(${c.id},'${esc(c.name)}','gm')">Как Мастер</button>
+        <button class="sm" onclick="${masterClk}">Как Мастер</button>
         <button class="sm" onclick="enterChronicle(${c.id},'${esc(c.name)}','player')">Как Игрок</button>
         <button class="sm danger" onclick="leaveChronicle(${c.id})">Покинуть</button>
       </div>
@@ -1427,17 +1627,78 @@ async function loadChronicles(){
   }).join('');
 }
 
+let masterIntent = null;
+
+function askMasterPass(id, name){
+  masterIntent = { id, name };
+  $('master-pass-input').value = '';
+  $('master-pass-title').textContent = 'Вход как Мастер · ' + name;
+  openModal('modal-master-pass');
+}
+
+function confirmMasterPass(){
+  if (!masterIntent) return;
+  const input = $('master-pass-input').value;
+  if (!input) return toast('Введите пароль Мастера');
+  const it = masterIntent;
+  sb.from('chronicles').select('password_hash').eq('id', it.id).single()
+    .then(({ data, error }) => {
+      if (error) return toast('Ошибка: ' + error.message);
+      if (!data) return toast('Хроника не найдена');
+      if (!data.password_hash || data.password_hash === hashPass(input)){
+        masterIntent = null;
+        closeModal('modal-master-pass');
+        enterChronicle(it.id, it.name, 'gm');
+      } else {
+        toast('Неверный пароль Мастера');
+      }
+    })
+    .catch(() => toast('Ошибка соединения'));
+}
+
+function openChpass(){
+  $('chpass-input').value = '';
+  openModal('modal-chpass');
+}
+
+function changeChroniclePass(){
+  const pass = $('chpass-input').value;
+  if (!pass) return toast('Введите новый пароль');
+  sb.from('chronicles').update({ password_hash: hashPass(pass) })
+    .eq('id', S.chronicle.id)
+    .then(({ error }) => {
+      if (error) return toast('Ошибка: ' + error.message);
+      closeModal('modal-chpass');
+      toast('Пароль Мастера изменён');
+    });
+}
+
 async function createChronicle(){
   const name = $('chr-name-input').value.trim();
+  const pass = $('chr-pass-input').value;
   if (!name) return toast('Введите название');
+  if (!pass) return toast('Введите пароль Мастера');
   const { data, error } = await sb.from('chronicles')
-    .insert({ name, creator_id: S.user.id }).select('id').single();
+    .insert({ name, creator_id: S.user.id, password_hash: hashPass(pass) }).select('id').single();
   if (error) return toast('Ошибка: ' + error.message);
   await sb.from('chronicle_members')
     .insert({ chronicle_id: data.id, user_id: S.user.id, role: 'gm' });
   closeModal('modal-chronicle');
   toast('Хроника создана');
   await loadChronicles();
+}
+
+function hashPass(s){
+  let h1 = 0xdeadbeef ^ 0, h2 = 0x41c6ce57 ^ 0;
+  const str = String(s);
+  for (let i = 0; i < str.length; i++){
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
 async function joinChronicle(){
@@ -1477,6 +1738,7 @@ async function enterChronicle(id, name, role){
   $('chr-title').textContent = name;
   $('chr-role').textContent = isGm ? 'режим: Мастер' : 'режим: Игрок';
   $('chr-delete-btn').classList.toggle('hidden', !isGm);
+  $('chr-chpass-btn').classList.toggle('hidden', !isGm);
   $('chr-list-title').textContent = isGm ? 'Персонажи игроков' : 'Ваши персонажи';
   $('chr-create-btn').textContent = isGm ? 'Создать персонажа Мастера' : 'Создать персонажа';
   $('gm-panel').classList.toggle('hidden', !isGm);
@@ -1646,9 +1908,10 @@ const STATS = [
 
 const VITALS = [
   ['wounds','max_wounds','Раны','Текущее здоровье персонажа','wounds', ''],
+  ['fatigue','max_fatigue','Усталость','Накопленная усталость бойца','fatigue', ''],
   ['fate','max_fate','Очки Судьбы','Очки судьбы позволяют переписать историю и избежать верной смерти','fate',''],
   ['corruption','max_corruption','Порча','Воздействие Хаоса и тёмных сил','corruption',''],
-  ['insanity','insanity_threshold','Безумие','Психологический урон и навязчивые мысли','corruption','']
+  ['insanity','insanity_threshold','Безумие','Психологический урон и навязчивые мысли','insanity','']
 ];
 
 // ========== CHAPTERS (ОРДЕНА) ==========
@@ -1685,7 +1948,8 @@ const carryTable = [
 ];
 
 const SECTIONS = {
-  gear:            ['Снаряжение', 'combat_gear', 'gear'],
+  gear:            ['Снаряжение', 'equipment', 'gear'],
+  ammo:            ['Боеприпасы', 'ammo', 'ammo'],
   skills_basic:    ['Базовое умение', 'skills', 'skill'],
   skills_adv:      ['Продвинутое умение', 'skills', 'skill'],
   talents:         ['Талант', 'talents', 'talent'],
@@ -1693,6 +1957,8 @@ const SECTIONS = {
   honors:          ['Почесть', 'honors', 'talent'],
   distinctions:    ['Отличие', 'distinctions', 'talent'],
   armour_features: ['Особенность брони', 'features', 'talent'],
+  armour_aux:     ['Вспомогательная броня', 'equipment', 'gear'],
+  armour_history: ['История брони', null, 'talent'],
   aug_chapter:     ['Аугментация космодесантника', null, 'talent'],
   aug_personal:    ['Личная аугментация', null, 'talent'],
   solo_chapter:    ['Орденская одиночная способность', 'solo_abilities', 'talent'],
@@ -1739,13 +2005,13 @@ function blankSheet(){
     info:{ chapter:'', specialization:'', campaign:'', demeanour:'',
            chapter_demeanour:'', bio:'', primarch_curse:'',
            rank_title:'', renown_title:'' },
-    stats:{}, vitals:{}, armour:{ name:'', base:10 },
-    circumstances:{}, aim:'', psy:{ base:0, mode:'bound' },
-    injuries:[], xp_log:[], tags:[]
+    stats:{}, vitals:{}, armour:{ name:'', base:10, shield:{ value:4, zones:{} }, zones:{} },
+    psy:{ base:0, mode:'bound' },
+    injuries:[], xp_log:[], tags:[], alternative_speeds:[]
   };
   STATS.forEach(([k]) => d.stats[k] = 30);
   VITALS.forEach(([c,m]) => { d.vitals[c] = 0; d.vitals[m] = 0; });
-  d.vitals.max_wounds = 18; d.vitals.fate = 3; d.vitals.max_fate = 3;
+  d.vitals.max_wounds = 18; d.vitals.max_fatigue = 10; d.vitals.fate = 3; d.vitals.max_fate = 3;
   d.vitals.max_cohesion = 10; d.vitals.max_corruption = 100;
   d.vitals.insanity_threshold = 100;
   d.vitals.crit_wounds = 0;
@@ -1763,6 +2029,12 @@ function blankSheet(){
 
 const STAT_KEY_MAP = { s:'sil', t:'wyn', ag:'lov', bs:'bb', wp:'sv', ws:'db', fel:'obsh', int:'int', per:'vos' };
 
+function normSkillLevel(v){
+  if (SKILL_LEVELS.indexOf(v) !== -1) return v;
+  const aliases = { 10:'+10', 20:'+20', 0:'untrained', 1:'trained', '10':'+10', '20':'+20' };
+  return (v in aliases) ? aliases[v] : (v || 'untrained');
+}
+
 function normalizeSkillArray(arr){
   if (!Array.isArray(arr)) return [];
   return arr.map(r => {
@@ -1770,13 +2042,33 @@ function normalizeSkillArray(arr){
     return {
       name: r.name || '',
       characteristic: r.characteristic || '',
-      level: r.level || 'untrained',
+      level: normSkillLevel(r.level),
       gifted: !!r.gifted,
+      counts_as_basic: !!r.counts_as_basic,
       desc: r.desc || r.description || '',
       groups_enabled: !!r.groups_enabled,
       groups: Array.isArray(r.groups) ? r.groups.map(g => ({
-        name: g.name || '', level: g.level || 'untrained', characteristic: g.characteristic || ''
+        name: g.name || '', level: normSkillLevel(g.level), characteristic: g.characteristic || ''
       })) : []
+    };
+  });
+}
+
+function normalizeAmmoArray(arr){
+  if (!Array.isArray(arr)) return [];
+  return arr.map(r => {
+    let mags = Array.isArray(r.mags) ? r.mags.map(m => ({ cur: Number(m.cur) || 0 })) : [];
+    if (!mags.length) mags = [{ cur: 0 }];
+    return {
+      source: r.source || 'catalog',
+      ammo_id: r.ammo_id ?? null,
+      name: r.name || '',
+      class: r.class || '',
+      weapon: r.weapon || '',
+      mags,
+      max: Number(r.max) || 0,
+      activeMag: Math.min(Math.max(Number(r.activeMag) || 0, 0), mags.length - 1),
+      loaded: !!r.loaded
     };
   });
 }
@@ -1792,14 +2084,15 @@ function normalize(raw){
     stats:  Object.assign(b.stats, mapped),
     vitals: Object.assign(b.vitals, d.vitals || {}),
     armour: Object.assign(b.armour, d.armour || {}),
-    circumstances: d.circumstances || {},
-    aim: d.aim || '',
+    slots: Array.isArray(d.slots) ? d.slots : [],
     psy: Object.assign(b.psy, d.psy || {}),
     injuries: d.injuries || [],
     xp_log: d.xp_log || [],
-    tags: Array.isArray(d.tags) ? d.tags : []
+    tags: Array.isArray(d.tags) ? d.tags : [],
+    alternative_speeds: Array.isArray(d.alternative_speeds) ? d.alternative_speeds : []
   };
   Object.keys(SECTIONS).forEach(k => out[k] = Array.isArray(d[k]) ? d[k] : []);
+  out.ammo = normalizeAmmoArray(out.ammo);
   if (Array.isArray(d.skills) && d.skills.length) out.skills_basic = d.skills;
   out.skills_basic = normalizeSkillArray(out.skills_basic);
   out.skills_adv = normalizeSkillArray(out.skills_adv);
@@ -1858,6 +2151,8 @@ async function openSheet(id){
   if (CHAPTERS.length === 0) await loadChapters();
   if (SPECIALIZATIONS.length === 0) await loadSpecializations();
   if (ADV_CATALOG.length === 0) await loadAdvCatalog();
+  await loadGearCache();
+  await loadSilhouettes();
 
   showScreen('sheet');
   renderSheet();
@@ -1877,12 +2172,14 @@ function renderSheet(){
   renderSkills();
   renderInjuries();
   renderArmour();
+  loadArmourSelect();
+  renderArmourAux();
   renderPsy();
-  renderCircumstances();
   renderNotes();
   updateDerived();
   bindTooltips();
   bindCollapse();
+  bindPanelTabs();
   const addAltBtn = $('add-alt-speed');
   if (addAltBtn) addAltBtn.onclick = () => {
     S.character.character_data.alternative_speeds.push({...ALT_SPEED_INIT});
@@ -2033,91 +2330,104 @@ function renderStats(){
 
 function renderVitals(){
   const d = S.character.character_data, v = d.vitals;
-  let html = '';
-
-  html += VITALS.filter(([k]) => k !== 'insanity').map(([cur, max, nm, tip, cls], i) => {
-    const pct = v[max] ? Math.min(100, Math.round(v[cur] / v[max] * 100)) : 0;
-    const critBlock = cur === 'wounds' && v.wounds === 0 ? `
-      <div class="vital-row" style="margin-top:10px">
-        <span class="label" data-tooltip="Критические ранения">Крит. ранения</span>
-        <span class="row tight" style="gap:2px;align-items:center">
-          <button class="vit-arrow" data-vit-down="crit_wounds">◀</button>
-          <input class="vnum" type="number" value="${v.crit_wounds || 0}" data-vit="crit_wounds">
-          <span style="color:#9a958a">/</span>
-          <input class="vnum vnum-max" type="number" value="10" data-vit="crit_wounds_max" ${editMode?'':'readonly'}>
-          <button class="vit-arrow" data-vit-up="crit_wounds">▶</button>
-        </span>
+  const crit = (v.wounds || 0) === 0;
+  const html = VITALS.map(([cur, max, nm, tip, cls]) => {
+    const isWounds = cur === 'wounds';
+    const inCrit = isWounds && crit;
+    let curV = v[cur] || 0, maxV = v[max] || 10, barCls = cls, barKey = cur, pct;
+    if (inCrit){
+      curV = v.crit_wounds || 0; maxV = 10; barCls = 'crit-wounds'; barKey = 'crit_wounds';
+      pct = Math.min(100, curV * 10);
+    } else {
+      pct = maxV ? Math.min(100, curV / maxV * 100) : 0;
+    }
+    const isInsanity = cur === 'insanity' && !inCrit;
+    const level = isInsanity ? Math.floor((curV >= 31) + (curV >= 61) + (curV >= 91)) : null;
+    const thresholds = [30, 60, 90, 100];
+    const barContent = isInsanity
+      ? `<div class="madness-bar">${thresholds.map((thr, idx) => {
+          const prev = idx === 0 ? 0 : thresholds[idx-1];
+          let segCls = '', styleAttr = '';
+          if (curV >= thr) segCls = 'filled';
+          else if (curV > prev) { segCls = 'partial'; styleAttr = ` style="--fill:${((curV - prev) / (thr - prev) * 100).toFixed(1)}%"`; }
+          return `<div class="madness-seg ${segCls}"${styleAttr}></div>`;
+        }).join('')}</div>`
+      : `<div class="bar-fill ${barCls}" data-bar="${barKey}" style="width:${pct}%"></div>`;
+    const levelHtml = isInsanity ? `<span class="vit-level">${level} ур.</span>` : '';
+    const numOk = inCrit ? ` data-in-crit="1"` : '';
+    const maxPart = inCrit
+      ? `<span class="vit-static-max">10</span>`
+      : `<input class="vit-inline vit-max" type="number" value="${maxV}" data-vit-max="${max}" ${editMode?'':'readonly'}>`;
+    return `<div class="vit-box ${inCrit?'crit':''}" data-vitbox="${cur}">
+      <div class="vit-name" data-tooltip="${esc(tip)}">${inCrit?'Крит. ранения':nm}${levelHtml}</div>
+      <div class="vit-control">
+        <button class="vit-arrow" data-vit-down="${inCrit?'crit_wounds':cur}"${numOk}>◀</button>
+        <div class="bar-wrap">
+          ${barContent}
+          <div class="bar-num">
+            <input class="vit-inline" type="number" value="${curV}" data-vit="${inCrit?'crit_wounds':cur}"${numOk}>
+            <span class="vit-max-sep">/</span>
+            ${maxPart}
+          </div>
+        </div>
+        <button class="vit-arrow" data-vit-up="${inCrit?'crit_wounds':cur}"${numOk}>▶</button>
       </div>
-      <div class="bar-wrap"><div class="bar-fill crit-wounds" data-bar="crit_wounds" style="width:${(v.crit_wounds||0)*10}%"></div></div>` : '';
-    return `<div class="vital-row" ${i ? 'style="margin-top:14px"' : ''}>
-        <span class="label" data-tooltip="${esc(tip)}">${nm}</span>
-        <span class="row tight" style="gap:2px;align-items:center">
-          <button class="vit-arrow" data-vit-down="${cur}">◀</button>
-          <input class="vnum" type="number" value="${v[cur]}" data-vit="${cur}">
-          <span style="color:#9a958a">/</span>
-          <input class="vnum vnum-max" type="number" value="${v[max]}" data-vit="${max}" ${editMode?'':'readonly'}>
-          <button class="vit-arrow" data-vit-up="${cur}">▶</button>
-        </span>
-      </div>
-      <div class="bar-wrap"><div class="bar-fill ${cls}" data-bar="${cur}" style="width:${pct}%"></div></div>${critBlock}`;
+    </div>`;
   }).join('');
-
-  const ins = v.insanity || 0;
-  const thresholds = [30, 60, 90, 100];
-  html += `<div class="vital-row" style="margin-top:14px">
-      <span class="label" data-tooltip="Психологический урон и навязчивые мысли">Безумие</span>
-      <span class="row tight" style="gap:2px;align-items:center">
-        <button class="vit-arrow" data-vit-down="insanity">◀</button>
-        <input class="vnum" type="number" value="${ins}" data-vit="insanity">
-        <span style="color:#9a958a">/</span>
-        <input class="vnum vnum-max" type="number" value="${v.insanity_threshold || 100}" data-vit="insanity_threshold" ${editMode?'':'readonly'}>
-        <button class="vit-arrow" data-vit-up="insanity">▶</button>
-      </span>
-    </div>
-    <div class="madness-bar">
-      ${thresholds.map((thr, i) => {
-        const prev = i === 0 ? 0 : thresholds[i-1];
-        let cls = '';
-        if (ins >= thr) cls = 'filled';
-        else if (ins > prev) cls = 'partial';
-        const fillPct = cls === 'partial' ? ((ins - prev) / (thr - prev) * 100) : 0;
-        return `<div class="madness-seg ${cls}" data-threshold="${thr}" ${cls==='partial'?`style="--fill:${fillPct}%"`:''}></div>`;
-      }).join('')}
-    </div>`;
-
-  html += `<div class="injuries-section" id="injuries-section">
-      <div class="section-title"><span>Критические травмы</span><span class="chevron">▾</span></div>
-      <div class="panel-body">
-        <ul class="injuries-list" id="injuries-list"></ul>
-        <button class="add-injury-btn" onclick="openSheetModal('injury-modal')">+ Добавить травму</button>
-      </div>
-    </div>`;
-
   $('vitals-body').innerHTML = html;
 
   $('vitals-body').querySelectorAll('[data-vit]').forEach(inp => {
     inp.addEventListener('input', () => {
-      v[inp.dataset.vit] = Number(inp.value) || 0;
-      renderVitals(); refreshBars(); renderHeaderXp(); renderPsy(); debouncedSave();
+      const isCrit = inp.dataset.inCrit === '1';
+      let val = Number(inp.value) || 0;
+      if (isCrit){
+        val = Math.max(0, Math.min(10, val));
+        if (val === 0) v.wounds = 1;
+        else v.crit_wounds = val;
+      } else if (inp.dataset.vit === 'wounds'){
+        val = Math.max(0, Math.min(999, val));
+        v.wounds = val;
+        if (val === 0) v.crit_wounds = 0;
+      } else {
+        v[inp.dataset.vit] = Math.max(0, Math.min(999, val));
+      }
+      afterVitalChange();
+    });
+  });
+  $('vitals-body').querySelectorAll('[data-vit-max]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      v[inp.dataset.vitMax] = Math.max(1, Number(inp.value) || 1);
+      afterVitalChange();
     });
   });
   $('vitals-body').querySelectorAll('[data-vit-up]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const k = btn.dataset.vitUp;
-      v[k] = Math.min((v[k] || 0) + 1, 999);
-      renderVitals(); refreshBars(); renderHeaderXp(); renderPsy(); debouncedSave();
+      if (btn.dataset.inCrit === '1'){
+        v.crit_wounds = Math.min(10, (v.crit_wounds || 0) + 1);
+      } else {
+        v[btn.dataset.vitUp] = Math.min(999, (v[btn.dataset.vitUp] || 0) + 1);
+      }
+      afterVitalChange();
     });
   });
   $('vitals-body').querySelectorAll('[data-vit-down]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const k = btn.dataset.vitDown;
-      v[k] = Math.max((v[k] || 0) - 1, 0);
-      renderVitals(); refreshBars(); renderHeaderXp(); renderPsy(); debouncedSave();
+      if (btn.dataset.inCrit === '1'){
+        if ((v.crit_wounds || 0) > 0) v.crit_wounds -= 1;
+        if ((v.crit_wounds || 0) === 0) v.wounds = 1;
+      } else if (btn.dataset.vitDown === 'wounds'){
+        v.wounds = Math.max(0, (v.wounds || 0) - 1);
+        if (v.wounds === 0) v.crit_wounds = 0;
+      } else {
+        v[btn.dataset.vitDown] = Math.max(0, (v[btn.dataset.vitDown] || 0) - 1);
+      }
+      afterVitalChange();
     });
   });
-  bindCollapse($('injuries-section'));
-  bindCollapse($('checks-skills-section'));
-  bindCollapse($('checks-gear-section'));
+}
+
+function afterVitalChange(){
+  renderVitals(); refreshBars(); renderHeaderXp(); renderPsy(); debouncedSave();
 }
 
 function refreshBars(){
@@ -2128,18 +2438,6 @@ function refreshBars(){
   });
   const cwBar = document.querySelector('[data-bar="crit_wounds"]');
   if (cwBar) cwBar.style.width = ((v.crit_wounds||0) * 10) + '%';
-  const ins = v.insanity || 0;
-  document.querySelectorAll('.madness-seg').forEach(seg => {
-    const thr = Number(seg.dataset.threshold);
-    const prev = thr === 30 ? 0 : (thr === 60 ? 30 : (thr === 90 ? 60 : 90));
-    seg.classList.remove('filled','partial');
-    seg.style.removeProperty('--fill');
-    if (ins >= thr) seg.classList.add('filled');
-    else if (ins > prev) {
-      seg.classList.add('partial');
-      seg.style.setProperty('--fill', ((ins - prev) / (thr - prev) * 100) + '%');
-    }
-  });
 }
 
 const RANK_RANGES = [
@@ -2281,6 +2579,397 @@ function renownTitle(r){
   return tier ? tier.title : 'Новичок';
 }
 
+// ==== СНАРЯЖЕНИЕ / ОРУЖИЕ: МОДЕЛЬ ====
+const GEAR_GROUPS = {
+  weapon_ranged: { title:'Дальнобойное оружие', dmgType:true, fields:['weight_class','dmg','pen','mag','range','reload','sks','ammo'] },
+  weapon_melee: { title:'Ближнее оружие', dmgType:true, fields:['dmg','pen'] },
+  shield:       { title:'Щиты', fields:['dmg','pen','field_level','overload'] },
+  field:        { title:'Защитные поля', fields:['field_level','overload'] }
+};
+const GEAR_GROUP_ORDER = ['weapon_ranged','weapon_melee','shield','field'];
+const GEAR_FIELD_LABELS = {
+  class:'Класс', dmg:'Урон', dmg_type:'Тип урона', pen:'БрБ',
+  mag:'МГЗ', range:'ДЛН', reload:'ПРЗ',
+  sks:'СкС', ammo:'Боеприпас', weight_class:'Класс',
+  field_level:'Уровень Поля', overload:'Перегрузка'
+};
+const DMG_TYPE_LETTER = {
+  'Взрывной':'В', 'Ударный':'У', 'Резаный':'Р', 'Энергетический':'Э'
+};
+
+function gearWeaponFromCatalog(stats){
+  if (!stats || !GEAR_GROUPS[stats.type]) return null;
+  return stats;
+}
+
+function gearWeaponFromCustom(weapon){
+  if (!weapon) return null;
+  return weapon;
+}
+
+function gearResolve(r){
+  if (r.source === 'catalog' && r.item_id != null){
+    const g = GEAR_MAP[r.item_id];
+    if (!g) return null;
+    return gearWeaponFromCatalog(g.stats);
+  }
+  if (r.source === 'custom') return gearWeaponFromCustom(r.weapon);
+  return null;
+}
+
+function gearRowType(r){
+  const w = gearResolve(r);
+  return (r.source === 'custom' ? r.type : (w && w.type)) || (w && w.type) || null;
+}
+
+function isArmourRow(r){
+  if (!r) return false;
+  if (r.type === 'armour') return true;
+  if (r.source === 'catalog' && r.item_id != null){
+    const g = GEAR_MAP[r.item_id];
+    return !!(g && g.stats && g.stats.type === 'armour');
+  }
+  return false;
+}
+
+// ==== СЛОТЫ / ЭКИПИРОВАННОЕ ====
+const SLOT_TYPES = ['Станковый','Тяжёлый','Лёгкий','Вспомогательный'];
+const EQUIPPABLE_KEYS = new Set(['weapon_ranged','weapon_melee','shield']);
+
+function gearSlotWeapon(slotId){
+  const rows = S.character.character_data.gear || [];
+  for (const r of rows){ if (r.slot === slotId) return r; }
+  return null;
+}
+
+function gearSlotsHtml(rows, key){
+  const slots = S.character.character_data.slots || [];
+  const rankOf = t => { const i = SLOT_TYPES.indexOf(t); return i === -1 ? SLOT_TYPES.length : i; };
+  let html = '<div class="gw-equipped">';
+  if (!slots.length){
+    html += '<div class="desc" style="padding:4px 2px 0">Слотов нет — добавьте в режиме редактирования.</div>';
+  } else {
+    html += '<div class="gw-slot-grid">';
+    [...slots].sort((a, b) => rankOf(a.type) - rankOf(b.type)).forEach(s => {
+      const w = gearSlotWeapon(s.id);
+      html += `<div class="gw-slot"><div class="gw-slot-head"><span class="gw-slot-type">${esc(s.type)} слот</span>`;
+      html += `<div class="gw-slot-actions">`;
+      html += `<button class="gw-slot-pick" data-slot-pick="${esc(s.id)}">Выбрать оружие</button>`;
+      if (w) html += `<button class="gw-slot-unequip" data-slot-unequip="${esc(s.id)}">Снять оружие</button>`;
+      if (editMode) html += `<button class="remove-row-btn" data-slot-del="${esc(s.id)}">✕</button>`;
+      html += '</div></div>';
+      if (w){
+        const idx = rows.indexOf(w);
+        const t = gearRowType(w);
+        const g = t && GEAR_GROUPS[t] ? GEAR_GROUPS[t] : null;
+        if (g && idx >= 0) html += gearGroupTableHtml([{ r: w, i: idx }], g, key);
+      } else {
+        html += '<div class="gw-slot-empty">Слот свободен.</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  if (editMode){
+    html += '<div class="gw-slot-adds">' + SLOT_TYPES
+      .map(t => `<button class="gw-slot-add" data-slot-add="${esc(t)}">+ ${esc(t)} слот</button>`)
+      .join('') + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function setSlotWeapon(slotId, val){
+  const rows = S.character.character_data.gear || [];
+  const v = String(val || '').trim();
+  const row = v !== '' ? rows[Number(v)] : undefined;
+  const wasEquipped = row ? !!row.slot : false;
+  (rows || []).forEach(r => { if (r.slot === slotId) r.slot = ''; });
+  if (row) row.slot = slotId;
+  if (row && !wasEquipped) autoLoadWeaponAmmo(row);
+  renderList('gear');
+  renderList('ammo');
+  debouncedSave();
+}
+
+function addSlot(type){
+  if (!Array.isArray(S.character.character_data.slots)) S.character.character_data.slots = [];
+  S.character.character_data.slots.push({
+    id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    type
+  });
+  renderList('gear');
+  debouncedSave();
+}
+
+function delSlot(slotId){
+  S.character.character_data.slots = (S.character.character_data.slots || [])
+    .filter(s => s.id !== slotId);
+  (S.character.character_data.gear || []).forEach(r => { if (r.slot === slotId) r.slot = ''; });
+  renderList('gear');
+  debouncedSave();
+}
+
+let currentSlotId = null;
+let pendingSlotId = null;
+
+function renderEquipped(){
+  const host = $('equipped-body');
+  if (!host) return;
+  const rows = S.character.character_data.gear || [];
+  host.innerHTML = gearSlotsHtml(rows, 'gear');
+  bindListEvents(host);
+}
+
+function openSlotPick(slotId){
+  currentSlotId = slotId;
+  fillSlotPickOptions();
+  openSheetModal('slot-pick-modal');
+}
+
+function fillSlotPickOptions(){
+  const sel = $('slot-pick-weapon');
+  if (!sel) return;
+  const rows = S.character.character_data.gear || [];
+  let opts = '<option value="">— не выбрано —</option>';
+  rows.forEach((r, i) => {
+    const t = gearRowType(r);
+    if (!t || !EQUIPPABLE_KEYS.has(t)) return;
+    const w = gearResolve(r);
+    const wcls = (w && w.class) ? String(w.class).trim() : '';
+    const slotNm = r.slot ? ' · уже в слоте' : '';
+    opts += `<option value="${i}">${esc(r.name)}${wcls ? esc(' (' + wcls + ')') : ''}${slotNm}</option>`;
+  });
+  sel.innerHTML = opts;
+}
+
+function confirmSlotPick(){
+  if (currentSlotId == null) return;
+  const sel = $('slot-pick-weapon');
+  setSlotWeapon(currentSlotId, sel ? sel.value : '');
+  closeSheetModal('slot-pick-modal');
+}
+
+function slotPickAdd(){
+  if (currentSlotId == null) return;
+  pendingSlotId = currentSlotId;
+  closeSheetModal('slot-pick-modal');
+  openPicker('gear');
+}
+
+function unequipSlot(slotId){
+  (S.character.character_data.gear || []).forEach(r => { if (r.slot === slotId) r.slot = ''; });
+  renderList('gear');
+  debouncedSave();
+}
+
+// ==== АРСЕНАЛ: ОТРИСОВКА ТАБЛИЦ ====
+function gearItemHtml(r, i, key){
+  const w = gearResolve(r);
+  const wcls = (w && w.class) ? String(w.class).trim() : '';
+  return `<div class="gear-item gear-weapon-row">
+    <div class="gear-head" data-open="${key}:${i}">
+      <span class="g-name">${esc(r.name)}
+        ${wcls ? `<span class="ammo-class">${esc(wcls)}</span>` : ''}
+      </span>
+      ${r.source === 'custom' ? `<span class="g-src-custom">самодел</span>` : ''}
+      <button class="remove-row-btn" data-del="${key}:${i}">✕</button>
+    </div>
+  </div>`;
+}
+
+function gearDmgCellHtml(f, w, i, editable, hasLetter){
+  const fval = w ? w[f] : undefined;
+  if (editable){
+    const dInp = `<input data-gear-field="${i}:${f}" value="${esc(fval ?? '')}" placeholder="—">`;
+    if (hasLetter){
+      const opts = ['<option value="">—</option>'].concat(Object.entries(DMG_TYPE_LETTER).map(([name, L]) =>
+        `<option value="${esc(name)}"${String(w.dmg_type || '').trim() === name ? ' selected' : ''}>${L}</option>`));
+      const sel = `<select data-gear-field="${i}:dmg_type">${opts.join('')}</select>`;
+      return `<td class="gw-dmg-cell">${dInp}${sel}</td>`;
+    }
+    return `<td>${dInp}</td>`;
+  }
+  const dt = (w && w.dmg_type) ? String(w.dmg_type).trim() : '';
+  const raw = (fval === undefined || fval === null || fval === '') ? '' : String(fval);
+  const dts = dt ? (DMG_TYPE_LETTER[dt] || dt) : '';
+  const shown = (raw || dts) ? `${raw} ${dts}`.trim() : '—';
+  return `<td><b>${esc(shown)}</b></td>`;
+}
+
+function gearSksGlyphs(w){
+  const s = (w.rof_single === '0' || w.rof_single === undefined || w.rof_single === null || w.rof_single === '') ? '–' : 'О';
+  const c = (!w.rof_short || w.rof_short === '' ) ? '–' : w.rof_short;
+  const d = (!w.rof_long || w.rof_long === '') ? '–' : w.rof_long;
+  return { s, c, d };
+}
+
+function gearSksCellHtml(i, w, editable){
+  if (editable){
+    const inp = f => `<input data-gear-field="${i}:${f}" value="${esc(w ? (w[f] ?? '') : '')}" placeholder="–">`;
+    return `<td class="gw-sks-cell"><span class="gw-sks"><span class="gw-sks-inp"><span class="gw-sks-lbl">О</span>${inp('rof_single')}</span>
+      <span class="gw-sks-sep">/</span>
+      <span class="gw-sks-inp"><span class="gw-sks-lbl">КРТ</span>${inp('rof_short')}</span>
+      <span class="gw-sks-sep">/</span>
+      <span class="gw-sks-inp"><span class="gw-sks-lbl">ДЛН</span>${inp('rof_long')}</span></span></td>`;
+  }
+  const g = w ? gearSksGlyphs(w) : { s:'–', c:'–', d:'–' };
+  return `<td><b>${g.s}/${g.c}/${g.d}</b></td>`;
+}
+
+function gearAmmoOptions(r, w){
+  const wcls = (w && w.class) ? String(w.class).trim() : '';
+  const list = S.character.character_data.ammo || [];
+  let current = '';
+  list.forEach(a => { if (a.weapon === r.name && a.loaded) current = a.name; });
+  const opts = ['<option value="">— не выбран —</option>']
+    .concat(list
+      .filter(a => !wcls || !a.class || a.class === wcls)
+      .map(a => `<option value="${esc(a.name)}"${a.name === current ? ' selected' : ''}>${esc(a.name)}${a.class ? ' (' + esc(a.class) + ')' : ''}</option>`))
+    .join('');
+  return opts;
+}
+
+function gearAmmoCellHtml(r, i, w){
+  const opts = gearAmmoOptions(r, w);
+  return `<td><select class="gw-ammo-sel" data-gear-ammo="${i}">${opts}</select></td>`;
+}
+
+function gearRowHtml(r, i, g, key){
+  const w = gearResolve(r);
+  const wclsv = (w && w.class) ? String(w.class).trim() : '';
+  const editable = editMode && r.source === 'custom' && w != null;
+  const cells = g.fields.map(f => {
+    if (f === 'dmg') return gearDmgCellHtml(f, w, i, editable, !!g.dmgType);
+    if (f === 'sks') return gearSksCellHtml(i, w, editable);
+    if (f === 'ammo') return gearAmmoCellHtml(r, i, w);
+    const val = w ? w[f] : undefined;
+    if (editable) return `<td><input data-gear-field="${i}:${f}" value="${esc(val ?? '')}" placeholder="—"></td>`;
+    const v = (val === undefined || val === null || val === '') ? '—' : esc(val);
+    return `<td><b>${v}</b></td>`;
+  }).join('');
+  const quals = gearQualitiesHtml(r, i, w, editable);
+  let html = `<tr class="gw-tr">
+    <td class="gw-name-td"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}
+      ${wclsv ? `<span class="ammo-class">${esc(wclsv)}</span>` : ''}
+      ${r.source === 'custom' ? `<span class="g-src-custom">самодел</span>` : ''}
+    </span><button class="remove-row-btn" data-del="${key}:${i}">✕</button></td>
+    ${cells}</tr>`;
+  if (quals){
+    html += `<tr class="gw-qual-tr"><td colspan="${g.fields.length + 1}">${quals}</td></tr>`;
+  }
+  return html;
+}
+
+function gearGroupTableHtml(items, g, key){
+  let html = '<div class="gw-table-wrap"><table class="gw-table"><thead><tr><th>Название</th>'
+    + g.fields.map(f => `<th>${GEAR_FIELD_LABELS[f] || f}</th>`).join('')
+    + '</tr></thead><tbody>'
+    + items.map(({ r, i }) => gearRowHtml(r, i, g, key)).join('')
+    + '</tbody></table></div>';
+  return html;
+}
+
+function gearTableHtml(rows, key){
+  const gidx = Object.fromEntries(GEAR_GROUP_ORDER.map((g, n) => [g, n]));
+  const groups = GEAR_GROUP_ORDER.map(() => []);
+  const other = [];
+  rows.forEach((r, i) => {
+    if (r.slot) return;
+    const t = gearRowType(r);
+    if (isArmourRow(r)) return;
+    if (t && GEAR_GROUPS[t]) groups[gidx[t]].push({ r, i });
+    else other.push({ r, i });
+  });
+  let html = '';
+  groups.forEach((items, n) => {
+    if (!items.length) return;
+    const g = GEAR_GROUPS[GEAR_GROUP_ORDER[n]];
+    html += `<div class="gw-group"><div class="gw-group-title">${g.title}</div>
+      ${gearGroupTableHtml(items, g, key)}</div>`;
+  });
+  html += other.map(({ r, i }) => gearItemHtml(r, i, key)).join('');
+  return html;
+}
+
+function gearQualitiesHtml(r, i, w, editable){
+  let qids = [];
+  if (r.source === 'catalog') qids = (w.qualities || []).map(x => x.qid);
+  else qids = (w.qualities || []).filter(x => x != null);
+  if (editable){
+    const all = Object.values(WQ_MAP).sort((a,b) => (a.name||'').localeCompare(b.name||'', 'ru'));
+    const chips = all.map(q => {
+      const on = qids.includes(q.id);
+      return `<label class="gw-q-chip ${on ? 'on' : ''}" data-gear-qual="${i}:${q.id}">
+        <input type="checkbox" ${on ? 'checked' : ''}> ${esc(q.name)}</label>`;
+    }).join('');
+    return `<div class="gw-quals"><div class="gw-q-pick">${chips || '<span class="desc">Нет свойств в справочнике</span>'}</div></div>`;
+  }
+  if (!qids.length) return '';
+  const chips = qids.map(qid => {
+    const q = WQ_MAP[qid];
+    if (!q) return '';
+    const tt = q.description ? ` data-tooltip="${esc(q.description)}" data-tooltip-html="1"` : '';
+    return `<span class="gw-q-chip snack"${tt}>${esc(q.name)}</span>`;
+  }).join('');
+  return chips ? `<div class="gw-quals"><div>${chips}</div></div>` : '';
+}
+
+// ==== БОЕПРИПАСЫ ====
+
+function ammoWeaponOptions(ammoClass){
+  const opts = [];
+  (S.character.character_data.gear || []).forEach(r => {
+    const w = gearResolve(r);
+    if (!w) return;
+    if (w.type === 'field') return;
+    const wcls = (w.class || '').trim();
+    if (ammoClass && wcls && wcls !== ammoClass) return;
+    opts.push({ name: r.name, class: wcls, mag: w.mag || 0 });
+  });
+  return opts;
+}
+
+function ammoRowHtml(r, i, key, loadedByWeapon){
+  const ammo = AMMO_MAP[r.ammo_id];
+  const fullName = esc(r.name);
+  const tt = ammo && ammo.description ? ` data-tooltip="${esc(ammo.description)}"` : '';
+  const magsTotal = r.mags.length;
+  const idx = Math.min(r.activeMag, magsTotal - 1);
+  const cur = r.mags[idx]?.cur || 0;
+  const weapons = ammoWeaponOptions(r.class);
+  const wOpts = ['<option value="">— не выбрано —</option>']
+    .concat(weapons.map(w => `<option value="${esc(w.name)}"${w.name === r.weapon ? ' selected' : ''}>${esc(w.name)}${w.class ? ' (' + esc(w.class) + ')' : ''}</option>`))
+    .join('');
+  const isLoaded = r.loaded;
+  const anotherLoaded = !isLoaded && !!r.weapon && !!loadedByWeapon[r.weapon];
+  const fireBtn = isLoaded
+    ? `<button class="ammo-fire ammo-fire-on" data-ammo-fire="${i}">Сменить</button>`
+    : `<button class="ammo-fire" data-ammo-fire="${i}"${(!r.weapon || anotherLoaded) ? ' disabled' : ''}>Зарядить</button>`;
+  return `<div class="ammo-item">
+    <div class="amount-head">
+      <div class="g-name"><span${tt}>${fullName}</span>
+        <span class="ammo-class">${r.class ? esc(r.class) : 'класс не задан'}</span></div>
+      <div class="ammo-curmax" title="Текущее / Максимум в магазине">
+        <input type="number" min="0" data-ammo-cur="${i}" value="${cur}" title="Текущее в активном магазине">
+        <input type="number" min="0" data-ammo-max="${i}" value="${r.max || ''}" placeholder="Макс" title="Максимум магазина"></div>
+      <div class="row tight">
+        <button class="ammo-step" data-ammo-mminus="${i}" title="Убрать магазин">−</button>
+        <span class="ammo-mag-ind" data-ammo-ind="${i}">магазин ${idx + 1}/${magsTotal}</span>
+        <button class="ammo-step" data-ammo-mplus="${i}" title="Добавить магазин">+</button>
+        <button class="ammo-arrow" data-ammo-arrow="${i}" title="Следующий магазин">▶</button>
+        <button class="remove-row-btn" data-del="${key}:${i}">✕</button>
+      </div>
+    </div>
+    <div class="ammo-body">
+      <div class="ammo-weapon-row">
+        <select class="ammo-weapon-sel" data-ammo-weapon="${i}">${wOpts}</select>
+        ${fireBtn}
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderList(key){
   const host = document.querySelector(`[data-list="${key}"]`);
   if (!host) return;
@@ -2288,14 +2977,23 @@ function renderList(key){
   const style = SECTIONS[key][2];
   if (!rows.length){
     host.innerHTML = '<div class="desc" style="padding:6px 4px">Записей нет.</div>';
+    if (style === 'gear') renderEquipped();
+    return;
+  }
+  let ammoLoadedByWeapon = {};
+  if (style === 'ammo'){
+    rows.forEach(r => { if (r.weapon && r.loaded) ammoLoadedByWeapon[r.weapon] = true; });
+  }
+  if (style === 'gear'){
+    host.innerHTML = gearTableHtml(rows, key);
+    bindListEvents(host);
+    renderEquipped();
+    renderArmourAux();
     return;
   }
   host.innerHTML = rows.map((r, i) => {
-    if (style === 'gear'){
-      return `<div class="gear-item" data-open="${key}:${i}">
-        <span class="g-name">${esc(r.name)}</span>
-        <button class="remove-row-btn" data-del="${key}:${i}">✕</button>
-      </div>`;
+    if (style === 'ammo'){
+      return ammoRowHtml(r, i, key, ammoLoadedByWeapon);
     }
     return `<div class="talent-item" data-open="${key}:${i}">
       <div class="t-head">
@@ -2312,21 +3010,172 @@ function bindListEvents(host){
   host.querySelectorAll('[data-del]').forEach(b =>
     b.addEventListener('click', e => {
       e.stopPropagation();
-      const [key, i] = b.dataset.del.split(':');
-      S.character.character_data[key].splice(Number(i), 1);
-      renderList(key);
+      const [k, i] = b.dataset.del.split(':');
+      S.character.character_data[k].splice(Number(i), 1);
+      renderList(k);
+      if (k === 'gear') renderList('ammo');
+      debouncedSave();
     }));
-  host.querySelectorAll('[data-open]').forEach(el =>
-    el.addEventListener('click', () => {
-      const [key, i] = el.dataset.open.split(':');
-      const row = S.character.character_data[key][Number(i)];
-      showInfo(row.name, row.desc || 'Описание отсутствует.');
+  host.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', e => {
+    const [k, i] = el.dataset.open.split(':');
+    if (editMode && k === 'gear') return;
+    const row = S.character.character_data[k][Number(i)];
+    let desc = row.desc || '';
+    if (k === 'gear' && row.source === 'catalog' && row.item_id != null){
+      const g = GEAR_MAP[row.item_id];
+      if (g && g.description) desc = g.description;
+    }
+    showInfo(row.name, desc || 'Описание отсутствует.');
+  }));
+  bindTooltips();
+  host.querySelectorAll('[data-gear-field]').forEach(el => {
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, () => {
+      const [i, f] = el.dataset.gearField.split(':');
+      const row = S.character.character_data.gear[Number(i)];
+      if (!row.weapon) row.weapon = {};
+      row.weapon[f] = el.value;
+      debouncedSave();
+    });
+  });
+  host.querySelectorAll('[data-gear-qual] input').forEach(cb =>
+    cb.addEventListener('change', () => {
+      const [i, qid] = cb.closest('[data-gear-qual]').dataset.gearQual.split(':');
+      const row = S.character.character_data.gear[Number(i)];
+      if (!row.weapon) row.weapon = {};
+      if (!Array.isArray(row.weapon.qualities)) row.weapon.qualities = [];
+      const id = Number(qid);
+      row.weapon.qualities = cb.checked
+        ? [...new Set([...row.weapon.qualities, id])]
+        : row.weapon.qualities.filter(x => x !== id);
+      cb.closest('[data-gear-qual]').classList.toggle('on', cb.checked);
+      debouncedSave();
+    }));
+  host.querySelectorAll('[data-gear-ammo]').forEach(sel =>
+    sel.addEventListener('change', () => {
+      const i = Number(sel.dataset.gearAmmo);
+      const row = S.character.character_data.gear[Number(i)];
+      const name = sel.value;
+      if (row){
+        const yes = S.character.character_data.ammo || [];
+        yes.forEach(a => { if (a.weapon === row.name && a.loaded) a.loaded = false; });
+        const tgt = yes.find(a => a.name === name);
+        if (tgt){ tgt.loaded = true; tgt.weapon = row.name; }
+      }
+      debouncedSave();
+      renderList('gear');
+      renderList('ammo');
+    }));
+  host.querySelectorAll('[data-slot-pick]').forEach(b =>
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      openSlotPick(b.dataset.slotPick);
+    }));
+  host.querySelectorAll('[data-slot-unequip]').forEach(b =>
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      unequipSlot(b.dataset.slotUnequip);
+    }));
+  host.querySelectorAll('[data-slot-add]').forEach(b =>
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      addSlot(b.dataset.slotAdd);
+    }));
+  host.querySelectorAll('[data-slot-del]').forEach(b =>
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      delSlot(b.dataset.slotDel);
+    }));
+  bindAmmoEvents(host);
+}
+
+function ammoSetMagCount(row, n){
+  n = Math.max(1, Number(n) || 1);
+  while (row.mags.length < n) row.mags.push({ cur: row.max || 0 });
+  if (row.mags.length > n) row.mags.length = n;
+  row.activeMag = Math.min(row.activeMag, row.mags.length - 1);
+}
+
+function ammoWeaponByName(name){
+  let found = null;
+  (S.character.character_data.gear || []).forEach(r => {
+    if (r.name !== name) return;
+    const w = gearResolve(r);
+    if (w && w.mag != null) found = w;
+  });
+  return found;
+}
+
+function bindAmmoEvents(host){
+  host.querySelectorAll('[data-ammo-mplus]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const r = S.character.character_data.ammo[Number(btn.dataset.ammoMplus)];
+      ammoSetMagCount(r, r.mags.length + 1);
+      debouncedSave();
+      renderList('ammo');
+    }));
+  host.querySelectorAll('[data-ammo-mminus]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const r = S.character.character_data.ammo[Number(btn.dataset.ammoMminus)];
+      ammoSetMagCount(r, Math.max(1, r.mags.length - 1));
+      debouncedSave();
+      renderList('ammo');
+    }));
+  host.querySelectorAll('[data-ammo-cur]').forEach(inp =>
+    inp.addEventListener('input', () => {
+      const r = S.character.character_data.ammo[Number(inp.dataset.ammoCur)];
+      const idx = Math.min(r.activeMag, r.mags.length - 1);
+      r.mags[idx].cur = Math.max(0, Number(inp.value) || 0);
+      debouncedSave();
+    }));
+  host.querySelectorAll('[data-ammo-max]').forEach(inp =>
+    inp.addEventListener('input', () => {
+      const r = S.character.character_data.ammo[Number(inp.dataset.ammoMax)];
+      r.max = Math.max(0, Number(inp.value) || 0);
+      debouncedSave();
+    }));
+  host.querySelectorAll('[data-ammo-arrow]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const r = S.character.character_data.ammo[Number(btn.dataset.ammoArrow)];
+      if (!r.mags.length) r.mags.push({ cur: 0 });
+      r.activeMag = (r.activeMag + 1) % r.mags.length;
+      debouncedSave();
+      renderList('ammo');
+    }));
+  host.querySelectorAll('[data-ammo-weapon]').forEach(sel =>
+    sel.addEventListener('change', () => {
+      const r = S.character.character_data.ammo[Number(sel.dataset.ammoWeapon)];
+      r.weapon = sel.value;
+      const w = ammoWeaponByName(r.weapon);
+      if (w && (!r.max || r.max === 0)){
+        r.max = Number(w.mag) || 0;
+        const full = r.max || 0;
+        if (full > 0 && Array.isArray(r.mags)) r.mags.forEach(m => m.cur = full);
+      }
+      debouncedSave();
+      renderList('ammo');
+      renderList('gear');
+    }));
+  host.querySelectorAll('[data-ammo-fire]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.ammoFire);
+      const ammo = S.character.character_data.ammo;
+      const r = ammo[i];
+      if (!r.weapon) return;
+      if (r.loaded){
+        r.loaded = false;
+      } else {
+        r.loaded = true;
+        ammo.forEach(a => { if (a !== r && a.weapon === r.weapon) a.loaded = false; });
+      }
+      debouncedSave();
+      renderList('ammo');
+      renderList('gear');
     }));
 }
 
 const SKILL_LEVELS = ['untrained','trained','+10','+20'];
 const SKILL_LEVEL_LABELS = { untrained:'Не трен', trained:'Трен', '+10':'+10', '+20':'+20' };
-const SKILL_STAT_NAMES = { sil:'Сила', wyn:'Выносливость', lov:'Ловкость', int:'Интеллект', vos:'Восприятие', sv:'Сила воли', obsh:'Общительность', bb:'Баллистика', db:'Защита' };
 const CHARACTERISTICS = ['Сила','Выносливость','Ловкость','Интеллект','Восприятие','Сила воли','Общительность','Баллистика','Защита'];
 
 function chSelect(key, idx, val, extra){
@@ -2354,12 +3203,17 @@ function renderSkills(){
     sorted.forEach(r => {
       const lvl = r.level || 'untrained';
       if (hideUntrained && lvl === 'untrained' && !r.groups_enabled) return;
-      if (hideUntrained && r.groups_enabled) return;
+      if (hideUntrained && r.groups_enabled){
+        const anyTrainedG = (r.groups || []).some(g => (g.level || 'untrained') !== 'untrained');
+        if (!anyTrainedG) return;
+      }
       const cls = lvl === 'untrained' ? 'untrained' : (r.gifted ? 'gifted' : (lvl === 'trained' ? 'trained' : ''));
       const hasGroups = r.groups_enabled && r.groups && r.groups.length;
       const showLevel = !hasGroups;
+      const ch = r.characteristic || '';
+      const nameParts = [chSelect(key, r._idx, ch), ch ? `<span class="skill-chip">${esc(ch)}</span>` : '', esc(r.name)].filter(Boolean).join(' ');
       html += `<div class="skill-item" data-skill-open="${key}:${r._idx}">
-        <span class="skill-name">${chSelect(key, r._idx, r.characteristic || '')} ${esc(r.name)}</span>`;
+        <span class="skill-name">${nameParts}</span>`;
       if (showLevel){
         html += `<span class="skill-level ${cls}" data-skill-cycle="${key}:${r._idx}">${esc(SKILL_LEVEL_LABELS[lvl] || lvl)}</span>`;
       }
@@ -2370,22 +3224,23 @@ function renderSkills(){
           if (hideUntrained && (g.level || 'untrained') === 'untrained') return;
           const glvl = g.level || 'untrained';
           const gcls = glvl === 'untrained' ? '' : (r.gifted ? 'gifted' : '');
+          const sgch = g.characteristic || r.characteristic || '';
           html += `<div class="skill-group-row">
-            <span class="skill-group-name">${esc(g.name)}</span>
-            ${chSelect(key, r._idx, g.characteristic || r.characteristic || '', ':'+gi)}
+            <span class="skill-group-name">${sgch ? `<span class="skill-chip">${esc(sgch)}</span>` : ''}${esc(g.name)}</span>
+            ${chSelect(key, r._idx, sgch, ':'+gi)}
             <span class="skill-group-lvl ${gcls}" data-skill-cycle-group="${key}:${r._idx}:${gi}">${esc(SKILL_LEVEL_LABELS[glvl] || glvl)}</span>
-            <button class="skill-group-del" data-skill-del-group="${key}:${r._idx}:${gi}">&times;</button>
+            ${editMode ? `<button class="skill-group-del" data-skill-del-group="${key}:${r._idx}:${gi}">&times;</button>` : ''}
           </div>`;
         });
         html += `</div>`;
       }
     });
     container.innerHTML = html;
-    bindSkillEvents(container, key);
+    bindSkillEvents(container);
   });
 }
 
-function bindSkillEvents(container, key){
+function bindSkillEvents(container){
   container.querySelectorAll('[data-skill-ch]').forEach(el =>
     el.addEventListener('change', e => {
       e.stopPropagation();
@@ -2425,6 +3280,7 @@ function bindSkillEvents(container, key){
     }));
   container.querySelectorAll('[data-skill-del-group]').forEach(el =>
     el.addEventListener('click', e => {
+      if (!editMode) return;
       e.stopPropagation();
       const [k, idx, gi] = el.dataset.skillDelGroup.split(':');
       S.character.character_data[k][Number(idx)].groups.splice(Number(gi), 1);
@@ -2452,6 +3308,12 @@ function openSkillDetail(key, idx){
     debouncedSave();
   };
   $('sd-gifted').checked = !!row.gifted;
+  $('sd-basic-count-row').style.display = currentSkillKey === 'skills_adv' ? '' : 'none';
+  $('sd-counts-as-basic').checked = !!row.counts_as_basic;
+  $('sd-counts-as-basic').onchange = function(){
+    row.counts_as_basic = this.checked;
+    debouncedSave();
+  };
   $('sd-groups-toggle').checked = !!row.groups_enabled;
   $('sd-desc').innerHTML = row.desc || 'Описание отсутствует.';
   $('sd-groups-section').style.display = row.groups_enabled ? '' : 'none';
@@ -2471,11 +3333,28 @@ function openSkillDetail(key, idx){
   openSheetModal('skill-detail-modal');
 }
 
+function sdAddGroup(rawName){
+  const name = String(rawName || '').trim();
+  if (currentSkillKey === null || currentSkillIdx === null) return;
+  if (!name){ toast('Введите название группы'); return; }
+  const row = S.character.character_data[currentSkillKey][currentSkillIdx];
+  if (row.groups && row.groups.some(g => (g.name || '').toLowerCase() === name.toLowerCase())){
+    toast('Такая группа уже есть: ' + name);
+    return;
+  }
+  if (!row.groups) row.groups = [];
+  row.groups.push({ name: name, level: 'untrained', characteristic: row.characteristic || '' });
+  const input = $('sd-group-name-input'); if (input) input.value = '';
+  renderSkillGroupsList();
+  renderSkills();
+  debouncedSave();
+}
+
 function renderSkillGroupsList(){
   if (currentSkillKey === null || currentSkillIdx === null) return;
   const row = S.character.character_data[currentSkillKey][currentSkillIdx];
   const list = $('sd-groups-list');
-  if (!row.groups || !row.groups.length){ list.innerHTML = '<div class="desc" style="padding:4px 0;font-size:12px;color:var(--text-dim);">Нет групп. Включите переключатель «Умение с группами?» и добавьте группы через описание умения.</div>'; return; }
+  if (!row.groups || !row.groups.length){ list.innerHTML = '<div class="desc" style="padding:4px 0;font-size:12px;color:var(--text-dim);">Нет групп. Включите переключатель «Умение с группами?» и добавьте группы кнопкой «+ группа» ниже.</div>'; return; }
   list.innerHTML = row.groups.map((g, i) => {
     const lvl = g.level || 'untrained';
     const lbl = SKILL_LEVEL_LABELS[lvl] || lvl;
@@ -2513,56 +3392,175 @@ function renderSkillGroupsList(){
     }));
 }
 
+// ==== ДОБАВЛЕНИЕ ЗАПИСЕЙ ====
 let pickTarget = null;
 let pickRows = [];
+let pickRowsAll = [];
+let ammoClassOptions = [];
 async function openPicker(key){
   pickTarget = key;
   const [label, table] = SECTIONS[key];
   $('pick-title').textContent = 'Добавить: ' + label;
-  $('pick-manual').value = '';
   $('pick-search').value = '';
+  $('pick-ammo-class-wrap').hidden = key !== 'ammo';
+  $('pick-ammo-class').innerHTML = '<option value="">— класс боеприпаса —</option>' +
+    (key === 'ammo' ? ammoClassOptions.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('') : '');
+  $('pick-ammo-class').value = '';
+  $('pick-type-wrap').hidden = key !== 'gear';
+  if (key === 'gear') $('arsenal-type').value = '';
   $('pick-results').innerHTML = table
     ? '<div class="desc">Загрузка справочника...</div>'
     : '<div class="desc">Для этого раздела справочника нет — введите вручную.</div>';
   openSheetModal('pick-modal');
   if (!table) return;
-  const { data, error } = await sb.from(table).select('name, description').order('name').limit(400);
+  const cols = (key === 'gear' || key === 'armour_aux') ? 'id, name, stats'
+    : (key === 'ammo' ? 'id, name, used_for' : 'name, description');
+  const { data, error } = await sb.from(table).select(cols).order('name').limit(400);
   if (error){
     $('pick-results').innerHTML = `<div class="desc">Справочник недоступен: ${esc(error.message)}</div>`;
     return;
   }
   pickRows = data || [];
+  pickRowsAll = pickRows.slice();
+  if (key === 'ammo') pickRows = pickRows.filter(r => r.used_for);
+  if (key === 'ammo') ammoClassOptions = [...new Set(pickRows.map(r => r.used_for))].sort((a,b) => a.localeCompare(b, 'ru'));
+  if (key === 'armour_aux') pickRows = pickRows.filter(r => r.stats && r.stats.type === 'armour');
+  if (key === 'gear'){
+    const tf = $('arsenal-type').value;
+    if (tf) pickRows = pickRows.filter(r => r.stats && r.stats.type === tf);
+    if (!$('arsenal-type').dataset.filterBound){
+      $('arsenal-type').dataset.filterBound = '1';
+      $('arsenal-type').addEventListener('change', () => {
+        if (pickTarget !== 'gear') return;
+        const tf2 = $('arsenal-type').value;
+        pickRows = tf2 ? pickRowsAll.filter(r => r.stats && r.stats.type === tf2) : pickRowsAll.slice();
+        drawPickResults($('pick-search').value);
+      });
+    }
+  }
   drawPickResults('');
 }
 
 function drawPickResults(q){
   const rows = pickRows.filter(r => r.name.toLowerCase().includes(q.toLowerCase())).slice(0, 80);
   $('pick-results').innerHTML = rows.length
-    ? rows.map(r => `<div class="gear-item" data-pick="${esc(r.name)}">
-        <span class="g-name">${esc(r.name)}</span></div>`).join('')
+    ? rows.map(r => `<div class="gear-item pick-row" data-pick="${esc(r.name)}">
+        <span class="g-name">${esc(r.name)}</span>${r.used_for ? `<span class="ammo-class">${esc(r.used_for)}</span>` : ''}</div>`).join('')
     : '<div class="desc">Ничего не найдено.</div>';
   $('pick-results').querySelectorAll('[data-pick]').forEach(el =>
     el.addEventListener('click', () => {
       const row = pickRows.find(r => r.name === el.dataset.pick);
-      addRow(pickTarget, row.name, row.description || '');
+      if (pickTarget === 'gear'){
+        addRow(pickTarget, { name: row.name, item_id: row.id, source: 'catalog' });
+      } else if (pickTarget === 'armour_aux'){
+        addRow('gear', { name: row.name, item_id: row.id, source: 'catalog', type: 'armour', armour_class: 'вспомогательная' });
+      } else if (pickTarget === 'ammo'){
+        addRow(pickTarget, { name: row.name, ammo_id: row.id, source: 'catalog', class: row.used_for || '', weapon: '', mags: [{ cur: 0 }], max: 0, activeMag: 0, loaded: false }, true);
+      } else {
+        addRow(pickTarget, row.name, row.description || '');
+      }
     }));
 }
 
+function gearBlankWeapon(type){
+  const w = { class:'', qualities: [] };
+  if (type === 'weapon_ranged'){
+    Object.assign(w, { dmg:'', dmg_type:'', pen:'', mag:'', range:'', reload:'', rof_single:'', rof_short:'', rof_long:'' });
+  } else if (type === 'weapon_melee'){
+    Object.assign(w, { dmg:'', dmg_type:'', pen:'' });
+  } else if (type === 'shield'){
+    Object.assign(w, { dmg:'', dmg_type:'', pen:'', field_level:'', overload:'' });
+  } else if (type === 'field'){
+    Object.assign(w, { field_level:'', overload:'' });
+  }
+  return w;
+}
+
 function pickManual(){
-  const name = $('pick-manual').value.trim();
+  const name = $('pick-search').value.trim();
   if (!name) return toast('Введите название');
+  if (pickTarget === 'gear'){
+    const type = $('arsenal-type').value;
+    if (!type) return toast('Выберите тип предмета');
+    const row = { name, type, source: 'custom', desc: '' };
+    if (GEAR_GROUPS[type]){
+      row.weapon = gearBlankWeapon(type);
+    }
+    addRow(pickTarget, row);
+    return;
+  }
+  if (pickTarget === 'ammo'){
+    const cls = $('pick-ammo-class').value;
+    if (!cls) return toast('Выберите класс боеприпаса');
+    const row = { name, source: 'custom', class: cls, weapon: '', mags: [{ cur: 0 }], max: 0, activeMag: 0, loaded: false };
+    addRow(pickTarget, row, true);
+    return;
+  }
+  if (pickTarget === 'armour_aux'){
+    const row = { name, type: 'armour', armour_class: 'вспомогательная', source: 'custom', desc: '' };
+    addRow('gear', row);
+    return;
+  }
   addRow(pickTarget, name, '');
 }
 
+const BASE_AMMO_BY_CLASS = {
+  'Болтерное': 'Болтерные Снаряды',
+  'Лазерное': 'Батарея',
+  'Зажигательное': 'Топливо',
+  'Плазменное': 'Колба Плазмы',
+  'Мельта': 'Мельта-Баллон',
+  'Экзотическое': 'Экзотические Боеприпасы'
+};
+
+// ==== АВТОПОДБОР БОЕПРИПАСОВ ДЛЯ ОРУЖИЯ ====
+function autoLoadWeaponAmmo(row){
+  const w = gearResolve(row);
+  if (!w || w.type !== 'weapon_ranged' || !w.class) return false;
+  const cls = String(w.class).trim();
+  let baseName = BASE_AMMO_BY_CLASS[cls];
+  if (!baseName && cls === 'Твердотельное'){
+    baseName = /дробов/i.test(row.name) ? 'Дробовые Патроны' : 'Пули';
+  }
+  if (!baseName) return false;
+  const ammoRow = Object.values(AMMO_MAP || {}).find(a => a && a.name === baseName);
+  if (!ammoRow) return false;
+  const mag = Number(w.mag);
+  if (!isFinite(mag) || mag <= 0) return false;
+  const arr = S.character.character_data.ammo || (S.character.character_data.ammo = []);
+  if (arr.some(a => a.weapon === row.name && a.name === baseName)) return false;
+  arr.push({
+    name: baseName,
+    ammo_id: ammoRow.id,
+    source: 'catalog',
+    class: cls,
+    weapon: row.name,
+    mags: [{ cur: mag }],
+    max: mag,
+    activeMag: 0,
+    loaded: true
+  });
+  return true;
+}
+
 function addRow(key, name, desc){
-  const row = { name, desc };
-  S.character.character_data[key].push(row);
+  const row = (name && typeof name === 'object') ? name : { name, desc };
+  const arr = S.character.character_data[key] || (S.character.character_data[key] = []);
+  arr.push(row);
+  if (key === 'gear' && pendingSlotId){
+    row.slot = pendingSlotId;
+    pendingSlotId = null;
+  }
+  if (key === 'gear'){
+    autoLoadWeaponAmmo(row);
+    renderList('ammo');
+  }
   renderList(key);
   closeSheetModal('pick-modal');
 }
 
-const BP_MAP = { 'head':'Голова','torso':'Корпус','left-arm':'Левая рука',
-  'right-arm':'Правая рука','left-leg':'Левая нога','right-leg':'Правая нога' };
+const BP_MAP = { 'head':'Голова','torso':'Корпус','left-arm':'Правая рука',
+  'right-arm':'Левая рука','left-leg':'Правая нога','right-leg':'Левая нога' };
 const DMG_MAP = { 'impact':'Ударный','energy':'Энергетический',
   'slash':'Резаный','explosive':'Взрывной' };
 
@@ -2615,16 +3613,204 @@ async function confirmInjury(){
 }
 
 function renderArmour(){
-  const a = S.character.character_data.armour;
-  $('armour-name').textContent = a.name || 'Броня не указана';
   updateArmour();
 }
-function updateArmour(){
+
+function loadArmourSelect(){
+  const sel = $('armour-select');
+  if (!sel || sel.dataset.bound) return;
+  sel.dataset.bound = '1';
   const d = S.character.character_data;
-  const total = (Number(d.armour.base) || 0) + bonusOf(d.stats.wyn);
-  ['head','torso','larm','rarm','lleg','rleg'].forEach(z => {
-    const el = $('armour-' + z);
-    if (el) el.textContent = total;
+  const cur = d.armour.name || '';
+  const opts = Object.values(GEAR_MAP)
+    .filter(g => g.stats && g.stats.type === 'armour' && g.stats.category === 'primary')
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  sel.innerHTML = '<option value="">— Выберите броню —</option>' +
+    opts.map(g => `<option value="${g.id}" ${g.name === cur ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
+  sel.addEventListener('change', () => {
+    const g = opts.find(o => String(o.id) === sel.value);
+    if (g){
+      d.armour.name = g.name;
+      d.armour.base = Number(g.stats && g.stats.base) || 10;
+    } else {
+      d.armour.name = '';
+      d.armour.base = 10;
+    }
+    renderArmour();
+    debouncedSave();
+  });
+}
+
+function renderArmourAux(){
+  const host = $('armour-aux-list');
+  if (!host) return;
+  const gear = S.character.character_data.gear || [];
+  const rows = gear.filter(r => isArmourRow(r) && r.armour_class !== 'основная');
+  if (!rows.length){
+    host.innerHTML = '<div class="desc" style="padding:6px 4px">Особенностей нет.</div>';
+    return;
+  }
+  host.innerHTML = rows.map(r => {
+    const i = gear.indexOf(r);
+    return `<div class="gear-item">
+      <div class="gear-head" data-open="gear:${i}">
+        <span class="g-name">${esc(r.name)}</span>
+        ${r.source === 'custom' ? '<span class="g-src-custom">самодел</span>' : ''}
+        ${editMode ? `<button class="remove-row-btn" data-del="gear:${i}">✕</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  bindListEvents(host);
+}
+const ARMOUR_ZONE_LABELS = { head:'Голова', torso:'Корпус', larm:'Правая рука', rarm:'Левая рука', lleg:'Правая нога', rleg:'Левая нога' };
+const ARMOUR_ZONE_ROW = ['head','torso','larm','rarm','lleg','rleg'];
+const ARMOUR_AP_KEY = { head:'head', torso:'torso', larm:'arms', rarm:'arms', lleg:'left_leg', rleg:'right_leg' };
+const ARMOUR_SHIELD_ZONES = ['torso', 'larm', 'rarm'];
+function armourAp(zid){
+  const d = S.character.character_data;
+  let g = null;
+  if (d.armour && d.armour.name) g = Object.values(GEAR_MAP).find(x => x && x.name === d.armour.name) || null;
+  const st = (g && g.stats) || {};
+  if (st.custom_zones){
+    if (!d.armour.zones) d.armour.zones = {};
+    const v = d.armour.zones[zid];
+    return v != null ? Number(v) : 0;
+  }
+  const ap = st.ap ? st.ap[ARMOUR_AP_KEY[zid]] : null;
+  if (ap != null) return Number(ap);
+  return Number(d.armour && d.armour.base) || 10;
+}
+function isCustomZonesArmour(){
+  const d = S.character.character_data;
+  if (!d.armour || !d.armour.name) return false;
+  const g = Object.values(GEAR_MAP).find(x => x && x.name === d.armour.name) || null;
+  return !!(g && g.stats && g.stats.custom_zones);
+}
+function renderArmourList(){
+  const host = $('armour-zone-rows');
+  if (!host) return;
+  const d = S.character.character_data;
+  if (!d.armour.shield) d.armour.shield = { value: 4, zones: {} };
+  if (!d.armour.zones) d.armour.zones = {};
+  const customZones = isCustomZonesArmour();
+  const tb = bonusOf(d.stats.wyn);
+  host.innerHTML = ARMOUR_ZONE_ROW.map(zid => {
+    const ap = armourAp(zid);
+    let shieldCell;
+    if (ARMOUR_SHIELD_ZONES.indexOf(zid) === -1){
+      shieldCell = '<span class="val shield hide">&nbsp;</span>';
+    } else if (editMode){
+      shieldCell = `<span class="val shield on"><input type="number" data-shield-input="1" value="${d.armour.shield.value}" min="0"></span>`;
+    } else {
+      const on = !!d.armour.shield.zones[zid];
+      shieldCell = `<span class="val shield ${on ? 'on' : 'off'}" data-shield-toggle="${zid}">${on ? d.armour.shield.value : '—'}</span>`;
+    }
+    let apCell;
+    if (customZones){
+      apCell = `<span class="val ap"><input type="number" data-zone-input="${zid}" value="${ap}" min="0"></span>`;
+    } else {
+      apCell = `<span class="val ap">${ap}</span>`;
+    }
+    return `<div class="armour-row" data-zone="${zid}">
+      <span class="label">${ARMOUR_ZONE_LABELS[zid]}</span>
+      ${shieldCell}
+      ${apCell}
+      <span class="val end">${tb}</span>
+    </div>`;
+  }).join('');
+  if (!host.dataset.bound){
+    host.dataset.bound = '1';
+    host.addEventListener('click', e => {
+      const t = e.target.closest('[data-shield-toggle]');
+      if (!t) return;
+      const cd = S.character.character_data;
+      if (!cd.armour.shield) cd.armour.shield = { value: 4, zones: {} };
+      const zid = t.dataset.shieldToggle;
+      cd.armour.shield.zones[zid] = !cd.armour.shield.zones[zid];
+      renderArmourList();
+      renderArmourSilhouette();
+      debouncedSave();
+    });
+    host.addEventListener('input', e => {
+      const cd = S.character.character_data;
+      if (!cd.armour.shield) cd.armour.shield = { value: 4, zones: {} };
+      if (!cd.armour.zones) cd.armour.zones = {};
+      const si = e.target.closest('[data-shield-input]');
+      const zi = e.target.closest('[data-zone-input]');
+      if (si){
+        cd.armour.shield.value = Math.max(0, Math.floor(Number(si.value) || 0));
+        renderArmourSilhouette();
+        debouncedSave();
+      } else if (zi){
+        cd.armour.zones[zi.dataset.zoneInput] = Math.max(0, Math.floor(Number(zi.value) || 0));
+        renderArmourSilhouette();
+        debouncedSave();
+      }
+    });
+  }
+}
+function updateArmour(){
+  renderArmourList();
+  renderArmourSilhouette();
+}
+
+function azCentroid(pts){
+  let x = 0, y = 0, a = 0, n = pts.length;
+  for (let i = 0; i < n; i++){
+    const j = (i + 1) % n;
+    const f = pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1];
+    a += f;
+    x += (pts[i][0] + pts[j][0]) * f;
+    y += (pts[i][1] + pts[j][1]) * f;
+  }
+  if (Math.abs(a) < 1e-6){
+    x = 0; y = 0;
+    for (let k = 0; k < n; k++){ x += pts[k][0]; y += pts[k][1]; }
+    return [Math.max(0, Math.min(380, x / n)), Math.max(0, Math.min(498, y / n))];
+  }
+  return [Math.max(0, Math.min(380, x / (3 * a))), Math.max(0, Math.min(498, y / (3 * a)))];
+}
+function azAnchor(zid, pts, la){
+  const a = la[zid];
+  if (Array.isArray(a) && a.length === 2) return a;
+  return azCentroid(pts);
+}
+function renderArmourSilhouette(){
+  const geom = $('az-geom');
+  const zg = $('az-zones-g');
+  if (!geom || !zg) return;
+  const d = S.character.character_data;
+  const gear = d.armour && d.armour.name
+    ? Object.values(GEAR_MAP).find(g => g && g.name === d.armour.name)
+    : null;
+  const st = (gear && gear.stats) || {};
+  geom.innerHTML = SILHOUETTES[st.silhouette || 'astartes'] || SILHOUETTES['astartes'] || '';
+  zg.innerHTML = '';
+  const zs = st.zone_shapes || {};
+  const la = st.label_anchors || {};
+  if (!d.armour.shield) d.armour.shield = { value: 4, zones: {} };
+  const tb = bonusOf(d.stats.wyn);
+  const rowOrder = ['head','torso','larm','rarm','lleg','rleg'];
+  rowOrder.forEach(zid => {
+    const pts = zs[zid];
+    if (!Array.isArray(pts) || pts.length < 3) return;
+    const ap = armourAp(zid);
+    const shieldBonus = ARMOUR_SHIELD_ZONES.indexOf(zid) !== -1 && d.armour.shield.zones[zid]
+      ? (Number(d.armour.shield.value) || 0) : 0;
+    const total = ap + tb + shieldBonus;
+    const cls = total >= 12 ? 'arm' : (total <= 0 ? 'dead' : (total < 6 ? 'weak' : ''));
+    const NS = 'http://www.w3.org/2000/svg';
+    const poly = document.createElementNS(NS, 'polygon');
+    poly.setAttribute('class', 'zone' + (cls ? ' ' + cls : ''));
+    poly.setAttribute('points', pts.map(p => p[0] + ',' + p[1]).join(' '));
+    zg.appendChild(poly);
+    const [ax, ay] = azAnchor(zid, pts, la);
+    const txt = document.createElementNS(NS, 'text');
+    txt.setAttribute('class', 'zone-badge');
+    txt.setAttribute('x', ax);
+    txt.setAttribute('y', ay + 8);
+    txt.textContent = total;
+    zg.appendChild(txt);
   });
 }
 
@@ -2635,7 +3821,7 @@ function updateDerived(){
   $('speed-full').textContent = bLov * 2;
   $('speed-charge').textContent = bLov * 3;
   $('speed-run').textContent = bLov * 6;
-  const idx = Math.min(bonusOf(d.stats.wyn) + bonusOf(d.stats.sil), 20);
+  const idx = Math.max(0, Math.min(bonusOf(d.stats.wyn) + bonusOf(d.stats.sil), 20));
   const [carry, lift, push] = carryTable[idx];
   $('carry-val').textContent = carry;
   $('lift-val').textContent = lift;
@@ -2704,14 +3890,6 @@ function updatePsyRating(){
   $('psy-rating-display').textContent = r;
 }
 
-function renderCircumstances(){
-  const d = S.character.character_data;
-  document.querySelectorAll('[data-toggle]').forEach(row =>
-    row.classList.toggle('active', !!d.circumstances[row.dataset.toggle]));
-  document.querySelectorAll('[data-aim]').forEach(o =>
-    o.classList.toggle('active', o.dataset.aim === d.aim));
-}
-
 function renderNotes(){
   const info = S.character.character_data.info;
   document.querySelectorAll('[data-info-field]').forEach(el => {
@@ -2726,7 +3904,8 @@ function bindTooltips(){
     el.dataset.tipBound = '1';
     el.addEventListener('mouseenter', () => {
       const t = $('tooltip');
-      t.textContent = el.dataset.tooltip;
+      if (el.dataset.tooltipHtml === '1') t.innerHTML = el.dataset.tooltip;
+      else t.textContent = el.dataset.tooltip;
       t.classList.add('active');
       const r = el.getBoundingClientRect();
       t.style.left = Math.max(8, r.left) + 'px';
@@ -2754,7 +3933,7 @@ function bindRolls(){
 
 function bindCollapse(scope){
   (scope || document).querySelectorAll('#screen-sheet .section-title').forEach(t => {
-    if (t.dataset.colBound) return;
+    if (t.dataset.noCollapse || t.dataset.colBound) return;
     t.dataset.colBound = '1';
     t.addEventListener('click', e => {
       const inj = t.closest('.injuries-section');
@@ -2763,10 +3942,35 @@ function bindCollapse(scope){
       if (panel) panel.classList.toggle('collapsed');
     });
   });
+  (scope || document).querySelectorAll('#screen-sheet [data-ammo-fold]').forEach(t => {
+    if (t.dataset.afBound) return;
+    t.dataset.afBound = '1';
+    t.addEventListener('click', () => {
+      t.classList.toggle('collapsed');
+      const wrap = t.closest('.panel').querySelector('#ammo-wrap, #armour-history-wrap');
+      if (wrap) wrap.classList.toggle('collapsed');
+    });
+  });
+}
+
+function bindPanelTabs(scope){
+  (scope || document).querySelectorAll('.panel-tab').forEach(t => {
+    if (t.dataset.ptBound) return;
+    t.dataset.ptBound = '1';
+    t.addEventListener('click', () => {
+      const wrap = t.closest('.panel');
+      wrap.querySelectorAll('.panel-tab').forEach(b => b.classList.toggle('active', b === t));
+      wrap.querySelectorAll('[data-panel-pane]').forEach(p =>
+        p.classList.toggle('active', p.dataset.panelPane === t.dataset.panelTab));
+    });
+  });
 }
 
 function openSheetModal(id){ $(id).classList.add('active'); }
-function closeSheetModal(id){ $(id).classList.remove('active'); }
+function closeSheetModal(id){
+  if (id === 'pick-modal') pendingSlotId = null;
+  $(id).classList.remove('active');
+}
 function showInfo(title, desc){
   $('info-title').textContent = title;
   $('info-desc').textContent = desc;
@@ -2775,14 +3979,12 @@ function showInfo(title, desc){
 
 function setEditButtons(){
   const eb = $('editBtn'), db = $('deleteBtn');
-  const raceEl = document.querySelector('[data-selector="race"]');
-  const hasDW = raceEl && raceEl.textContent.trim() === 'Адептус Астартес';
   if (editMode){
     eb.textContent = 'Сохранить'; eb.classList.add('save');
     db.textContent = 'Отменить'; db.classList.remove('danger'); db.classList.add('cancel');
   } else {
     eb.textContent = 'Редактировать'; eb.classList.remove('save');
-    db.textContent = hasDW ? 'Вернуть Геносемя' : 'Удалить персонажа';
+    db.textContent = 'Удалить персонажа';
     db.classList.remove('cancel'); db.classList.add('danger');
   }
   $('sheet-root').classList.toggle('edit-mode', editMode);
@@ -2807,6 +4009,7 @@ function saveCharName(){
 }
 
 async function saveSheet(){
+  if (!S.character) return;
   const d = S.character.character_data;
   d.vitals.xp_spent = calcTotalXpSpent(d)
     || d.vitals.xp_spent || 0;
@@ -2824,7 +4027,17 @@ async function saveSheet(){
   toast('Лист сохранён');
 }
 
-const debouncedSave = debounce(saveSheet, 800);
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveTimer = null; saveSheet(); }, 800);
+}
+function flushSave(){
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  return saveSheet();
+}
+const debouncedSave = scheduleSave;
 
 async function deleteCharacter(){
   if (!confirm('Удалить персонажа? Действие необратимо.')) return;
@@ -2852,20 +4065,6 @@ document.addEventListener('click', e => {
       tab.classList.add('active');
       $(tab.dataset.tab).classList.add('active');
       if (tab.dataset.tab === 'tab-advancement' && S.character) renderAdvCatalog();
-      return;
-    }
-    const tg = e.target.closest('[data-toggle]');
-    if (tg){
-      const d = S.character.character_data;
-      d.circumstances[tg.dataset.toggle] = !d.circumstances[tg.dataset.toggle];
-      tg.classList.toggle('active');
-      return;
-    }
-    const aim = e.target.closest('[data-aim]');
-    if (aim){
-      const d = S.character.character_data;
-      d.aim = d.aim === aim.dataset.aim ? '' : aim.dataset.aim;
-      renderCircumstances();
       return;
     }
     const psy = e.target.closest('.psy-opt');
@@ -2999,9 +4198,22 @@ function subRenown(){
   closeSheetModal('renown-modal');
 }
 
-$('editBtn').addEventListener('click', async () => {
-  if (editMode){ await saveSheet(); editMode = false; updateStatsOnly(); setEditButtons(); renderAltSpeeds(); }
-  else { editMode = true; setEditButtons(); renderAltSpeeds(); }
+$('editBtn').addEventListener('click', () => {
+  if (editMode){
+    editMode = false;
+    updateStatsOnly();
+    setEditButtons();
+    renderAltSpeeds();
+    renderList('gear');
+    renderArmour();
+    flushSave();
+  } else {
+    editMode = true;
+    setEditButtons();
+    renderAltSpeeds();
+    renderList('gear');
+    renderArmour();
+  }
 });
 $('deleteBtn').addEventListener('click', () => {
   if (editMode){ editMode = false; openSheet(S.character.id); renderAltSpeeds(); }
@@ -3009,6 +4221,7 @@ $('deleteBtn').addEventListener('click', () => {
 });
 
 (async function init(){
+  console.info('cs.html build: armor-refactor-v1 (14.09.2026)');
   const charId = new URLSearchParams(location.search).get('char');
   const saved = localStorage.getItem('dw_user');
   if (saved){
@@ -3179,6 +4392,39 @@ async function loadAdvCatalog(){
     .order('source, rank, name');
   if (error){ toast('Ошибка загрузки каталога: ' + error.message); return; }
   ADV_CATALOG = data || [];
+}
+
+// ==== КЭШ СНАРЯЖЕНИЯ И СВОЙСТВ ОРУЖИЯ ====
+let GEAR_MAP = {};   // id -> {id,name,description,stats}
+let WQ_MAP = {};     // id -> {id,name,description}
+let AMMO_MAP = {};   // id -> {id,name,description,used_for}
+let gearCacheLoaded = false;
+
+async function loadGearCache(){
+  if (gearCacheLoaded) return;
+  gearCacheLoaded = true;
+  try {
+    const [gRes, qRes, aRes] = await Promise.all([
+      sb.from('equipment').select('id, name, description, stats').limit(1000),
+      sb.from('weapon_qualities').select('id, name, description').order('name').limit(100),
+      sb.from('ammo').select('id, name, description, used_for').order('name').limit(100)
+    ]);
+    if (!gRes.error) GEAR_MAP = Object.fromEntries((gRes.data || []).map(x => [x.id, x]));
+    if (!qRes.error) WQ_MAP = Object.fromEntries((qRes.data || []).map(x => [x.id, x]));
+    if (!aRes.error) AMMO_MAP = Object.fromEntries((aRes.data || []).map(x => [x.id, x]));
+  } catch(e){
+    GEAR_MAP = {};
+    WQ_MAP = {};
+    AMMO_MAP = {};
+  }
+}
+
+let SILHOUETTES = {};
+async function loadSilhouettes(){
+  try {
+    const { data, error } = await sb.from('silhouettes').select('slug, body');
+    if (!error) SILHOUETTES = Object.fromEntries((data || []).map(x => [x.slug, x.body]));
+  } catch(e){ SILHOUETTES = {}; }
 }
 
 function checkRequirement(reqStr, charData){
@@ -3464,12 +4710,20 @@ function updateAdvFilter(){
       <span class="skill-toggle-label">Одарённый</span>
       <label class="skill-toggle"><input type="checkbox" id="sd-gifted"><span class="slider"></span></label>
     </div>
+    <div class="skill-toggle-row" id="sd-basic-count-row" style="display:none;">
+      <span class="skill-toggle-label">Считать Базовым</span>
+      <label class="skill-toggle"><input type="checkbox" id="sd-counts-as-basic"><span class="slider"></span></label>
+    </div>
     <div class="skill-toggle-row">
       <span class="skill-toggle-label">Умение с группами?</span>
       <label class="skill-toggle"><input type="checkbox" id="sd-groups-toggle"><span class="slider"></span></label>
     </div>
     <div id="sd-groups-section" style="display:none;margin-top:8px;">
       <div id="sd-groups-list"></div>
+      <div class="skill-group-add">
+        <input id="sd-group-name-input" placeholder="Название группы" maxlength="50" onkeydown="if(event.key==='Enter'){event.preventDefault();sdAddGroup($('sd-group-name-input').value);}">
+        <button id="sd-group-add-btn" onclick="sdAddGroup($('sd-group-name-input').value)">+ группа</button>
+      </div>
     </div>
     <div class="skill-desc-box" id="sd-desc"></div>
     <button class="modal-close" style="margin-top:12px;width:100%;" onclick="closeSheetModal('skill-detail-modal')">Закрыть</button>
