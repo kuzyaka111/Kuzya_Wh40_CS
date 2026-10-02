@@ -213,7 +213,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .renown-name{font-family:'Russo One',serif;font-weight:700;font-size:13px;color:var(--gold);text-transform:uppercase;}
 
 /* TOOLTIP */
-.tooltip{display:none;position:fixed;background:rgba(16,16,18,.97);border:1px solid #a8862f;border-radius:3px;padding:8px 12px;font-size:15px;color:#9a958a;max-width:340px;z-index:1000;pointer-events:none;line-height:1.45;font-family:'Unbounded',sans-serif;}
+.tooltip{display:none;position:fixed;background:rgba(16,16,18,.97);border:1px solid #a8862f;border-radius:3px;padding:8px 12px;font-size:15px;color:#9a958a;max-width:340px;z-index:1000;pointer-events:none;line-height:1.45;overflow-wrap:anywhere;overflow:hidden;font-family:'Unbounded',sans-serif;}
 .tooltip table{width:100%;border-collapse:collapse;margin-top:6px;}
 .tooltip th,.tooltip td{border:1px solid #3a3a3d;padding:4px 7px;text-align:left;vertical-align:top;}
 .tooltip th{color:var(--gold);font-weight:600;background:rgba(201,162,75,.08);font-size:13px;}
@@ -830,9 +830,55 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .psy-sup-chip{display:flex;align-items:center;gap:8px;width:100%;background:#101012;border:1px solid var(--border-dark);border-radius:3px;padding:8px 10px;font-size:14px;color:var(--text-main);}
 .psy-sup-chip b{color:#ff9fc4;font-weight:600;cursor:pointer;padding:0 2px;}
 .psy-sup-chip b:hover{color:#ff8fb0;}
-.psy-sup-tri{font-size:10px;color:var(--text-dim);cursor:pointer;padding:2px 4px;margin-right:5px;border:1px solid var(--border-dark);border-radius:3px;background:#101012;line-height:1;vertical-align:1px;user-select:none;}
-.psy-sup-tri:hover{color:var(--gold);border-color:var(--border-gold);}
-.psy-sup-tri.on{color:#a89ce6;border-color:#7a6cd6;background:rgba(106,90,205,.15);}
+/* Пси-блоки не расширяют сетку длинными заголовками и названиями. */
+#tab-psy{container:psy-tab / inline-size;}
+#tab-psy .body-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+#tab-psy .panel,#tab-psy .panel-body,#tab-psy [data-list="psi"]{min-width:0;}
+#tab-psy .section-title > span{min-width:0;overflow-wrap:anywhere;}
+.psy-indicators{container:psy-indicators / inline-size;}
+.psy-powers{container:psy-powers / inline-size;}
+.psy-toggle{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
+.psy-opt{min-width:0;overflow-wrap:anywhere;}
+.psy-rating-main > label,.psy-rating-eff > span{min-width:0;overflow-wrap:anywhere;}
+.psy-rating-eff{flex-wrap:wrap;}
+.psy-supported-fold{gap:8px;}
+.psy-supported-fold > span:first-child{min-width:0;overflow-wrap:anywhere;}
+.psy-supported-fold > .chevron,.psy-sup-chip > b{flex:0 0 auto;}
+.psy-sup-chip{min-width:0;overflow-wrap:anywhere;}
+.psy-sup-chip > span{min-width:0;}
+.psi-item-name{min-width:0;flex-basis:35%;}
+.psi-item-name .t-name{min-width:0;overflow-wrap:anywhere;}
+.psi-item-name .remove-row-btn{flex:0 0 auto;}
+.psi-item-meta{flex-basis:65%;}
+.psy-powers .psim{width:100%;min-width:0;grid-template-columns:repeat(4,minmax(0,1fr));}
+.psy-powers .psim .ph,.psy-powers .psim .pv{min-width:0;overflow-wrap:anywhere;}
+#info-modal.psy-info .modal-box{min-width:0;overflow-wrap:anywhere;}
+.psy-info-control{margin:14px 0;}
+.psy-info-status{font-size:12px;line-height:1.5;color:var(--text-dim);margin-bottom:8px;}
+.psy-info-control .modal-confirm{max-width:100%;margin-right:0;white-space:normal;line-height:1.5;}
+@media(max-width:900px){
+  #tab-psy .body-grid{grid-template-columns:minmax(0,1fr);}
+}
+@container psy-tab (max-width:900px){
+  #tab-psy .body-grid{grid-template-columns:minmax(0,1fr);}
+  #tab-psy .psy-powers{grid-column:span 1;}
+}
+@container psy-indicators (max-width:440px){
+  .psy-toggle{grid-template-columns:minmax(0,1fr);}
+  .psy-opt{border-right:none;border-bottom:1px solid var(--border-dark);}
+  .psy-opt:last-child{border-bottom:none;}
+}
+@container psy-powers (max-width:640px){
+  .psi-item{display:block;}
+  .psi-item-name{padding-right:0;border-right:none;margin-bottom:8px;}
+  .psi-item-meta .psim{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);}
+  .psi-item-meta .psim .ph{grid-column:1;border-right:1px solid #5c2a3a;}
+  .psi-item-meta .psim .pv{grid-column:2;border-right:none;}
+  .psi-item-meta .psim .ph:nth-child(1),.psi-item-meta .psim .pv:nth-child(1){grid-row:1;}
+  .psi-item-meta .psim .ph:nth-child(2),.psi-item-meta .psim .pv:nth-child(2){grid-row:2;}
+  .psi-item-meta .psim .ph:nth-child(3),.psi-item-meta .psim .pv:nth-child(3){grid-row:3;}
+  .psi-item-meta .psim .ph:nth-child(4),.psi-item-meta .psim .pv:nth-child(4){grid-row:4;}
+}
 
 /* INJURIES */
 .injuries-list{list-style:none;margin:8px 0;padding:0;}
@@ -1710,7 +1756,7 @@ html,body{max-width:100%;overflow-x:hidden;}
   <!-- TAB 4: ПСИ-СИЛЫ -->
   <div class="tab-content" id="tab-psy">
     <div class="body-grid">
-      <div class="panel col-span-1" style="padding:0">
+      <div class="panel col-span-1 psy-indicators" style="padding:0">
         <div class="section-title" data-no-collapse="1"><span>Показатели</span></div>
         <div class="panel-body" style="padding:12px 16px 16px">
           <div class="psy-rating-main">
@@ -1730,7 +1776,7 @@ html,body{max-width:100%;overflow-x:hidden;}
           </div>
         </div>
       </div>
-      <div class="panel col-span-2" style="padding:0">
+      <div class="panel col-span-2 psy-powers" style="padding:0">
         <div class="section-title" data-no-collapse="1"><span>Известные Пси-силы</span></div>
         <div class="panel-body" style="padding:12px 16px 16px">
           <div data-list="psi"></div>
@@ -1817,6 +1863,7 @@ html,body{max-width:100%;overflow-x:hidden;}
     <h3 id="info-title"></h3>
     <div id="info-params" style="margin:8px 0;display:none"></div>
     <div id="info-desc" class="desc"></div>
+    <div id="info-psy-control" class="psy-info-control" style="display:none"></div>
     <div id="info-options" style="margin-top:8px;display:none"></div>
     <div id="info-edit" style="margin-top:12px"></div>
     <button class="modal-close" onclick="closeSheetModal('info-modal')">Закрыть</button>
@@ -5218,17 +5265,10 @@ function renderList(key){
       return ammoRowHtml(r, i, key, ammoLoadedByWeapon);
     }
     if (key === 'psi'){
-      const d2 = S.character.character_data;
-      const supported = (d2.psy && Array.isArray(d2.psy.supported)) ? d2.psy.supported : [];
-      const supId = toId(r.id);
-      const supOn = supId != null && supported.includes(supId);
-      const tri = (psiCanSupport(r.desc) && supId != null)
-        ? `<button class="psy-sup-tri${supOn ? ' on' : ''}" data-psy-sup="${supId}" data-tooltip="${supOn ? 'Убрать из поддерживаемых' : 'Добавить в поддерживаемые'}">${supOn ? '▼' : '▶'}</button>`
-        : '';
       return `<div class="talent-item psi-item" data-open="${key}:${i}">
         <div class="psi-item-name">
           <div class="t-head">
-            <div class="t-name">${tri}${esc(r.name)}</div>
+            <div class="t-name">${esc(r.name)}</div>
             <button class="remove-row-btn" data-del="${key}:${i}">✕</button>
           </div>
         </div>
@@ -5269,17 +5309,6 @@ function bindListEvents(host){
     if (isAbilityKey(k)){ showAbilityInfo(row, k); return; }
     showRowInfo(row, k);
   }));
-  host.querySelectorAll('[data-psy-sup]').forEach(b =>
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      const d2 = S.character.character_data;
-      const id = toId(b.dataset.psySup);
-      const supported = normalizePsySupported(d2);
-      setPsySupported(d2, id, !supported.includes(id));
-      renderList('psi');
-      renderPsySupported();
-      debouncedSave();
-    }));
   bindTooltips();
   host.querySelectorAll('[data-gear-field]').forEach(el => {
     const evt = el.tagName === 'SELECT' ? 'change' : 'input';
@@ -6598,7 +6627,7 @@ function renderPsySupported(){
     return { id, name:row.name };
   });
   host.innerHTML = chips.map(c =>
-    `<span class="psy-sup-chip"><b data-psy-sup-del="${c.id}">✕</b>${esc(c.name)}</span>`).join('');
+    `<span class="psy-sup-chip"><b data-psy-sup-del="${c.id}">✕</b><span>${esc(c.name)}</span></span>`).join('');
   host.querySelectorAll('[data-psy-sup-del]').forEach(b =>
     b.addEventListener('click', () => {
       if (S.character?.character_data !== d) return;
@@ -6617,19 +6646,53 @@ function renderNotes(){
   });
 }
 
+let tooltipEventsBound = false;
+function hideTooltip(){
+  $('tooltip').classList.remove('active');
+}
+function showTooltip(el){
+  const t = $('tooltip');
+  const zoomText = getComputedStyle(document.body).zoom;
+  const zoom = (parseFloat(zoomText) / (String(zoomText).endsWith('%') ? 100 : 1)) || 1;
+  const viewport = window.visualViewport;
+  const vx = viewport?.offsetLeft || 0, vy = viewport?.offsetTop || 0;
+  const vw = viewport?.width || document.documentElement.clientWidth;
+  const vh = viewport?.height || document.documentElement.clientHeight;
+  const gap = 8;
+  t.textContent = el.dataset.tooltip;
+  t.style.maxWidth = Math.min(340, Math.max(1, vw - gap * 2) / zoom) + 'px';
+  t.style.maxHeight = Math.max(1, vh - gap * 2) / zoom + 'px';
+  t.style.left = '0px';
+  t.style.top = '0px';
+  t.classList.add('active');
+  const origin = t.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const x = Math.max(vx + gap, Math.min(r.left, vx + vw - origin.width - gap));
+  const preferredY = r.top - origin.height - gap >= vy + gap
+    ? r.top - origin.height - gap : r.bottom + gap;
+  const y = Math.max(vy + gap, Math.min(preferredY, vy + vh - origin.height - gap));
+  // Rect — экранные координаты; left/top внутри body учитывают его CSS zoom.
+  t.style.left = (x - origin.left) / zoom + 'px';
+  t.style.top = (y - origin.top) / zoom + 'px';
+}
 function bindTooltips(){
+  if (!tooltipEventsBound){
+    document.addEventListener('pointerdown', hideTooltip, true);
+    document.addEventListener('scroll', hideTooltip, true);
+    window.addEventListener('resize', hideTooltip);
+    window.addEventListener('blur', hideTooltip);
+    window.visualViewport?.addEventListener('resize', hideTooltip);
+    window.visualViewport?.addEventListener('scroll', hideTooltip);
+    tooltipEventsBound = true;
+  }
   document.querySelectorAll('#screen-sheet [data-tooltip]').forEach(el => {
     if (el.dataset.tipBound) return;
     el.dataset.tipBound = '1';
-    el.addEventListener('mouseenter', () => {
-      const t = $('tooltip');
-      t.textContent = el.dataset.tooltip;
-      t.classList.add('active');
-      const r = el.getBoundingClientRect();
-      t.style.left = Math.max(8, r.left) + 'px';
-      t.style.top = Math.max(8, r.top - 44) + 'px';
+    el.addEventListener('pointerenter', e => {
+      if (e.pointerType === 'touch') return;
+      showTooltip(el);
     });
-    el.addEventListener('mouseleave', () => $('tooltip').classList.remove('active'));
+    el.addEventListener('pointerleave', hideTooltip);
   });
 }
 
@@ -7048,7 +7111,14 @@ function bindPanelTabs(scope){
   });
 }
 
-function openSheetModal(id){ $(id).classList.add('active'); }
+function openSheetModal(id){
+  if (id === 'info-modal'){
+    $('info-modal').classList.remove('psy-info');
+    $('info-psy-control').style.display = 'none';
+    $('info-psy-control').innerHTML = '';
+  }
+  $(id).classList.add('active');
+}
 function closeSheetModal(id){
   if (id === 'pick-modal') pendingSlotId = null;
   $(id).classList.remove('active');
@@ -7100,6 +7170,35 @@ function showInfo(title, desc){
   openSheetModal('info-modal');
 }
 
+// Поддержание включается осознанно из описания известной силы.
+function renderPsyInfoControl(row){
+  const host = $('info-psy-control');
+  host.style.display = 'none';
+  host.innerHTML = '';
+  const d = S.character?.character_data;
+  const id = toId(row?.id);
+  if (!d || id == null || !(d.psi || []).includes(row)) return;
+  const active = normalizePsySupported(d).includes(id);
+  if (!active && !psiCanSupport(row.desc)) return;
+  host.style.display = 'block';
+  host.innerHTML = `<div class="psy-info-status">${active ? 'Сила поддерживается.' : 'Сила не поддерживается.'}</div>
+    <button class="modal-confirm" data-psy-info-toggle="1" aria-pressed="${active}">${active ? 'Прекратить поддержание' : 'Начать поддержание'}</button>`;
+  host.querySelector('[data-psy-info-toggle]').addEventListener('click', () => {
+    if (S.character?.character_data !== d || !(d.psi || []).includes(row)){
+      host.style.display = 'none';
+      host.innerHTML = '';
+      return;
+    }
+    const on = normalizePsySupported(d).includes(id);
+    if (setPsySupported(d, id, !on)){
+      renderPsySupported();
+      renderList('psi');
+      debouncedSave();
+    }
+    renderPsyInfoControl(row);
+  });
+}
+
 // ==== ОПИСАНИЕ СТРОКИ ПРОСТОГО СПИСКА + ПЕРЕИМЕНОВАНИЕ (только в модалке) ====
 // Список на листе не меняется: в режиме просмотра поле не появляется, в режиме
 // редактирования — появляется под описанием. Тот же приём, что уже применён
@@ -7120,6 +7219,10 @@ function showRowInfo(row, key){
   // неё «Описание отсутствует» незачем, поэтому подставляем prompt.
   const shown = (key === 'spec_abilities' && !desc) ? (row.prompt || '') : desc;
   showInfo(title(), shown || desc || 'Описание отсутствует.');
+  if (key === 'psi'){
+    $('info-modal').classList.add('psy-info');
+    renderPsyInfoControl(row);
+  }
 
   // Блок параметров: группа таланта и характеристики киберимпланта.
   // У таланта группа показывается здесь же строкой, но правится в форме ниже —
