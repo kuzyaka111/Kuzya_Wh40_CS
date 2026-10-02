@@ -950,14 +950,9 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 #shopBtn[aria-expanded="true"] .shop-chevron{transform:rotate(180deg);}
 .footer-actions-right.is-compact #shopBtn{display:none!important;}
 .footer-actions-right.is-compact .toolbar-strip{display:none!important;}
-.honour-kind-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;}
-.honour-kind-btn{padding:8px 14px;color:var(--text-dim);background:#141214;border:1px solid var(--border-gold);font:inherit;cursor:pointer;}
-.honour-kind-btn.active{color:var(--gold);background:#2c1719;border-bottom:3px solid var(--red);}
-.honour-store-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px;border:1px solid #3a3430;margin-bottom:8px;cursor:pointer;}
-.honour-store-name{min-width:0;overflow-wrap:anywhere;color:var(--gold);}
-.honour-store-price{color:var(--gold);white-space:nowrap;}
-.honour-store-item .adv-buy-btn{display:block;}
-.honour-store-item .adv-buy-btn:disabled,.honour-buy-actions button:disabled{opacity:.5;cursor:default;}
+/* Новые каталоги используют оформление вкладок и строк Улучшений. */
+.honour-kind-tabs{flex-wrap:wrap;}
+.honour-store-item .adv-name{white-space:normal;overflow-wrap:anywhere;}
 .honour-note-label{display:block;margin-top:12px;color:var(--text-dim);}
 .honour-buy-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
 #honour-buy-variant-wrap[hidden]{display:none;}
@@ -966,8 +961,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 #honour-buy-warning:empty{display:none;}
 .advancement-subtabs{flex-wrap:wrap;}
 @media(max-width:600px){
- .honour-store-item{grid-template-columns:minmax(0,1fr) auto;gap:8px;}
- .honour-store-name{grid-column:1/-1;}
+ .honour-store-item{flex-wrap:wrap;}
+ .honour-store-item .adv-item-info{flex-basis:100%;}
  .honour-buy-actions button{flex:1 1 160px;}
 }
 
@@ -1039,10 +1034,10 @@ html,body{max-width:100%;overflow-x:hidden;}
   .adv-xp-value.total{color:var(--text-main);}
 
   /* SOURCE TABS */
-  .adv-source-tabs{display:flex;gap:2px;margin-bottom:12px;}
-  .adv-source-tab{flex:1;padding:9px;text-align:center;background:#101012;border:1px solid var(--border-dark);color:var(--text-dim);cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.5px;transition:none;}
-  .adv-source-tab:hover{background:#1c1a1d;color:var(--text-main);}
-  .adv-source-tab.active{color:var(--gold);border-color:var(--border-gold);background:#161618;}
+  .adv-source-tabs,.honour-kind-tabs{display:flex;gap:2px;margin-bottom:12px;}
+  .adv-source-tab,.honour-kind-btn{flex:1;padding:9px;text-align:center;background:#101012;border:1px solid var(--border-dark);color:var(--text-dim);cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.5px;transition:none;}
+  .adv-source-tab:hover,.honour-kind-btn:hover{background:#1c1a1d;color:var(--text-main);}
+  .adv-source-tab.active,.honour-kind-btn.active{color:var(--gold);border-color:var(--border-gold);background:#161618;}
 
   /* CONTROLS */
   .adv-controls{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
@@ -7990,10 +7985,17 @@ async function renderHonourCatalog(){
       const owned=honourOwned(item,d), paid=honourPurchase(item,d), variants=honourVariants(item);
       const price=item.key==='honors' ? 'Бесплатно' : [...new Set(variants.map(x=>x.cost))].join(' / ')+' XP';
       const action=owned ? 'На листе' : paid ? 'Вернуть на лист' : item.key==='honors' ? 'Добавить' : 'Приобрести';
-      return `<div class="honour-store-item" data-honour-item="${item.key}:${item.id}">
-        <div class="honour-store-name"><b>${esc(item.name)}</b><div class="desc">${esc(item.category || '')}</div></div>
-        <span class="honour-store-price">${price}</span>
+      const minimumCost=paid || item.key==='honors' ? 0 : Math.min(...variants.map(x=>Number(x.cost)));
+      const affordable=minimumCost===0 || honourAvailable(d)>=minimumCost;
+      const status=owned ? 'purchased' : affordable ? 'available' : 'locked';
+      return `<div class="advancement-item honour-store-item ${status}" data-honour-item="${item.key}:${item.id}">
+        <div class="adv-item-info">
+          <div class="adv-name">${esc(item.name)}</div>
+          ${item.category ? `<div class="adv-req">${esc(item.category)}</div>` : ''}
+        </div>
+        <span class="adv-price ${affordable?'ok':'expensive'}">${price}</span>
         <button class="adv-buy-btn" type="button" ${owned?'disabled':''}>${action}</button>
+        <span class="adv-purchased-badge">✓ На листе</span>
       </div>`;
     }).join('') : '<p class="desc">Ничего не найдено.</p>';
     host.querySelectorAll('[data-honour-item]').forEach(el=>el.addEventListener('click',()=>{
