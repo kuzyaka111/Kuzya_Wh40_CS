@@ -499,6 +499,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .armour-extra{display:flex;justify-content:space-between;gap:16px;padding:3px 0;border-bottom:1px solid rgba(201,162,75,.08);font-size:12.5px;line-height:1.5;}
 .armour-extra .k{flex:0 0 45%;color:var(--text-dim);}
 .armour-extra .v{flex:1;color:var(--text-main);text-align:right;}
+.armour-extra input{width:100%;min-width:0;box-sizing:border-box;background:#101012;border:1px solid var(--border-dark);color:var(--text-main);padding:4px 6px;font:inherit;text-align:right;}
 
 /* ROLL — панель броска */
 .roll-box{max-width:480px;width:94%;overflow-x:hidden;}
@@ -3584,7 +3585,7 @@ const SECTIONS = {
   armour_features: ['Особенность брони', 'features', 'talent'],
   features:        ['Особенность', 'features', 'talent'],
   armour_aux:     ['Вспомогательная броня', 'equipment', 'gear'],
-  armour_history: ['История брони', null, 'talent'],
+  armour_history: ['История брони', 'armor_features', 'talent'],
   aug_chapter:     ['Аугментация космодесантника', 'augmentations', 'talent'],
   // Киберимпланты лежат в equipment (это снаряжение с качеством), но показываются
   // отдельным разделом, а не в общей таблице снаряжения. Третий элемент —
@@ -4022,7 +4023,6 @@ function normalizeGearArray(arr){
     return Object.assign({}, r, {
       name: r.name || '',
       quality: r.quality || '',
-      relic: !!r.relic,
       qty: (r.qty !== undefined && r.qty !== null && r.qty !== '') ? Math.max(1, Number(r.qty) || 1) : 1
     });
   });
@@ -4998,8 +4998,60 @@ function gearQualityBadge(r){
   if (q === 'И') return '<span class="g-quality-badge q-i">И</span>';
   return '';
 }
+function catalogItemStats(row){
+  const item = row && row.source === 'catalog' && row.item_id != null ? GEAR_MAP[row.item_id] : null;
+  let st = item && item.stats;
+  if (typeof st === 'string'){ try { st = JSON.parse(st); } catch(e){ st = null; } }
+  return st || {};
+}
+function gearHasRelicProperty(row){
+  if (!row) return false;
+  const catalogue = catalogItemStats(row);
+  if (Array.isArray(catalogue.properties) && catalogue.properties.includes('relic')) return true;
+  if (Array.isArray(row.properties)) return row.properties.includes('relic');
+  return row.relic === true;
+}
+function setGearRelicProperty(row, enabled){
+  const properties = Array.isArray(row.properties) ? row.properties.slice() : (row.relic === true ? ['relic'] : []);
+  row.properties = properties.filter(x => x !== 'relic');
+  if (enabled) row.properties.push('relic');
+  // Keep legacy state compatible with older clients until those clients are retired.
+  if (Object.prototype.hasOwnProperty.call(row, 'relic')) row.relic = !!enabled;
+}
+function equippedItemModifiers(d){
+  if (!d || !(d.gear || []).some(r => r.source === 'catalog' && Number(r.item_id) === 104 && gearIsEquipped(r))) return [];
+  return [{name:'Осколок Бекрина',target:'stat',target_name:'obsh',mode:'add',effect:10,timing:'pre',source:'equipment:104',scope:'При взаимодействии с Адептус Астартес'}];
+}
+function editableArmourZones(g){ return !!(g && [5,10,12].includes(Number(g.id))); }
+function armourZoneCovered(g, zid){
+  let st = g && g.stats;
+  if (typeof st === 'string'){ try { st = JSON.parse(st); } catch(e){ st = {}; } }
+  return !!(st && (st.ap && st.ap[ARMOUR_AP_KEY[zid]] != null || Array.isArray(st.zones) && st.zones.includes(ARMOUR_AP_KEY[zid])));
+}
+function characterArmourZoneValue(d, g, zid){
+  if (!armourZoneCovered(g,zid)) return 0;
+  const own = d.armour.zones && d.armour.zones[zid];
+  if (own != null && own !== '' && Number.isFinite(Number(own))) return Math.max(0,Number(own));
+  return Math.max(0,Number(g.stats.ap && g.stats.ap[ARMOUR_AP_KEY[zid]]) || 0);
+}
+function saveArmourZoneSelection(d, nextId){
+  const a = d.armour, priorId = a.item_id;
+  a.zones_by_item = a.zones_by_item || {};
+  if (priorId != null) a.zones_by_item[String(priorId)] = {...(a.zones || {})};
+  a.zones = nextId != null && a.zones_by_item[String(nextId)] ? {...a.zones_by_item[String(nextId)]} : {};
+}
+function armourExtraValue(d, itemId, name){
+  const values = d.armour.extra_values && d.armour.extra_values[String(itemId)];
+  return values && Object.prototype.hasOwnProperty.call(values,name) ? String(values[name] ?? '') : '';
+}
+function setArmourExtraValue(d,itemId,name,value){
+  d.armour.extra_values = d.armour.extra_values || {};
+  const values = d.armour.extra_values[String(itemId)] || (d.armour.extra_values[String(itemId)] = {});
+  values[name] = String(value);
+}
+
 function gearRelicBadge(r){
-  return r && r.relic ? '<span class="g-relic-badge">◆ Реликвия</span>' : '';
+  return gearHasRelicProperty(r) ? '<span class="g-relic-badge">◆ Реликвия</span>' : '';
 }
 function gearItemHtml(r, i, key){
   const w = gearResolve(r);
@@ -5084,7 +5136,7 @@ function gearAmmoOptions(r, w){
   list.forEach(a => { if (a.weapon === r.name && a.loaded) current = a.name; });
   const opts = ['<option value="">— не выбран —</option>']
     .concat(list
-      .filter(a => !wcls || !a.class || a.class === wcls)
+      .filter(a => { const cls = AMMO_MAP[a.ammo_id]?.used_for || a.class; return Number(a.ammo_id) === 6 || cls === 'Дробовое' ? [41,48].includes(Number(r.item_id)) : (!wcls || !cls || cls === wcls); })
       .map(a => `<option value="${esc(a.name)}"${a.name === current ? ' selected' : ''}>${esc(a.name)}${a.class ? ' (' + esc(a.class) + ')' : ''}</option>`))
     .join('');
   return opts;
@@ -5177,7 +5229,6 @@ function gearTableHtml(rows, key, opts){
   const excludeGroups = o.excludeGroups ? new Set(o.excludeGroups) : null;
   const gidx = Object.fromEntries(GEAR_GROUP_ORDER.map((g, n) => [g, n]));
   const groups = GEAR_GROUP_ORDER.map(() => []);
-  const relicGroups = GEAR_GROUP_ORDER.map(() => []);
   const other = [];
   rows.forEach((r, i) => {
     if (r.slot) return;
@@ -5188,25 +5239,10 @@ function gearTableHtml(rows, key, opts){
     if (!equippedOnly && isEq) return;
     if (groupsOnly && !(t && groupsOnly.has(t))) return;
     if (excludeGroups && t && excludeGroups.has(t)) return;
-    if (r.relic){
-      if (t && GEAR_GROUPS[t]) relicGroups[gidx[t]].push({ r, i });
-      else other.push({ r, i });
-      return;
-    }
     if (t && GEAR_GROUPS[t]) groups[gidx[t]].push({ r, i });
     else other.push({ r, i });
   });
   let html = '';
-  const hasRelics = relicGroups.some(g => g.length);
-  if (hasRelics){
-    html += '<div class="gw-group"><div class="gw-group-title">Реликвии</div>';
-    relicGroups.forEach((items, n) => {
-      if (!items.length) return;
-      const g = GEAR_GROUPS[GEAR_GROUP_ORDER[n]];
-      html += gearGroupTableHtml(items, g, key);
-    });
-    html += '</div>';
-  }
   groups.forEach((items, n) => {
     if (!items.length) return;
     const g = GEAR_GROUPS[GEAR_GROUP_ORDER[n]];
@@ -5248,14 +5284,16 @@ function gearQualitiesHtml(r, i, w, editable){
 
 // ==== БОЕПРИПАСЫ ====
 
-function ammoWeaponOptions(ammoClass){
+function ammoWeaponOptions(ammoClass, ammoId){
   const opts = [];
   (S.character.character_data.gear || []).forEach(r => {
     const w = gearResolve(r);
     if (!w) return;
     if (w.type === 'field') return;
     const wcls = (w.class || '').trim();
-    if (ammoClass && wcls && wcls !== ammoClass) return;
+    const shotgun = Number(ammoId) === 6 || ammoClass === 'Дробовое';
+    if (shotgun && ![41,48].includes(Number(r.item_id))) return;
+    if (!shotgun && ammoClass && wcls && wcls !== ammoClass) return;
     opts.push({ id: (r.item_id != null && r.item_id !== '') ? Number(r.item_id) : null, name: r.name, class: wcls, mag: w.mag || 0 });
   });
   return opts;
@@ -5267,7 +5305,8 @@ function ammoRowHtml(r, i, key, loadedByWeapon){
   const magsTotal = r.mags.length;
   const idx = Math.min(r.activeMag, magsTotal - 1);
   const cur = r.mags[idx]?.cur || 0;
-  const weapons = ammoWeaponOptions(r.class);
+  const ammoClass = ammo && ammo.used_for ? ammo.used_for : r.class;
+  const weapons = ammoWeaponOptions(ammoClass,r.ammo_id);
   const wSel = (r.weapon_id != null && r.weapon_id !== '')
     ? (weapons.find(w => w.id != null && Number(w.id) === Number(r.weapon_id)) || null)
     : (weapons.find(w => w.name === r.weapon) || null);
@@ -5278,11 +5317,11 @@ function ammoRowHtml(r, i, key, loadedByWeapon){
   const anotherLoaded = !isLoaded && !!r.weapon && !!loadedByWeapon[r.weapon];
   const fireBtn = isLoaded
     ? `<button class="ammo-fire ammo-fire-on" data-ammo-fire="${i}">Сменить</button>`
-    : `<button class="ammo-fire" data-ammo-fire="${i}"${(!r.weapon || anotherLoaded) ? ' disabled' : ''}>Зарядить</button>`;
+    : `<button class="ammo-fire" data-ammo-fire="${i}"${(!r.weapon || !wSel || anotherLoaded) ? ' disabled' : ''}>Зарядить</button>`;
   return `<div class="ammo-item">
     <div class="amount-head">
       <div class="g-name"><span>${fullName}</span>
-        <span class="ammo-class">${r.class ? esc(r.class) : 'класс не задан'}</span></div>
+        <span class="ammo-class">${ammoClass ? esc(ammoClass) : 'класс не задан'}</span></div>
       <div class="ammo-curmax" title="Текущее / Максимум в магазине">
         <input type="number" min="0" data-ammo-cur="${i}" value="${cur}" title="Текущее в активном магазине">
         <input type="number" min="0" data-ammo-max="${i}" value="${r.max || ''}" placeholder="Макс" title="Максимум магазина"></div>
@@ -5363,7 +5402,7 @@ function bindListEvents(host){
       const [k, i] = b.dataset.del.split(':');
       S.character.character_data[k].splice(Number(i), 1);
       renderList(k);
-      if (k === 'gear') renderList('ammo');
+      if (k === 'gear'){ renderList('ammo'); renderArmourAux(); updateArmour(); }
       if (k === 'psi') renderPsySupported();
       debouncedSave();
     }));
@@ -5562,6 +5601,8 @@ function bindAmmoEvents(host){
       const ammo = S.character.character_data.ammo;
       const r = ammo[i];
       if (!r.weapon) return;
+      const cls = AMMO_MAP[r.ammo_id]?.used_for || r.class;
+      if (!r.loaded && !ammoWeaponOptions(cls,r.ammo_id).some(w => r.weapon_id != null ? Number(w.id) === Number(r.weapon_id) : w.name === r.weapon)) return;
       if (r.loaded){
         r.loaded = false;
       } else {
@@ -5619,7 +5660,8 @@ function rollMods(d, k){
   };
   const mm = d.modifiers || {};
   (mm.perm || []).forEach(m => add(m, 'perm', true));
-  (mm.cond || []).forEach(m => add(m, 'cond', false));
+  (mm.cond || []).forEach(m => { if (m.source !== 'equipment:104') add(m, 'cond', false); });
+  equippedItemModifiers(d).forEach(m => { if (m.target_name === k) { add(m,'cond',false); out[out.length-1].scope=m.scope; } });
   return out;
 }
 
@@ -6278,6 +6320,7 @@ function loadArmourSelect(){
     if(sel.value.startsWith('dread:')) return loadArmourSelect();
     const g=GEAR_MAP[Number(sel.value)],st=stats(g);
     if(sel.value && (st.type!=='armour' || st.category!=='primary')) return loadArmourSelect();
+    saveArmourZoneSelection(current,g ? Number(g.id) : null);
     current.armour.name=g?.name || '';current.armour.item_id=g?Number(g.id):null;current.armour.base=g?(Number(st.base)||10):10;
     current.armour.sealed=true;current.armour.head_worn=true;
     renderArmour();debouncedSave();
@@ -6333,12 +6376,40 @@ function armourHeadWorn(){
 function armourEffectiveSealed(){
   return armourSealed() && armourHeadWorn();
 }
+function auxiliaryHelmetStats(row){
+  if (!row || row.source !== 'catalog' || row.item_id == null) return null;
+  const item = GEAR_MAP[Number(row.item_id)];
+  let stats = item && item.stats;
+  if (typeof stats === 'string'){ try { stats = JSON.parse(stats); } catch (e){ return null; } }
+  if (!stats || stats.type !== 'armour' || stats.category !== 'aux' || stats.subtype !== 'helmet') return null;
+  const value = stats.ap && stats.ap.head;
+  if (value == null || value === '' || !Number.isFinite(Number(value)) || Number(value) < 0) return null;
+  return stats;
+}
+function equippedHelmetAp(d){
+  if (!d || dwActive(d)) return null;
+  const helmets = (d.gear || []).filter(row => row.equipped === true && auxiliaryHelmetStats(row));
+  if (!helmets.length) return null;
+  return Number(auxiliaryHelmetStats(helmets[helmets.length - 1]).ap.head);
+}
+function setGearEquipped(row, equipped){
+  const d = S.character.character_data;
+  row.equipped = !!equipped;
+  if (equipped && auxiliaryHelmetStats(row)){
+    for (const other of d.gear || []) if (other !== row && auxiliaryHelmetStats(other)) other.equipped = false;
+    if (!d.armour) d.armour = {};
+    d.armour.head_worn = true;
+  }
+}
+
 function armourAp(zid){
   const d = S.character.character_data;
   // Шлем не надет — броня в голове не учитывается совсем.
   if (zid === 'head' && d.armour && d.armour.head_worn === false) return 0;
+  if (zid === 'head'){ const value = equippedHelmetAp(d); if (value != null) return value; }
   let g = currentArmourGear();
   const st = (g && g.stats) || {};
+  if (editableArmourZones(g)) return characterArmourZoneValue(d,g,zid);
   if (st.custom_zones){
     if (!d.armour.zones) d.armour.zones = {};
     const v = d.armour.zones[zid];
@@ -6372,7 +6443,7 @@ function isCustomZonesArmour(){
   const d = S.character.character_data;
   if (!d.armour || (!d.armour.name && d.armour.item_id == null)) return false;
   const g = currentArmourGear();
-  return !!(g && g.stats && g.stats.custom_zones);
+  return editableArmourZones(g) || !!(g && g.stats && g.stats.custom_zones);
 }
 function renderArmourList(){
   const host = $('armour-zone-rows');
@@ -6400,7 +6471,7 @@ function renderArmourList(){
       shieldCell = `<span class="val shield ${on ? 'on' : 'off'}" data-shield-toggle="${zid}">${on ? d.armour.shield.value : '—'}</span>`;
     }
     let apCell;
-    if (customZones){
+    if (customZones && !(zid === 'head' && equippedHelmetAp(d) != null) && (!editableArmourZones(currentArmourGear()) || armourZoneCovered(currentArmourGear(),zid))){
       apCell = `<span class="val ap"><input type="number" data-zone-input="${zid}" value="${apRaw}" min="0"></span>`;
     } else {
       apCell = `<span class="val ap">${apDisp}</span>`;
@@ -6503,8 +6574,15 @@ function renderArmourExtras(){
   if (!extras.length){ host.innerHTML = ''; return; }
   host.innerHTML = '<div class="armour-extras-title" onclick="this.parentElement.classList.toggle(\'collapsed\')"><span>Параметры брони</span><span class="chevron">▾</span></div>' +
     '<div class="armour-extras-rows">' +
-    extras.map(x => '<div class="armour-extra"><span class="k">' + esc(x && x.name) + '</span><span class="v">' + esc(x && x.text) + '</span></div>').join('') +
+    extras.map(x => {
+      const editable = [5,12].includes(Number(g.id));
+      const value = editable ? armourExtraValue(d,g.id,x.name) : (x && x.text);
+      return '<div class="armour-extra"><span class="k">' + esc(x && x.name) + '</span><span class="v">' + (editable ? '<input data-armour-extra="'+escAttr(x.name)+'" aria-label="'+escAttr(x.name)+'" placeholder="Не задано" value="'+escAttr(value)+'"'+(editMode ? '' : ' readonly')+'>' : esc(value)) + '</span></div>';
+    }).join('') +
     '</div>';
+  host.querySelectorAll('[data-armour-extra]').forEach(input => input.addEventListener('input', () => {
+    setArmourExtraValue(d,g.id,input.dataset.armourExtra,input.value); debouncedSave();
+  }));
 }
 
 function openArmourDesc(){
@@ -7060,7 +7138,7 @@ function rollCharKey(){
 function rollModRows(){
   const rows = rollMods(S.character.character_data, rollCharKey())
     .map((m, i) => ({ label:m.label, value:m.value, locked:m.locked, mi:i,
-                      on: m.locked ? true : ROLL.on[i] === true }));
+                      on: m.locked ? true : ROLL.on[i] === true, scope:m.scope || '' }));
   ROLL.temp.forEach((m, i) => rows.push({label:m.label,value:m.value,locked:false,temp:i,
     on:m.actionPreset ? m.enabled!==false && actionModifierApplies(m) : true,
     actionPreset:!!m.actionPreset,applicable:!m.actionPreset || actionModifierApplies(m),
@@ -7928,10 +8006,11 @@ function renderModSection(section){
   const host = $(section === 'cond' ? 'mods-cond-list' : 'mods-perm-list');
   if (!host) return;
   const list = (d.modifiers[section] || []);
+  const equipmentMods = section === 'cond' ? equippedItemModifiers(d) : [];
   const draft = (MOD_DRAFT && MOD_DRAFT.section === section) ? renderModDraft() : '';
   host.innerHTML = draft + (list.length
     ? list.map((m, i) => renderModEntry(m, section, i)).join('')
-    : (draft ? '' : '<div class="mods-empty">Нет модификаторов</div>'));
+    : (draft || equipmentMods.length ? '' : '<div class="mods-empty">Нет модификаторов</div>')) + equipmentMods.map(m => `<div class="mods-entry"><div><div class="mods-entry-name">${esc(m.name)} +${m.effect}</div><div class="mods-entry-sub">${esc(m.scope)}</div></div></div>`).join('');
 }
 function renderModifiers(){
   renderModSection('cond');
@@ -8255,6 +8334,8 @@ function showGearInfo(row, key, idx){
   const g = t && GEAR_GROUPS[t] ? GEAR_GROUPS[t] : null;
   const params = [];
   const q = (row.quality || '').trim();
+  const helmet = auxiliaryHelmetStats(row);
+  if (helmet) params.push(`<div class="ip-row"><span class="ip-label">Шлем:</span><span>ОБ головы ${esc(String(helmet.ap.head))}</span></div>`);
   params.push(`<div class="ip-row"><span class="ip-label">Качество:</span><span>${gearQualityBadge(row) || '—'}</span></div>`);
   if (g && WEAPON_KEYS.has(t)){
     params.push(`<div class="ip-row"><span class="ip-label">Тип оружия:</span><span>${esc(g.title)}</span></div>`);
@@ -8264,7 +8345,7 @@ function showGearInfo(row, key, idx){
   const pEl = $('info-params');
   if (params.length){
     pEl.style.display = 'flex';
-    pEl.innerHTML = params.join('') + (row.relic ? '<div class="ip-row"><span class="ip-label">Статус:</span><span class="g-relic-badge">◆ Реликвия</span></div>' : '');
+    pEl.innerHTML = params.join('') + (gearHasRelicProperty(row) ? '<div class="ip-row"><span class="ip-label">Статус:</span><span class="g-relic-badge">◆ Реликвия</span></div>' : '');
   } else {
     pEl.style.display = 'none';
     pEl.innerHTML = '';
@@ -8279,14 +8360,14 @@ function showGearInfo(row, key, idx){
     $('info-edit').innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border-dark);padding-top:10px">
       <div style="display:flex;align-items:center;gap:8px"><span class="ip-label">Качество:</span>${qSel}</div>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-        <input type="checkbox" id="info-relic"${row.relic ? ' checked' : ''}> Отметить как Реликвию</label></div>`;
+        <input type="checkbox" id="info-relic"${gearHasRelicProperty(row) ? ' checked' : ''}${catalogItemStats(row).properties?.includes('relic') ? ' disabled' : ''}> Свойство: Реликвия</label></div>`;
     $('info-quality').addEventListener('change', () => {
       row.quality = $('info-quality').value;
       debouncedSave();
       renderList(key);
     });
     $('info-relic').addEventListener('change', () => {
-      row.relic = $('info-relic').checked;
+      setGearRelicProperty(row, $('info-relic').checked);
       debouncedSave();
       renderList(key);
     });
@@ -8300,7 +8381,8 @@ function showGearInfo(row, key, idx){
     btn.innerHTML = `<button class="modal-confirm" id="info-transfer" style="width:100%">${eq ? 'Переместить в Арсенал' : 'Переместить в Экипированное'}</button>`;
     $('info-edit').appendChild(btn);
     $('info-transfer').addEventListener('click', () => {
-      row.equipped = eq ? false : true;
+      setGearEquipped(row, !eq);
+      if (auxiliaryHelmetStats(row)) updateArmour();
       debouncedSave();
       closeSheetModal('info-modal');
       renderList('gear');
