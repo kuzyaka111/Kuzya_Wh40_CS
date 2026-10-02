@@ -2201,6 +2201,13 @@ function psiMetaParts(desc){
     else if (m) prose.push(part.trim());
     else if (part.trim()) prose.push(part.trim());
   });
+  // Некоторые описания в справочнике начинаются в строке параметров.
+  // Оставляем в ячейке ответ и примечание в скобках, а сам текст — в описании.
+  const support = String(parts['Поддержание'] || '').match(/^(да|нет)(\s*\([^)]*\))?(?:\s+([\s\S]+))?$/i);
+  if (support && support[3]){
+    parts['Поддержание'] = support[1] + (support[2] || '');
+    prose.push(support[3]);
+  }
   const body = [prose.join(' '), rest].filter(Boolean).join('\n').trim();
   return { parts, body };
 }
@@ -2930,6 +2937,51 @@ function pushSpecMod(d, target, targetName, mode, effect, timing, label){
 //     один вызов вместо двух;
 //   * повторный вызов ничего не ломает;
 //   * сила, выбранная сразу в двух опциях, не снимается при снятии одной.
+// Выученная сила и включённое поддержание — независимые состояния.
+// Старые бесплатные карточки получают полное описание по ID справочника.
+function refreshSpecPsiDescriptions(d){
+  if (!d || !Array.isArray(d.psi)) return;
+  d.psi.forEach(row => {
+    const power = row && row.src === SPEC_SRC ? SPEC_PSI_BY_ID[toId(row.id)] : null;
+    if (!power) return;
+    row.name = power.name;
+    row.desc = power.description || '';
+  });
+}
+function normalizePsySupported(d){
+  if (!d) return [];
+  if (!d.psy) d.psy = {};
+  refreshSpecPsiDescriptions(d);
+  const rows = Array.isArray(d.psi) ? d.psi : [];
+  const supported = Array.isArray(d.psy.supported) ? d.psy.supported : [];
+  const seen = new Set();
+  d.psy.supported = supported.map(toId).filter(id => {
+    if (id == null || seen.has(id)) return false;
+    const known = rows.filter(row => row && toId(row.id) === id);
+    if (!known.length) return false;
+    // При отсутствии параметров в старой ручной карточке не угадываем:
+    // сохраняем её существующее поддержание до появления достоверных данных.
+    const withMeta = known.filter(row => 'Поддержание' in psiMetaParts(row.desc).parts);
+    if (withMeta.length && !withMeta.some(row => psiCanSupport(row.desc))) return false;
+    seen.add(id);
+    return true;
+  });
+  return d.psy.supported;
+}
+function setPsySupported(d, id, active){
+  id = toId(id);
+  const supported = normalizePsySupported(d);
+  if (!d || id == null) return false;
+  if (active){
+    if (!(d.psi || []).some(row => toId(row.id) === id && psiCanSupport(row.desc))) return false;
+    if (supported.includes(id)) return false;
+    supported.push(id);
+  } else {
+    if (!supported.includes(id)) return false;
+    d.psy.supported = supported.filter(value => value !== id);
+  }
+  return true;
+}
 function syncSpecRowPsi(d, row){
   if (!d) return;
   if (!d.psy) d.psy = {};
@@ -2951,9 +3003,13 @@ function syncSpecRowPsi(d, row){
   const retained = new Set(d.psi.map(r => toId(r && r.id)));
   d.psy.supported = d.psy.supported.filter(id => !removed.has(Number(id)) || retained.has(Number(id)));
   want.forEach((o, id) => {
-    if (!retained.has(id)) d.psi.push({ id, name:o.name || '', desc:o.desc || o.description || '', src:SPEC_SRC });
-    if (!d.psy.supported.some(pid => Number(pid) === id)) d.psy.supported.push(id);
+    const power = SPEC_PSI_BY_ID[id];
+    if (!retained.has(id)) d.psi.push({ id,
+      name:power ? power.name : o.name || '',
+      desc:power ? power.description || '' : o.desc || o.description || '',
+      src:SPEC_SRC });
   });
+  normalizePsySupported(d);
 }
 function grantSpecPsi(d, opt){
   if (!opt || toId(opt.psi_power_id) == null) return;
@@ -3463,17 +3519,26 @@ async function loadSpecAbilities(){
   return cachedModalCatalog('specAbilities',()=>SPEC_ABILITIES.length>0,async()=>{
     const {data,error}=await sb.from('specialization_abilities').select('id, specialization_id, name, description, prompt, choice_cap, grant_modifiers, grants, sort').order('specialization_id, sort, id');
     if(error) throw error;
-    const rows=data || [],options={};
+    const rows=data || [],options={},powers={};
     if(rows.length){
       const {data:opts,error:oe}=await sb.from('specialization_ability_options').select('id, ability_id, name, description, cost, psi_power_id, sort').in('ability_id',rows.map(a=>a.id)).order('ability_id, sort, id');
       if(oe) throw oe;
+      const powerIds=[...new Set((opts || []).map(o=>toId(o.psi_power_id)).filter(id=>id!=null))];
+      if(powerIds.length){
+        const {data:psi,error:pe}=await sb.from('psi_powers').select('id, name, description').in('id',powerIds);
+        if(pe) throw pe;
+        (psi || []).forEach(power=>{ powers[toId(power.id)]=power; });
+        if(powerIds.some(id=>!powers[id])) throw new Error('Не удалось загрузить описание выбранной психосилы');
+      }
       (opts || []).forEach(o=>{(options[Number(o.ability_id)] || (options[Number(o.ability_id)]=[])).push(o);});
     }
-    SPEC_ABILITIES=rows; SPEC_ABILITY_OPTIONS=options;
+    // Все связанные данные становятся доступны вместе после успешной загрузки.
+    SPEC_ABILITIES=rows; SPEC_ABILITY_OPTIONS=options; SPEC_PSI_BY_ID=powers;
   });
 }
 let SPEC_ABILITIES = [];
 let SPEC_ABILITY_OPTIONS = {};
+let SPEC_PSI_BY_ID = {};
 
 async function loadSkillsFromDB(){
   if (DB_SKILLS.length) return DB_SKILLS;
@@ -5127,6 +5192,7 @@ function ammoRowHtml(r, i, key, loadedByWeapon){
 }
 
 function renderList(key){
+  if (key === 'psi') normalizePsySupported(S.character.character_data);
   const host = document.querySelector(`[data-list="${key}"]`);
   if (!host) return;
   const rows = S.character.character_data[key] || [];
@@ -5207,12 +5273,9 @@ function bindListEvents(host){
     b.addEventListener('click', e => {
       e.stopPropagation();
       const d2 = S.character.character_data;
-      if (!d2.psy) d2.psy = {};
-      if (!Array.isArray(d2.psy.supported)) d2.psy.supported = [];
-      const id = Number(b.dataset.psySup);
-      const i2 = d2.psy.supported.indexOf(id);
-      if (i2 >= 0) d2.psy.supported.splice(i2, 1);
-      else d2.psy.supported.push(id);
+      const id = toId(b.dataset.psySup);
+      const supported = normalizePsySupported(d2);
+      setPsySupported(d2, id, !supported.includes(id));
       renderList('psi');
       renderPsySupported();
       debouncedSave();
@@ -6528,21 +6591,18 @@ function renderPsySupported(){
   const host = $('psy-supported');
   if (!host) return;
   const d = S.character.character_data;
-  if (!d.psy) d.psy = {};
-  if (!Array.isArray(d.psy.supported)) d.psy.supported = [];
+  const supported = normalizePsySupported(d);
   const rows = d.psi || [];
-  const chips = d.psy.supported.map(id => {
-    const row = rows.find(r => r.id != null && Number(r.id) === Number(id));
-    return row ? { id: Number(id), name: row.name } : null;
-  }).filter(Boolean);
-  d.psy.supported = chips.map(c => c.id);
+  const chips = supported.map(id => {
+    const row = rows.find(r => r && toId(r.id) === id);
+    return { id, name:row.name };
+  });
   host.innerHTML = chips.map(c =>
     `<span class="psy-sup-chip"><b data-psy-sup-del="${c.id}">✕</b>${esc(c.name)}</span>`).join('');
   host.querySelectorAll('[data-psy-sup-del]').forEach(b =>
     b.addEventListener('click', () => {
-      const id = Number(b.dataset.psySupDel);
-      const i2 = d.psy.supported.indexOf(id);
-      if (i2 >= 0) d.psy.supported.splice(i2, 1);
+      if (S.character?.character_data !== d) return;
+      setPsySupported(d, b.dataset.psySupDel, false);
       renderPsySupported();
       renderList('psi');
       debouncedSave();
