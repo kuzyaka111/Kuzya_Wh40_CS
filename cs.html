@@ -1307,6 +1307,7 @@ html,body{max-width:100%;overflow-x:hidden;}
     line-height:1.4;
   }
 .sheet.load-failed > :not(#sheet-load-error){display:none!important;}
+.combi-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 0}.combi-controls label{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.combi-controls select{max-width:100%;min-width:0;background:var(--bg-main,#10110d);color:var(--text-main);border:1px solid var(--border-dark);padding:5px}.combi-secondary .g-name{font-size:13px}
 </style>
 </head>
 <body>
@@ -4814,11 +4815,81 @@ function gearWeaponFromCustom(weapon){
   return weapon;
 }
 
+function gearPrimaryProfile(row){
+  if (!row) return null;
+  if (row.source === 'catalog') return gearWeaponFromCatalog(GEAR_MAP[row.item_id]?.stats);
+  return gearWeaponFromCustom(row.weapon);
+}
+function gearCombiConfig(row){ return gearPrimaryProfile(row)?.combi || null; }
+function gearCombiSecondary(row){
+  const cfg=gearCombiConfig(row), id=Number(row?.combi?.secondary_item_id);
+  if (!cfg || !cfg.secondary_options.some(o=>o.equipment_id!=null && Number(o.equipment_id)===id)) return null;
+  const item=GEAR_MAP[id];
+  if (!item || item.stats?.type!=='weapon_ranged') return null;
+  const st={...item.stats,qualities:(item.stats.qualities || []).map(q=>({...q}))};
+  if (Number.isFinite(Number(st.mag))) st.mag=Math.ceil(Number(st.mag)*(cfg.secondary_magazine_factor ?? 0.5));
+  for (const qid of cfg.inherited_quality_ids || []) if (!st.qualities.some(q=>Number(q.qid)===Number(qid))) st.qualities.push({qid});
+  return {item,stats:st};
+}
+function gearRequisition(row){
+  const base=gearPrimaryProfile(row),cfg=gearCombiConfig(row);
+  if (!cfg) return base?.cost;
+  const second=gearCombiSecondary(row),price=second?.item.stats?.cost;
+  if (price==null || price==='' || !Number.isFinite(Number(price))) return cfg.requisition_label || 'Особое';
+  return Number(price)+Number(cfg.requisition_surcharge || 0);
+}
+function gearCombiControls(row,i){
+  const cfg=gearCombiConfig(row);if(!cfg) return '';
+  const options=['<option value="">Выберите дополнительное оружие</option>',...cfg.secondary_options.map(o=>{
+    const present=o.equipment_id!=null && GEAR_MAP[o.equipment_id];
+    return `<option value="${present ? o.equipment_id : ''}"${present && Number(row.combi?.secondary_item_id)===Number(o.equipment_id) ? ' selected' : ''}${present ? '' : ' disabled'}>${esc(o.name)}${present ? '' : ' — отсутствует в справочнике'}</option>`;
+  })];
+  const second=gearCombiSecondary(row);
+  return `<div class="combi-controls"><label>Дополнительное оружие <select data-combi-secondary="${i}"${editMode ? '' : ' disabled'}>${options.join('')}</select></label><label>Для атаки <select data-combi-active="${i}"><option value="primary">Основное оружие</option><option value="secondary"${row.combi?.active_part==='secondary' && second ? ' selected' : ''}${second ? '' : ' disabled'}>Дополнительное оружие</option></select></label><span>Реквизиция: <b>${esc(gearRequisition(row))}</b></span></div>`;
+}
+function bindCombiControls(host){
+  host.querySelectorAll('[data-combi-secondary],[data-combi-active]').forEach(el=>el.addEventListener('change',()=>{
+    const i=Number(el.dataset.combiSecondary ?? el.dataset.combiActive),row=S.character.character_data.gear[i];
+    if (!row || !gearCombiConfig(row)) return;
+    row.combi=row.combi || {};
+    if (el.dataset.combiSecondary!==undefined){
+      if (!editMode) return;
+      const id=Number(el.value);
+      row.combi.secondary_item_id=gearCombiConfig(row).secondary_options.some(o=>o.equipment_id!=null && Number(o.equipment_id)===id) ? id : null;
+      row.combi.active_part='primary';
+    } else row.combi.active_part=el.value==='secondary' && gearCombiSecondary(row) ? 'secondary' : 'primary';
+    const modal=!!el.closest('#info-params');
+    debouncedSave();renderList('gear');renderList('ammo');
+    if(modal) showGearInfo(row,'gear',i);
+  }));
+}
+function gearCombiRowsHtml(row,i,g,key){
+  if(!gearCombiConfig(row)) return '';
+  const cols=g.fields.length+1+(g.qty || g.qtyCurMax ? 1 : 0),second=gearCombiSecondary(row);
+  let out=`<tr class="gw-qual-tr"><td colspan="${cols}">${gearCombiControls(row,i)}</td></tr>`;
+  if(!second) return out+`<tr class="gw-tr"><td colspan="${cols}">Дополнительное оружие не выбрано.</td></tr>`;
+  const st=second.stats;
+  const cells=g.fields.map(f=>{
+    if(f==='dmg')return gearDmgCellHtml(f,st,i,false,!!g.dmgType,'',st.class || '');
+    if(f==='sks')return gearSksCellHtml(i,st,false);
+    const value=f==='ammo' ? '—' : st[f];
+    return `<td class="gw-h-${f}"><b>${value==null || value==='' ? '—' : esc(value)}</b></td>`;
+  }).join('');
+  out+=`<tr class="gw-tr combi-secondary"><td class="gw-name-td"><span class="g-name">${esc(second.item.name)}</span></td>${cells}</tr>`;
+  const quals=gearQualitiesHtml({source:'catalog'},i,st,false);
+  if(quals)out+=`<tr class="gw-qual-tr"><td colspan="${cols}">${quals}</td></tr>`;
+  return out;
+}
+function hiddenWeaponQuality(qid){ return WQ_MAP[qid]?.name==='Комби'; }
+
 function gearResolve(r){
   if (r.source === 'catalog' && r.item_id != null){
     const g = GEAR_MAP[r.item_id];
     if (!g) return null;
-    return gearWeaponFromCatalog(g.stats);
+    const base=gearWeaponFromCatalog(g.stats);
+    if (!base || !base.combi) return base;
+    const secondary=gearCombiSecondary(r);
+    return {...(r.combi?.active_part==='secondary' && secondary ? secondary.stats : base),cost:gearRequisition(r)};
   }
   if (r.source === 'custom') return gearWeaponFromCustom(r.weapon);
   return null;
@@ -5166,7 +5237,7 @@ function gearEffWeapon(r, w){
 }
 
 function gearRowHtml(r, i, g, key){
-  const w = gearResolve(r);
+  const w = gearCombiConfig(r) ? gearPrimaryProfile(r) : gearResolve(r);
   const editable = editMode && r.source === 'custom' && w != null;
   const ew = (g.fields.includes('dmg') && !editable) ? gearEffWeapon(r, w) : w;
   const wclsv = (w && w.class) ? String(w.class).trim() : '';
@@ -5192,6 +5263,7 @@ function gearRowHtml(r, i, g, key){
     const qtyCols = g.qty || g.qtyCurMax ? 1 : 0;
     html += `<tr class="gw-qual-tr"><td colspan="${g.fields.length + 1 + qtyCols}">${quals}</td></tr>`;
   }
+  if (key==='gear') html+=gearCombiRowsHtml(r,i,g,key);
   return html;
 }
 
@@ -5258,9 +5330,10 @@ function gearQualitiesHtml(r, i, w, editable){
   let quals = [];
   if (r.source === 'catalog') quals = (w.qualities || []).map(x => ({ qid: x.qid, param: x.param }));
   else quals = (w.qualities || []).filter(x => x != null).map(x => ({ qid: x }));
+  quals=quals.filter(x=>!hiddenWeaponQuality(x.qid));
   if (editable){
     const qids = quals.map(x => x.qid);
-    const all = Object.values(WQ_MAP).sort((a,b) => (a.name||'').localeCompare(b.name||'', 'ru'));
+    const all = Object.values(WQ_MAP).filter(q=>!hiddenWeaponQuality(q.id)).sort((a,b) => (a.name||'').localeCompare(b.name||'', 'ru'));
     const chips = all.map(q => {
       const on = qids.includes(q.id);
       return `<label class="gw-q-chip ${on ? 'on' : ''}" data-gear-qual="${i}:${q.id}">
@@ -5397,6 +5470,7 @@ function renderList(key){
 }
 
 function bindListEvents(host){
+  bindCombiControls(host);
   host.querySelectorAll('[data-del]').forEach(b =>
     b.addEventListener('click', e => {
       e.stopPropagation();
@@ -8377,6 +8451,8 @@ function showGearInfo(row, key, idx){
     const wcls = (w && w.class) ? String(w.class).trim() : '';
     if (wcls) params.push(`<div class="ip-row"><span class="ip-label">Тип боеприпасов:</span><span>${esc(gearAmmoClassLabel(wcls))}</span></div>`);
   }
+  if (w?.cost!=null) params.push(`<div class="ip-row"><span class="ip-label">Реквизиция:</span><span>${esc(gearRequisition(row))}</span></div>`);
+  if (gearCombiConfig(row)) params.push(gearCombiControls(row,idx));
   const pEl = $('info-params');
   if (params.length){
     pEl.style.display = 'flex';
@@ -8385,6 +8461,7 @@ function showGearInfo(row, key, idx){
     pEl.style.display = 'none';
     pEl.innerHTML = '';
   }
+  bindCombiControls(pEl);
   $('info-desc').innerHTML = descBody(gearItemDesc(row) || 'Описание отсутствует.');
   if (editMode){
     const qSel = `<select id="info-quality">
@@ -8694,6 +8771,8 @@ function addHonourPurchase(d,item,variant,note){
   const cost=paid ? 0 : Number(valid.cost);
   if (!Number.isFinite(cost) || cost<0) return {error:'Некорректная стоимость'};
   if (cost>0 && honourAvailable(d)<cost) return {error:'Недостаточно опыта'};
+  const ironSkull=item.key==='deeds' && Number(item.id)===15 ? (HONOUR_CATALOG || []).find(x=>x.key==='honors' && Number(x.id)===7 && x.code==='iron-skull') : null;
+  if(item.key==='deeds' && Number(item.id)===15 && !ironSkull) return {error:'Описание почести «Железный череп» не загружено'};
   const annotation=String(paid?.catalog_note || note || '').trim().slice(0,500);
   const row={id:item.id,catalog_key:item.key,catalog_id:item.id,catalog_code:item.code || null,
     catalog_name:item.name,name:item.name,source:'shop',desc:item.description || '',cost:paid ? paid.cost : cost,
@@ -8706,6 +8785,9 @@ function addHonourPurchase(d,item,variant,note){
   if (item.source_book) row.desc+='\n\nИсточник: '+item.source_book+', стр. '+item.source_page+'.';
   const cards=d[item.key] || (d[item.key]=[]);
   cards.push(row);
+  if(ironSkull && !honourOwned(ironSkull,d)){
+    (d.honors || (d.honors=[])).push({id:ironSkull.id,catalog_key:'honors',catalog_id:ironSkull.id,catalog_code:ironSkull.code,catalog_name:ironSkull.name,name:ironSkull.name,source:'shop',desc:ironSkull.description || '',cost:0,granted_by_deed_id:15});
+  }
   if (!paid && item.key!=='honors'){
     (d.xp_log || (d.xp_log=[])).push({table_id:null,catalog_key:item.key,catalog_id:item.id,
       catalog_code:item.code || null,catalog_variant:valid.code,catalog_note:annotation,
@@ -8723,7 +8805,7 @@ function confirmHonourPurchase(){
   if (result.error){ updateHonourPreview();return toast(result.error); }
   HONOUR_PREVIEW=null;
   closeSheetModal('honour-buy-modal');
-  renderList(preview.item.key);renderHeaderXp();renderHonourCatalog();debouncedSave();
+  renderList(preview.item.key);if(preview.item.key==='deeds' && Number(preview.item.id)===15) renderList('honors');renderHeaderXp();renderHonourCatalog();debouncedSave();
   toast('Добавлено: '+preview.item.name+(result.cost ? ' ('+result.cost+' XP)' : ''));
 }
 function openHonourStore(key){
