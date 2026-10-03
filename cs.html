@@ -995,7 +995,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .action-foot{position:sticky;bottom:-20px;background:#161618;padding:12px 0;margin-top:20px;}
 .action-foot button{flex:1;min-width:0;white-space:normal;}
 #action-modal .action-box{max-height:88%;}
-#action-modal .action-foot{top:0;bottom:auto;z-index:1;margin:0 0 12px;}
+#action-modal .action-foot{top:-20px;bottom:auto;z-index:1;margin:0 0 12px;}
+@media(max-width:600px){#action-modal .action-foot{top:-14px;}}
 #action-modal .action-foot button{margin-right:0;}
 .action-error{color:#e88282;font-size:11px;margin:8px 0;white-space:pre-wrap;}
 .action-source-note{color:var(--text-dim);font-size:10px;line-height:1.6;margin-top:10px;}
