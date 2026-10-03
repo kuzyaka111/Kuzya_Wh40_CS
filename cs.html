@@ -5039,6 +5039,46 @@ function gearPrimaryProfile(row){
   if (row.source === 'catalog') return gearWeaponFromCatalog(GEAR_MAP[row.item_id]?.stats);
   return gearWeaponFromCustom(row.weapon);
 }
+function gearAlternateProfiles(row){
+  const profiles=gearPrimaryProfile(row)?.alternate_profiles;
+  return Array.isArray(profiles) ? profiles.filter(p=>p && typeof p.key==='string' && p.key && p.stats && GEAR_GROUPS[p.stats.type]) : [];
+}
+function gearActiveAlternateProfile(row){
+  return gearAlternateProfiles(row).find(p=>p.key===row.active_profile) || null;
+}
+function gearAlternateControls(row,i){
+  const profiles=gearAlternateProfiles(row);if(!profiles.length)return '';
+  const active=gearActiveAlternateProfile(row);
+  return `<div class="combi-controls"><label>Профиль для атаки <select data-gear-profile="${i}"><option value="">Основной профиль</option>${profiles.map(p=>`<option value="${esc(p.key)}"${active===p?' selected':''}>${esc(p.name || p.key)}</option>`).join('')}</select></label></div>`;
+}
+function bindAlternateProfileControls(host){
+  host.querySelectorAll('[data-gear-profile]').forEach(el=>el.addEventListener('change',()=>{
+    const i=Number(el.dataset.gearProfile),row=S.character.character_data.gear[i];
+    if(!row || !gearAlternateProfiles(row).length)return;
+    row.active_profile=gearAlternateProfiles(row).some(p=>p.key===el.value)?el.value:'';
+    const modal=!!el.closest('#info-params');
+    debouncedSave();renderList('gear');renderList('ammo');
+    if(typeof renderActionSelection==='function')renderActionSelection();
+    if(modal)showGearInfo(row,'gear',i);
+  }));
+}
+function gearAlternateRowsHtml(row,i,g){
+  const profiles=gearAlternateProfiles(row);if(!profiles.length)return '';
+  const cols=g.fields.length+1+(g.qty || g.qtyCurMax?1:0);
+  let out=`<tr class="gw-qual-tr"><td colspan="${cols}">${gearAlternateControls(row,i)}</td></tr>`;
+  for(const p of profiles){
+    const st=p.stats,pg=GEAR_GROUPS[st.type],fields=pg.fields.filter(f=>f!=='ammo');
+    const cells=fields.map(f=>{
+      if(f==='dmg')return gearDmgCellHtml(f,st,i,false,!!pg.dmgType,'',st.class || '');
+      if(f==='sks')return gearSksCellHtml(i,st,false);
+      return `<td><b>${st[f]==null || st[f]===''?'—':esc(st[f])}</b></td>`;
+    }).join('');
+    const quals=gearQualitiesHtml({source:'catalog'},i,st,false);
+    out+=`<tr class="gw-tr alternate-profile"><td colspan="${cols}"><div class="g-name">${esc(p.name || p.key)}</div><div style="overflow-x:auto"><table class="gw-table"><thead><tr>${fields.map(f=>`<th>${esc(GEAR_FIELD_LABELS[f] || f)}</th>`).join('')}</tr></thead><tbody><tr>${cells}</tr></tbody></table></div>${quals}${st.description?`<div class="g-note">${esc(st.description)}</div>`:''}</td></tr>`;
+  }
+  return out;
+}
+
 function gearCombiConfig(row){ return gearPrimaryProfile(row)?.combi || null; }
 function gearCombiSecondary(row){
   const cfg=gearCombiConfig(row), id=Number(row?.combi?.secondary_item_id);
@@ -5067,6 +5107,7 @@ function gearCombiControls(row,i){
   return `<div class="combi-controls"><label>Дополнительное оружие <select data-combi-secondary="${i}"${editMode ? '' : ' disabled'}>${options.join('')}</select></label><label>Для атаки <select data-combi-active="${i}"><option value="primary">Основное оружие</option><option value="secondary"${row.combi?.active_part==='secondary' && second ? ' selected' : ''}${second ? '' : ' disabled'}>Дополнительное оружие</option></select></label><span>Реквизиция: <b>${esc(gearRequisition(row))}</b></span></div>`;
 }
 function bindCombiControls(host){
+  bindAlternateProfileControls(host);
   host.querySelectorAll('[data-combi-secondary],[data-combi-active]').forEach(el=>el.addEventListener('change',()=>{
     const i=Number(el.dataset.combiSecondary ?? el.dataset.combiActive),row=S.character.character_data.gear[i];
     if (!row || !gearCombiConfig(row)) return;
@@ -5106,11 +5147,13 @@ function gearResolve(r){
     const g = GEAR_MAP[r.item_id];
     if (!g) return null;
     const base=gearWeaponFromCatalog(g.stats);
+    const alt=gearActiveAlternateProfile(r);
+    if(alt && base)return {...base,...alt.stats,cost:base.cost,weight:base.weight,glory:base.glory};
     if (!base || !base.combi) return base;
     const secondary=gearCombiSecondary(r);
     return {...(r.combi?.active_part==='secondary' && secondary ? secondary.stats : base),cost:gearRequisition(r)};
   }
-  if (r.source === 'custom') return gearWeaponFromCustom(r.weapon);
+  if (r.source === 'custom'){ const base=gearWeaponFromCustom(r.weapon),alt=gearActiveAlternateProfile(r);return alt && base?{...base,...alt.stats,cost:base.cost,weight:base.weight,glory:base.glory}:base; }
   return null;
 }
 
@@ -5470,7 +5513,7 @@ function gearEffWeapon(r, w){
 }
 
 function gearRowHtml(r, i, g, key){
-  const w = gearCombiConfig(r) ? gearPrimaryProfile(r) : gearResolve(r);
+  const w = gearCombiConfig(r) || gearAlternateProfiles(r).length ? gearPrimaryProfile(r) : gearResolve(r);
   const editable = editMode && r.source === 'custom' && w != null;
   const ew = (g.fields.includes('dmg') && !editable) ? gearEffWeapon(r, w) : w;
   const wclsv = (w && w.class) ? String(w.class).trim() : '';
@@ -5496,7 +5539,7 @@ function gearRowHtml(r, i, g, key){
     const qtyCols = g.qty || g.qtyCurMax ? 1 : 0;
     html += `<tr class="gw-qual-tr"><td colspan="${g.fields.length + 1 + qtyCols}">${quals}</td></tr>`;
   }
-  if (key==='gear') html+=gearCombiRowsHtml(r,i,g,key);
+  if (key==='gear') html+=gearCombiRowsHtml(r,i,g,key)+gearAlternateRowsHtml(r,i,g);
   return html;
 }
 
@@ -5538,7 +5581,7 @@ function gearTableHtml(rows, key, opts){
   const other = [];
   rows.forEach((r, i) => {
     if (r.slot) return;
-    const t = gearRowType(r);
+    const t = gearAlternateProfiles(r).length ? gearPrimaryProfile(r).type : gearRowType(r);
     if (isArmourRow(r)) return;
     const isEq = gearIsEquipped(r);
     if (equippedOnly && !isEq) return;
@@ -8806,6 +8849,10 @@ function showGearInfo(row, key, idx){
   }
   if (w?.cost!=null) params.push(`<div class="ip-row"><span class="ip-label">Реквизиция:</span><span>${esc(gearRequisition(row))}</span></div>`);
   if (gearCombiConfig(row)) params.push(gearCombiControls(row,idx));
+  if (gearAlternateProfiles(row).length){
+    const pg=GEAR_GROUPS[gearPrimaryProfile(row).type];
+    params.push(`<div style="width:100%;overflow-x:auto"><table class="gw-table"><tbody>${gearAlternateRowsHtml(row,idx,pg)}</tbody></table></div>`);
+  }
   const pEl = $('info-params');
   if (params.length){
     pEl.style.display = 'flex';
