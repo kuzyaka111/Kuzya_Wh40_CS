@@ -1345,6 +1345,98 @@ html,body{max-width:100%;overflow-x:hidden;}
 .sheet.load-failed > :not(#sheet-load-error){display:none!important;}
 .combi-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 0}.combi-controls label{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.combi-controls select{max-width:100%;min-width:0;background:var(--bg-main,#10110d);color:var(--text-main);border:1px solid var(--border-dark);padding:5px}.combi-secondary .g-name{font-size:13px}
 </style>
+<style data-feature="compact-statblocks">
+/* Compact NPC / vehicle sheets. All new layout rules are scoped. */
+#screen-statblock{
+  --bg-main:#0d0d0f;--bg-panel:#161618;--bg-panel-alt:#1c1c1f;
+  --border-gold:#a8862f;--border-dark:#3a3a3d;--red:#8c1c1c;--red-bright:#c92a2a;
+  --gold:#c9a24b;--text-main:#e6e2d8;--text-dim:#9a958a;
+  padding:24px;font-family:'Unbounded',sans-serif;color:var(--text-main);
+}
+#sb-root .header{display:flex;gap:18px;align-items:center;}
+#sb-root .titles{flex:1;min-width:0;}
+#sb-root h1{overflow-wrap:anywhere;}
+#sb-root .sb-type{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+#sb-root .sb-class{min-width:116px;text-align:center;color:var(--gold);font-family:'Russo One',serif;text-transform:uppercase;letter-spacing:2px;border:1px solid var(--border-gold);padding:18px 12px;background:#141315;}
+#sb-root .sb-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;color:var(--gold);font-size:11px;overflow-wrap:anywhere;}
+#sb-root .sb-tag{border:1px solid var(--border-dark);padding:3px 7px;max-width:100%;}
+#sb-root .sb-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 22px;border-bottom:1px solid var(--border-dark);}
+#sb-root .sb-toolbar .sb-back{margin-left:auto;}
+#sb-root .sb-status{font-size:11px;color:var(--gold);}
+#sb-root .sb-error{border:1px solid #a54c46;background:#2a1718;padding:12px;margin:14px 22px;color:#edb3aa;font-size:12px;line-height:1.6;}
+#sb-root .sb-error button{margin-top:8px;}
+#sb-root .sb-identity{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;padding:18px 22px 0;}
+#sb-root .sb-identity .sb-tags-field{grid-column:1/-1;}
+#sb-root .stats-strip{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:8px;}
+#sb-root .stat-box{min-width:0;}
+#sb-root .stat-box .total{cursor:default;font-size:24px;}
+#sb-root .sb-stat-value{width:100%;min-width:0;font-size:19px;text-align:center;padding:5px 0;color:var(--gold);}
+#sb-root .sb-stat-bonus{width:100%;min-width:0;font-size:10px;padding:4px 0;text-align:center;}
+#sb-root .sb-bonus{font-size:10px;color:var(--text-dim);}
+#sb-root .vitals-strip-wrap{padding:14px 0 0;}
+#sb-root .vitals-strip{grid-template-columns:repeat(3,minmax(0,1fr));}
+#sb-root .vit-name{white-space:normal;font-size:10px;line-height:1.5;}
+#sb-root .vit-control{margin-top:auto;}
+#sb-root .vit-inline{width:44px;font-size:12px;}
+#sb-root .sb-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px;padding:18px 22px;align-items:start;}
+#sb-root .sb-column{display:grid;gap:16px;min-width:0;}
+#sb-root .panel{padding:0;min-width:0;}
+#sb-root .panel .section-title{font-size:12px;letter-spacing:1px;overflow-wrap:anywhere;}
+#sb-root .sb-panel-body{padding:14px 16px;}
+#sb-root .sb-group + .sb-group{border-top:1px solid var(--border-dark);padding-top:14px;margin-top:14px;}
+#sb-root .sb-group-head{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px;}
+#sb-root .sb-group-head h3{font-size:12px;margin:0;color:var(--gold);letter-spacing:1px;}
+#sb-root .sb-entry{padding:9px 0;border-bottom:1px solid var(--border-dark);overflow-wrap:anywhere;line-height:1.65;font-size:12px;}
+#sb-root .sb-entry:last-child{border-bottom:0;}
+#sb-root .sb-entry-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+#sb-root .sb-entry-name{font-weight:600;color:var(--text-main);}
+#sb-root .sb-entry-actions{display:flex;gap:4px;flex-shrink:0;}
+#sb-root .sb-entry-actions button{padding:3px 6px;font-size:10px;}
+#sb-root .sb-description{white-space:pre-wrap;color:var(--text-dim);margin-top:5px;}
+#sb-root .sb-weapon-meta{color:var(--gold);font-size:11px;line-height:1.8;margin-top:5px;}
+#sb-root .sb-fields{display:grid;gap:12px;}
+#sb-root .sb-vehicle-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+#sb-root .sb-field-value{font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;}
+#sb-root .sb-fields label{font-size:9px;}
+#sb-root .sb-empty{font-size:11px;color:var(--text-dim);font-style:italic;line-height:1.6;}
+#sb-root .sb-critical{display:flex;gap:12px;align-items:center;margin-bottom:12px;font-size:11px;color:var(--text-dim);}
+#sb-root .sb-critical input{width:72px;}
+#sb-root textarea{min-height:65px;}
+#sb-root input,#sb-root textarea,#sb-root select{font-family:inherit;font-size:12px;}
+#sb-root .sb-footer{padding:0 22px 18px;text-align:right;font-size:10px;color:var(--text-dim);}
+#sb-entry-modal .box{max-width:660px;}
+#sb-entry-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+#sb-entry-fields .sb-wide{grid-column:1/-1;}
+#sb-entry-fields textarea{min-height:130px;}
+#statblock-list .list-item{width:100%;text-align:left;text-transform:none;letter-spacing:normal;white-space:normal;}
+#statblock-list .nm{overflow-wrap:anywhere;}
+#statblock-list .badge{flex-shrink:0;}
+@media(max-width:1000px){
+  #sb-root .sb-columns{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+  #sb-root .stats-strip{grid-template-columns:repeat(5,minmax(0,1fr));}
+}
+@media(max-width:700px){
+  #screen-statblock{padding:8px;}
+  #sb-root .header{padding:14px;flex-direction:column;align-items:stretch;gap:12px;}
+  #sb-root .titles h1{font-size:22px;}
+  #sb-root .sb-class{font-size:12px;padding:10px;min-width:90px;align-self:flex-end;}
+  #sb-root .sb-columns{grid-template-columns:minmax(0,1fr);padding:14px 12px;gap:14px;}
+  #sb-root .stats-strip-wrap{padding:14px 12px 0;}
+  #sb-root .stats-strip{grid-template-columns:repeat(3,minmax(0,1fr));}
+  #sb-root .vitals-strip{grid-template-columns:1fr;gap:8px;}
+  #sb-root .vit-box{padding:10px;}
+  #sb-root .sb-toolbar{padding:10px 12px;}
+  #sb-root .sb-toolbar button{padding:7px 8px;font-size:10px;}
+  #sb-root .sb-toolbar .sb-back{margin-left:0;}
+  #sb-root .sb-identity{grid-template-columns:1fr;padding:14px 12px 0;}
+  #sb-entry-fields{grid-template-columns:1fr;}
+  #sb-entry-modal{padding:10px;}
+  #sb-entry-modal .box{padding:16px;}
+  #sb-root .sb-entry-head{flex-wrap:wrap;}
+  #sb-root .sb-vehicle-fields{grid-template-columns:1fr;}
+}
+
+</style>
 </head>
 <body>
 
@@ -1416,7 +1508,7 @@ html,body{max-width:100%;overflow-x:hidden;}
       <div class="tpanel">
         <div class="spread">
           <h2 id="chr-list-title">Персонажи</h2>
-          <button id="chr-create-btn" onclick="openModal('modal-character')">Создать персонажа</button>
+          <button id="chr-create-btn" onclick="openCreateRecordModal()">Создать персонажа</button>
         </div>
         <div id="character-list" style="margin-top:18px"></div>
       </div>
@@ -1424,6 +1516,10 @@ html,body{max-width:100%;overflow-x:hidden;}
       <div class="tpanel sub hidden" id="gm-panel">
         <h2>Персонажи Мастера</h2>
         <div id="gm-character-list" style="margin-top:14px"></div>
+      </div>
+      <div class="tpanel sub hidden" id="statblock-panel">
+        <div class="spread"><h2>НПЦ и техника</h2><button type="button" class="ghost sm" onclick="loadStatblocks()">Обновить</button></div>
+        <div id="statblock-list" style="margin-top:14px"></div>
       </div>
     </div>
 
@@ -2255,8 +2351,9 @@ html,body{max-width:100%;overflow-x:hidden;}
 
 <div id="modal-character" class="modal hidden">
   <div class="box">
-    <h2>Новый персонаж</h2>
-    <label>Имя персонажа</label>
+    <h2 id="char-modal-title">Новый персонаж</h2>
+    <div id="char-kind-wrap" class="hidden"><label for="char-kind-input">Тип статблока</label><select id="char-kind-input" style="margin-bottom:12px"><option value="character">Персонаж</option><option value="npc">НПЦ</option><option value="vehicle">Техника</option></select></div>
+    <label for="char-name-input">Имя</label>
     <input id="char-name-input" placeholder="имя...">
     <div class="row" style="margin-top:16px; justify-content:flex-end">
       <button class="ghost" onclick="closeModal('modal-character')">Отмена</button>
@@ -2276,6 +2373,21 @@ html,body{max-width:100%;overflow-x:hidden;}
       <button class="danger" onclick="deleteChronicle()">Удалить</button>
     </div>
   </div>
+</div>
+
+<!-- Compact statblocks keep their state and controls separate from character sheets. -->
+<div id="screen-statblock" class="hidden">
+  <div class="sheet" id="sb-root"></div>
+</div>
+<div id="sb-entry-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="sb-entry-title">
+  <form class="box" id="sb-entry-form">
+    <h2 id="sb-entry-title">Новая запись</h2>
+    <div id="sb-entry-fields"></div>
+    <div class="row" style="margin-top:18px;justify-content:flex-end">
+      <button type="button" class="ghost" onclick="closeModal('sb-entry-modal')">Отмена</button>
+      <button type="submit">Применить</button>
+    </div>
+  </form>
 </div>
 
 <div id="toast" class="hidden"></div>
@@ -2484,7 +2596,7 @@ function openModal(id){
 function closeModal(id){ $(id).classList.add('hidden'); }
 
 function showScreen(name){
-  ['login','dash','chronicle','sheet'].forEach(s =>
+  ['login','dash','chronicle','sheet','statblock'].forEach(s =>
     $('screen-' + s).classList.toggle('hidden', s !== name));
   const loader = document.getElementById('app-loader');
   if (loader) loader.classList.add('hidden');
@@ -2688,7 +2800,7 @@ async function enterChronicle(id, name, role){
   $('chr-delete-btn').classList.toggle('hidden', !isGm);
   $('chr-chpass-btn').classList.toggle('hidden', !isGm);
   $('chr-list-title').textContent = isGm ? 'Персонажи игроков' : 'Ваши персонажи';
-  $('chr-create-btn').textContent = isGm ? 'Создать персонажа Мастера' : 'Создать персонажа';
+  $('chr-create-btn').textContent = isGm ? 'Создать статблок' : 'Создать персонажа';
   $('gm-panel').classList.toggle('hidden', !isGm);
   $('tl-add-btn').classList.toggle('hidden', !isGm);
   $('chr-discord-panel').classList.toggle('hidden', !isGm);
@@ -2697,6 +2809,7 @@ async function enterChronicle(id, name, role){
   $('timeline-events').classList.remove('hidden');
   showScreen('chronicle');
   await loadCharacters();
+  await loadStatblocks();
   await loadEvents();
   if (isGm) await loadChronicleDiscord();
 }
@@ -2807,6 +2920,11 @@ async function deleteEvent(id){
 }
 
 async function createCharacter(){
+  const kind = $('char-kind-input').value;
+  if (kind !== 'character'){
+    if (S.role !== 'gm') return toast('Создание НПЦ и техники доступно ведущему');
+    return createStatblock(kind);
+  }
   const name = $('char-name-input').value.trim();
   if (!name) return toast('Введите имя');
   await loadSkillsFromDB();
@@ -11024,6 +11142,340 @@ dwInstallHooks();
   }
   schedule();
 })();
+
+</script>
+<script data-feature="compact-statblocks">
+// Compact statblocks: manual values, no character progression or Astartes grants.
+const SB_RACES = ['Империум','Тираниды','Орки','Мутанты','Техника','Демоны','Тау','Эльдары'];
+const SB_CLASSES = ['Орда','Рядовой','Элита','Босс'];
+const SB_GROUPS = {skills:'Умения',talents:'Таланты',features:'Особенности',weapons:'Оружие',injuries:'Крит-травмы',traits:'Черты'};
+const SB = {record:null,draft:null,chronicleId:null,busy:false,error:'',dirty:false,entry:null,loadToken:0,createId:null};
+function sbClone(value){ return JSON.parse(JSON.stringify(value)); }
+function sbAllowed(){ return !!(S.user && S.chronicle && S.role === 'gm'); }
+function sbData(){ return SB.draft || SB.record; }
+function sbUuid(){
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6]=(bytes[6]&15)|64; bytes[8]=(bytes[8]&63)|128;
+  const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+  return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+}
+function blankStatblock(type,name){
+  return {schema_version:1,type,name:name.trim(),race:type==='vehicle'?'Техника':'Империум',category:'Рядовой',tags:[],
+    stats:Object.fromEntries(STATS.map(([key])=>[key,type==='vehicle'?null:30])),bonuses:{},
+    vitals:{health:10,max_health:10,fatigue:0,max_fatigue:10,fate:0,max_fate:0,critical:0},
+    skills:[],talents:[],features:[],weapons:[],injuries:[],traits:[],
+    parameters:{armour:'',speed:'',carry:'',vehicle_type:'',size:'',tactical_speed:'',cruising_speed:'',manoeuvrability:'',front:'',side:'',rear:'',crew:'',capacity:''}};
+}
+function normalizeStatblock(raw){
+  if (!raw || !['npc','vehicle'].includes(raw.type) || raw.schema_version !== 1)
+    throw new Error('Формат статблока не поддерживается. Обновите страницу.');
+  const d=Object.assign(blankStatblock(raw.type,String(raw.name||'')),sbClone(raw));
+  d.stats=Object.assign({},blankStatblock(raw.type,'').stats,raw.stats||{});
+  d.bonuses=Object.assign({},raw.bonuses||{});
+  d.vitals=Object.assign({},blankStatblock(raw.type,'').vitals,raw.vitals||{});
+  d.parameters=Object.assign({},blankStatblock(raw.type,'').parameters,raw.parameters||{});
+  STATS.forEach(([key])=>{
+    d.stats[key]=sbNumber('stats.'+key,d.stats[key]??'')??null;
+    d.bonuses[key]=sbNumber('bonuses.'+key,d.bonuses[key]??'')??null;
+  });
+  Object.keys(d.vitals).forEach(key=>{d.vitals[key]=sbNumber('vitals.'+key,d.vitals[key])??0;});
+  Object.keys(SB_GROUPS).forEach(k=>{ d[k]=Array.isArray(d[k])?d[k].filter(r=>r&&typeof r==='object'):[]; });
+  d.tags=Array.isArray(d.tags)?d.tags.map(String):[];
+  return d;
+}
+function sbOptions(values,selected){
+  const options=values.includes(selected)?values:[selected,...values];
+  return options.map(v=>`<option value="${esc(v)}"${v===selected?' selected':''}>${esc(v)}</option>`).join('');
+}
+function openCreateRecordModal(){
+  SB.createId=null;
+  $('char-kind-wrap').classList.toggle('hidden',!sbAllowed());
+  $('char-kind-input').value='character';
+  $('char-modal-title').textContent=sbAllowed()?'Новый статблок':'Новый персонаж';
+  $('char-name-input').value='';
+  openModal('modal-character');
+}
+async function readStatblocks(chronicleId){
+  const {data,error}=await sb.from('chronicles').select('statblocks').eq('id',chronicleId).single();
+  if (error) throw error;
+  if (!data || !data.statblocks || Array.isArray(data.statblocks) || typeof data.statblocks !== 'object')
+    throw new Error('Не удалось прочитать коллекцию статблоков');
+  return data.statblocks;
+}
+async function loadStatblocks(){
+  const panel=$('statblock-panel'),host=$('statblock-list');
+  const token=++SB.loadToken;
+  panel.classList.toggle('hidden',!sbAllowed());
+  host.innerHTML='';
+  if (!sbAllowed()) return;
+  const chronicleId=S.chronicle.id;
+  host.innerHTML='<div class="empty">Загрузка…</div>';
+  try {
+    const collection=await readStatblocks(chronicleId);
+    if(token!==SB.loadToken || !sbAllowed() || S.chronicle.id!==chronicleId) return;
+    const rows=Object.entries(collection).filter(([id,r])=>/^[0-9a-f-]{36}$/i.test(id)&&r&&['npc','vehicle'].includes(r.type));
+    rows.sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'ru'));
+    host.innerHTML=rows.length?rows.map(([id,d])=>`<button type="button" class="list-item clickable" data-sb-open="${esc(id)}">
+      <span style="min-width:0"><span class="nm">${esc(d.name)}</span><span class="tags-row">${[d.race,d.category,...(Array.isArray(d.tags)?d.tags:[])].filter(Boolean).map(t=>`<span class="chr-tag">${esc(t)}</span>`).join('')}</span></span>
+      <span class="badge gm">${d.type==='vehicle'?'Техника':'НПЦ'}</span></button>`).join(''):'<div class="empty">НПЦ и техники пока нет.</div>';
+  } catch(error){
+    if(token!==SB.loadToken || !sbAllowed() || S.chronicle.id!==chronicleId) return;
+    host.innerHTML=`<div class="empty">Ошибка загрузки: ${esc(error.message)}<br><button type="button" class="sm" onclick="loadStatblocks()">Повторить</button></div>`;
+  }
+}
+async function createStatblock(type){
+  if (!sbAllowed() || !['npc','vehicle'].includes(type) || SB.busy) return;
+  const name=$('char-name-input').value.trim();
+  if (!name || name.length>200) return toast('Введите имя длиной от 1 до 200 символов');
+  const chronicleId=S.chronicle.id,id=SB.createId || (SB.createId=sbUuid());
+  const block=blankStatblock(type,name);
+  SB.busy=true; $('modal-character').inert=true;
+  try {
+    const {data,error}=await sb.rpc('save_chronicle_statblock',{p_chronicle_id:chronicleId,p_block_id:id,p_expected_revision:0,p_block:block,p_delete:false});
+    let saved=data;
+    if (error){
+      // A lost response must not create a duplicate on retry.
+      try { saved=(await readStatblocks(chronicleId))[id]; } catch(_){}
+      if (!saved) throw error;
+    }
+    if (!saved || saved.id!==id) throw new Error('Создание не подтверждено');
+    closeModal('modal-character'); SB.createId=null;
+    SB.record=normalizeStatblock(saved); SB.chronicleId=chronicleId;
+    SB.draft=sbClone(SB.record); SB.dirty=false; SB.error='';
+    S.character=null;
+    showScreen('statblock');
+    toast(type==='vehicle'?'Техника создана':'НПЦ создан');
+  } catch(error){ toast('Ошибка создания: '+error.message); }
+  finally { SB.busy=false; $('modal-character').inert=false; if(SB.record && S.chronicle?.id===SB.chronicleId) renderStatblock(); }
+}
+async function openStatblock(id){
+  if (!sbAllowed() || SB.busy) return;
+  if (SB.dirty && !confirm('Есть несохранённые изменения. Загрузить сохранённую версию и отказаться от них?')) return;
+  const chronicleId=S.chronicle.id;
+  SB.busy=true;
+  $('statblock-panel').inert=true; $('sb-root').inert=true;
+  try {
+    const raw=(await readStatblocks(chronicleId))[id];
+    if (!raw) throw new Error('Запись не найдена. Возможно, её удалили в другой вкладке.');
+    const record=normalizeStatblock(raw);
+    if (!sbAllowed() || S.chronicle.id!==chronicleId) return;
+    SB.record=record; SB.chronicleId=chronicleId; SB.draft=null; SB.error=''; SB.dirty=false;
+    S.character=null;
+    showScreen('statblock');
+  } catch(error){
+    if(SB.record && SB.record.id===id){ SB.error=error.message; }
+    else toast('Ошибка загрузки: '+error.message);
+  } finally {
+    SB.busy=false; $('statblock-panel').inert=false; $('sb-root').inert=false;
+    if (SB.record) renderStatblock();
+  }
+}
+function sbInput(path,label,value,options={}){
+  const id='sb-'+path.replaceAll('.','-');
+  const attrs=`id="${id}" data-sb-field="${path}" aria-label="${esc(label)}"`;
+  return `<div><label for="${id}">${esc(label)}</label>${SB.draft
+    ?options.multiline?`<textarea ${attrs}>${esc(value??'')}</textarea>`:`<input ${attrs} value="${esc(value??'')}"${options.placeholder?` placeholder="${esc(options.placeholder)}"`:''}>`
+    :`<div class="sb-field-value">${esc(value||'—')}</div>`}</div>`;
+}
+function sbGroup(key,title){
+  const d=sbData(),editing=!!SB.draft;
+  return `<div class="sb-group"><div class="sb-group-head"><h3>${esc(title||SB_GROUPS[key])}</h3>${editing?`<button type="button" class="sm" data-sb-add="${key}" aria-label="Добавить: ${esc(title||SB_GROUPS[key])}">+ Добавить</button>`:''}</div>
+    ${d[key].length?d[key].map((r,i)=>sbEntry(key,r,i)).join(''):'<div class="sb-empty">Нет записей</div>'}</div>`;
+}
+function sbEntry(key,row,index){
+  const actions=SB.draft?`<span class="sb-entry-actions"><button type="button" data-sb-edit="${key}:${index}" aria-label="Изменить: ${esc(row.name)}">Изм.</button><button type="button" class="danger" data-sb-remove="${key}:${index}" aria-label="Убрать: ${esc(row.name)}">×</button></span>`:'';
+  const weaponLabels={weapon_type:'Тип',range:'Дальность',rof:'Темп',damage:'Урон',pen:'ББ',magazine:'Магазин',reload:'Перезарядка',qualities:'Качества',arc:'Сектор обстрела'};
+  const meta=key==='weapons'?Object.entries(weaponLabels).filter(([k])=>row[k]!=='' && row[k]!=null).map(([k,label])=>`${label}: ${esc(row[k])}`).join(' · '):'';
+  return `<div class="sb-entry"><div class="sb-entry-head"><span class="sb-entry-name">${esc(row.name)}</span>${actions}</div>${meta?`<div class="sb-weapon-meta">${meta}</div>`:''}${row.description?`<div class="sb-description">${esc(row.description)}</div>`:''}</div>`;
+}
+function sbPanel(title,body){ return `<section class="panel"><div class="section-title" data-no-collapse="1"><span>${esc(title)}</span></div><div class="sb-panel-body">${body}</div></section>`; }
+function sbStatsHtml(d){
+  return STATS.map(([key,name,tip,hasBonus])=>{
+    const value=d.stats[key],bonus=d.bonuses[key]??(value==null?null:Math.floor(Number(value)/10));
+    return `<div class="stat-box"><div class="name" title="${esc(tip)}">${name}</div>${SB.draft
+      ?`<input class="sb-stat-value" type="number" min="0" max="999" step="1" data-sb-number="stats.${key}" aria-label="${name}" value="${value??''}" placeholder="—">`
+      :`<div class="total">${value==null?'—':esc(value)}</div>`}${hasBonus?(SB.draft
+        ?`<input class="sb-stat-bonus" type="number" min="0" max="999" step="1" data-sb-number="bonuses.${key}" aria-label="Бонус ${name}" value="${d.bonuses[key]??''}" placeholder="Бонус: ${bonus??'—'}" title="Пустое поле: десятки характеристики. Можно указать собственный бонус.">`
+        :`<span class="sb-bonus">Бонус ${bonus??'—'}</span>`):''}</div>`;
+  }).join('');
+}
+function sbVitalsHtml(d){
+  return [['health',d.type==='vehicle'?'Структурная целостность':'Раны','wounds'],['fatigue','Усталость','fatigue'],['fate','Очки Судьбы','fate']].map(([key,name,cls])=>{
+    const cur=Number(d.vitals[key])||0,max=Number(d.vitals['max_'+key])||0,pct=max>0?Math.min(100,Math.max(0,cur/max*100)):0;
+    return `<div class="vit-box"><div class="vit-name">${name}</div><div class="vit-control"><button type="button" class="vit-arrow" data-sb-step="${key}:-1" aria-label="${name}: уменьшить">◀</button>
+      <div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${pct}%"></div><div class="bar-num"><input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.${key}" aria-label="${name}: текущее" value="${cur}"><span>/</span><input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.max_${key}" aria-label="${name}: максимум" value="${max}"${SB.draft?'':' readonly'}></div></div>
+      <button type="button" class="vit-arrow" data-sb-step="${key}:1" aria-label="${name}: увеличить">▶</button></div></div>`;
+  }).join('');
+}
+function renderStatblock(){
+  const d=sbData(),root=$('sb-root'); if(!d) return;
+  const editing=!!SB.draft,isVehicle=d.type==='vehicle',p=d.parameters;
+  const tagLine=[d.race,...d.tags].filter(Boolean).map(t=>`<span class="sb-tag">${esc(t)}</span>`).join('');
+  const identity=editing?`<div class="sb-identity">${sbInput('name','Имя',d.name)}<div><label for="sb-race">Раса</label><select id="sb-race" data-sb-field="race">${sbOptions(SB_RACES,d.race)}</select></div><div><label for="sb-category">Категория</label><select id="sb-category" data-sb-field="category">${sbOptions(SB_CLASSES,d.category)}</select></div><div class="sb-tags-field">${sbInput('tags','Теги — через запятую',d.tags.join(', '))}</div></div>`:'';
+  const parameters=isVehicle
+    ?sbInput('parameters.vehicle_type','Тип машины',p.vehicle_type,{placeholder:'Наземная машина / шагоход / скиммер…'})+sbInput('parameters.size','Размер',p.size)+sbInput('parameters.tactical_speed','Тактическая скорость, м',p.tactical_speed)+sbInput('parameters.cruising_speed','Крейсерская скорость, км/ч',p.cruising_speed)+sbInput('parameters.manoeuvrability','Манёвренность',p.manoeuvrability,{placeholder:'+0 / +10 / —'})+sbInput('parameters.front','Броня — лоб',p.front)+sbInput('parameters.side','Броня — борт',p.side)+sbInput('parameters.rear','Броня — корма',p.rear)+sbInput('parameters.armour','Броня — примечания',p.armour,{multiline:true})+sbInput('parameters.crew','Экипаж',p.crew)+sbInput('parameters.capacity','Транспортная вместимость',p.capacity)+sbInput('parameters.carry','Грузоподъёмность',p.carry)
+    :sbInput('parameters.armour','Броня',p.armour,{multiline:true,placeholder:'Название, зоны и значения'})+sbInput('parameters.speed','Скорости',p.speed,{placeholder:'Полудвижение / движение / натиск / бег'})+sbInput('parameters.carry','Грузоподъёмность',p.carry,{placeholder:'Нести / поднять / толкать'});
+  root.classList.toggle('edit-mode',editing);
+  root.innerHTML=`<div class="header"><div class="titles"><div class="sb-type">${isVehicle?'Техника':'НПЦ'} · ${esc(S.chronicle?.name||'')}</div><h1>${esc(d.name)}</h1><div class="sb-tags">${tagLine}</div></div><div class="sb-class">${esc(d.category)}</div></div>
+    <div class="sb-toolbar"><button type="button" data-sb-action="${editing?'save':'edit'}">${editing?'Сохранить':'Редактировать'}</button>${editing?'<button type="button" class="ghost" data-sb-action="cancel">Отменить</button>':''}<span class="sb-status" role="status">${SB.busy?'Сохранение…':SB.dirty?'Есть несохранённые изменения':editing?'Режим редактирования':''}</span><button type="button" class="ghost sb-back" data-sb-action="back">← Хроника</button>${editing?'<button type="button" class="danger" data-sb-action="delete">Удалить</button>':''}</div>
+    ${SB.error?`<div class="sb-error" role="alert">${esc(SB.error)}<br><button type="button" class="sm" data-sb-action="reload">Загрузить сохранённую версию</button></div>`:''}${identity}
+    <div class="stats-strip-wrap"><div class="stats-strip">${sbStatsHtml(d)}</div><div class="vitals-strip-wrap"><div class="vitals-strip">${sbVitalsHtml(d)}</div></div></div>
+    <div class="sb-columns"><div class="sb-column">${sbPanel('Умения, таланты и особенности',sbGroup('skills')+sbGroup('talents')+sbGroup('features'))}${sbPanel('Броня, скорости, грузоподъёмность',`<div class="sb-fields${isVehicle?' sb-vehicle-fields':''}">${parameters}</div>`)}</div>
+    <div class="sb-column">${sbPanel('Снаряжение',sbGroup('weapons'))}</div>
+    ${sbPanel(isVehicle?'Критические повреждения':'Крит-травмы',`<div class="sb-critical"><label for="sb-critical">Критический урон</label><input id="sb-critical" type="number" min="0" step="1" data-sb-number="vitals.critical" aria-label="Критический урон" value="${Number(d.vitals.critical)||0}"></div>`+sbGroup('injuries',isVehicle?'Повреждения':'Травмы'))}
+    ${sbPanel('Черты',sbGroup('traits'))}</div><div class="sb-footer">${editing?'Изменения применяются кнопкой «Сохранить»':'Статблок сохранён в Хронике'}</div>`;
+  root.inert=SB.busy;
+}
+function sbSetPath(d,path,value){
+  const parts=path.split('.');
+  if(parts.length===1 && ['name','race','category','tags'].includes(path)){ d[path]=value; return true; }
+  if(parts.length===2 && ['stats','bonuses','vitals','parameters'].includes(parts[0]) && Object.prototype.hasOwnProperty.call(d[parts[0]],parts[1])){ d[parts[0]][parts[1]]=value;return true; }
+  if(parts.length===2 && parts[0]==='bonuses' && STATS.some(([k])=>k===parts[1])){d.bonuses[parts[1]]=value;return true;}
+  return false;
+}
+function sbNumber(path,raw){
+  const optional=path.startsWith('stats.')||path.startsWith('bonuses.');
+  if(String(raw).trim()==='') return optional?null:undefined;
+  const value=Number(raw),limit=optional?999:1000000;
+  return Number.isSafeInteger(value)&&value>=0&&value<=limit?value:undefined;
+}
+function sbTouch(){
+  SB.dirty=true;
+  const status=$('sb-root').querySelector('.sb-status');
+  if(status) status.textContent='Есть несохранённые изменения';
+}
+async function saveStatblock(readInputs=true){
+  if(!sbAllowed() || SB.busy || !SB.draft || S.chronicle.id!==SB.chronicleId) return false;
+  for(const input of readInputs?$('sb-root').querySelectorAll('[data-sb-number]'):[]){
+    const value=sbNumber(input.dataset.sbNumber,input.value);
+    if(value===undefined || !input.checkValidity()){toast('Проверьте числовые значения');input.reportValidity();return false;}
+    sbSetPath(SB.draft,input.dataset.sbNumber,value);
+  }
+  const payload=sbClone(SB.draft);
+  payload.name=String(payload.name||'').trim();
+  if(!payload.name || payload.name.length>200){ toast('Имя должно содержать от 1 до 200 символов'); return false; }
+  for(const group of ['stats','bonuses','vitals']){
+    for(const [key,value] of Object.entries(payload[group])){
+      if(sbNumber(group+'.'+key,value??'')===undefined){toast('Проверьте числовые значения');return false;}
+    }
+  }
+  SB.busy=true;SB.error='';renderStatblock();
+  try {
+    const {data,error}=await sb.rpc('save_chronicle_statblock',{p_chronicle_id:SB.chronicleId,p_block_id:SB.record.id,p_expected_revision:SB.record.revision,p_block:payload,p_delete:false});
+    if(error) throw error;
+    if(!data || data.id!==SB.record.id || data.revision!==SB.record.revision+1) throw new Error('Сохранение не подтверждено');
+    SB.record=normalizeStatblock(data);SB.draft=null;SB.dirty=false;
+    toast('Статблок сохранён');return true;
+  } catch(error){
+    SB.error=String(error.message).includes('STATBLOCK_CONFLICT')
+      ?'Запись уже изменена или удалена в другой вкладке. Ваши правки остались на экране и не перезаписали сохранённую версию. Загрузите актуальную запись перед повторным редактированием.'
+      :'Не удалось подтвердить сохранение. Ваши правки остались на экране. '+(error.message||'Проверьте соединение и повторите сохранение.');
+    SB.dirty=true;return false;
+  } finally {SB.busy=false;renderStatblock();}
+}
+async function deleteStatblock(){
+  if(!sbAllowed() || SB.busy || !SB.record || S.chronicle.id!==SB.chronicleId) return;
+  if(!confirm('Удалить «'+SB.record.name+'» из Хроники? Это действие необратимо.')) return;
+  SB.busy=true;renderStatblock();
+  let deleted=false;
+  try {
+    const {data,error}=await sb.rpc('save_chronicle_statblock',{p_chronicle_id:SB.chronicleId,p_block_id:SB.record.id,p_expected_revision:SB.record.revision,p_block:null,p_delete:true});
+    if(error) throw error;
+    if(!data?.deleted) throw new Error('Удаление не подтверждено');
+    deleted=true;SB.record=null;SB.draft=null;SB.dirty=false;SB.error='';
+  } catch(error){SB.error=String(error.message).includes('STATBLOCK_CONFLICT')?'Запись изменилась в другой вкладке. Загрузите актуальную версию перед удалением.':'Не удалось подтвердить удаление: '+error.message;}
+  finally {SB.busy=false;}
+  if(deleted){toast('Статблок удалён');showScreen('chronicle');await loadStatblocks();}else renderStatblock();
+}
+function sbStartEdit(){
+  if(!sbAllowed() || SB.busy || !SB.record) return;
+  SB.draft=sbClone(SB.record);SB.error='';SB.dirty=false;renderStatblock();
+}
+function sbCancelEdit(){
+  if(SB.busy) return;
+  if(SB.dirty && !confirm('Отменить несохранённые изменения статблока?')) return;
+  SB.draft=null;SB.dirty=false;SB.error='';closeModal('sb-entry-modal');renderStatblock();
+}
+async function sbBack(){
+  if(SB.busy) return;
+  if(SB.dirty && !confirm('Вернуться в Хронику без сохранения изменений?')) return;
+  SB.record=null;SB.draft=null;SB.dirty=false;SB.error='';
+  closeModal('sb-entry-modal');showScreen('chronicle');await loadStatblocks();
+}
+function openStatblockEntry(key,index=-1){
+  if(!sbAllowed() || !SB.draft || SB.busy || !Object.hasOwn(SB_GROUPS,key)) return;
+  const row=index<0?{}:SB.draft[key][index];if(!row) return;
+  SB.entry={key,index,recordId:SB.record.id};
+  $('sb-entry-title').textContent=(index<0?'Добавить: ':'Изменить: ')+SB_GROUPS[key];
+  let fields=[['name','Название','wide']];
+  if(key==='weapons') fields.push(['weapon_type','Тип оружия'],['range','Дальность'],['rof','Темп стрельбы'],['damage','Урон'],['pen','Бронебойность'],['magazine','Магазин'],['reload','Перезарядка'],['qualities','Качества','wide']);
+  if(key==='weapons' && SB.draft.type==='vehicle') fields.push(['arc','Сектор обстрела','wide']);
+  fields.push(['description','Описание','textarea']);
+  $('sb-entry-fields').innerHTML=fields.map(([field,label,kind])=>`<div class="${kind?'sb-wide':''}"><label for="sb-entry-${field}">${label}</label>${kind==='textarea'?`<textarea id="sb-entry-${field}" name="${field}">${esc(row[field]||'')}</textarea>`:`<input id="sb-entry-${field}" name="${field}" value="${esc(row[field]||'')}"${field==='name'?' required maxlength="200"':''}>`}</div>`).join('');
+  openModal('sb-entry-modal');
+}
+$('sb-entry-form').addEventListener('submit',e=>{
+  e.preventDefault();const entry=SB.entry;
+  if(!sbAllowed() || SB.busy || !SB.draft || !entry || SB.record.id!==entry.recordId) return;
+  const row=Object.fromEntries(new FormData(e.target).entries());
+  row.name=row.name.trim();if(!row.name) return;
+  if(entry.index<0) SB.draft[entry.key].push(row);
+  else if(SB.draft[entry.key][entry.index]) SB.draft[entry.key][entry.index]={...SB.draft[entry.key][entry.index],...row};
+  sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();
+});
+$('statblock-list').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-sb-open]');if(btn) openStatblock(btn.dataset.sbOpen);
+});
+$('sb-root').addEventListener('input',e=>{
+  const el=e.target;
+  if(!sbAllowed() || SB.busy || !SB.draft) return;
+  if(el.dataset.sbNumber){
+    const value=sbNumber(el.dataset.sbNumber,el.value);
+    if(value!==undefined && sbSetPath(SB.draft,el.dataset.sbNumber,value)) sbTouch();
+    return;
+  }
+  if(!el.dataset.sbField) return;
+  const path=el.dataset.sbField,value=path==='tags'?el.value.split(',').map(s=>s.trim()).filter(Boolean):el.value;
+  if(sbSetPath(SB.draft,path,value)) sbTouch();
+});
+$('sb-root').addEventListener('change',async e=>{
+  const el=e.target,path=el.dataset.sbNumber;
+  if(!sbAllowed() || SB.busy || !path || !SB.record) return;
+  if(!SB.draft && (!path.startsWith('vitals.') || path.startsWith('vitals.max_'))) return;
+  const value=sbNumber(path,el.value);
+  if(value===undefined){toast('Введите целое неотрицательное число');el.value=sbData()[path.split('.')[0]][path.split('.')[1]]??'';return;}
+  const quick=!SB.draft;
+  if(quick) SB.draft=sbClone(SB.record);
+  // Keep the focused control in place: rebuilding on blur would swallow a Save click.
+  if(sbSetPath(SB.draft,path,value)){sbTouch();if(quick) await saveStatblock(false);}
+});
+$('sb-root').addEventListener('click',async e=>{
+  if(!sbAllowed() || SB.busy) return;
+  const button=e.target.closest('button');if(!button) return;
+  const action=button.dataset.sbAction;
+  if(action==='edit') return sbStartEdit();
+  if(action==='save') return saveStatblock();
+  if(action==='cancel') return sbCancelEdit();
+  if(action==='back') return sbBack();
+  if(action==='reload') return openStatblock(SB.record.id);
+  if(action==='delete') return deleteStatblock();
+  if(button.dataset.sbAdd) return openStatblockEntry(button.dataset.sbAdd);
+  if(button.dataset.sbEdit){const [key,index]=button.dataset.sbEdit.split(':');return openStatblockEntry(key,Number(index));}
+  if(button.dataset.sbRemove && SB.draft){
+    const [key,indexText]=button.dataset.sbRemove.split(':'),index=Number(indexText);
+    if(Object.hasOwn(SB_GROUPS,key) && SB.draft[key][index]){SB.draft[key].splice(index,1);sbTouch();renderStatblock();}return;
+  }
+  if(button.dataset.sbStep){
+    const [key,step]=button.dataset.sbStep.split(':');
+    if(!['health','fatigue','fate'].includes(key) || !['-1','1'].includes(step)) return;
+    const quick=!SB.draft;
+    if(quick) SB.draft=sbClone(SB.record);
+    SB.draft.vitals[key]=Math.max(0,Math.min(1000000,(Number(SB.draft.vitals[key])||0)+Number(step)));
+    sbTouch();if(quick) await saveStatblock(false);else renderStatblock();
+  }
+});
+window.addEventListener('beforeunload',e=>{if(SB.dirty||SB.busy){e.preventDefault();e.returnValue='';}});
 
 </script>
 </body>
