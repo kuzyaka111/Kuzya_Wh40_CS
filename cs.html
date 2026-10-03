@@ -5271,6 +5271,20 @@ function gearRocketRow(r){
   if (r.loadRocket) return g.find(x => gearRowType(x) === 'rockets' && x.name === r.loadRocket) || null;
   return null;
 }
+function gearIsShotgun(r, w){
+  const item = r && r.item_id != null ? GEAR_MAP[r.item_id] : null;
+  if (String(w?.type || r?.type || item?.stats?.type || '').trim() !== 'weapon_ranged') return false;
+  if ([41,48,58].includes(Number(r?.item_id))) return true;
+  const sources = [r, w, r?.weapon, item, item?.stats].filter(x => x && typeof x === 'object');
+  return sources.some(x => [x.family, x.weapon_family, x.subtype, x.weapon_subtype, x.class, x.name_en, x.name]
+    .some(value => /\bshotguns?\b|дробов|\blinebreaker\b/i.test(String(value || '').replace(/[_-]+/g, ' '))));
+}
+function ammoMatchesWeapon(ammoClass, ammoId, r, w){
+  if (/\bxenopurge\b/i.test(String(AMMO_MAP[ammoId]?.name || ''))) return gearIsShotgun(r, w);
+  if (Number(ammoId) === 6 || ammoClass === 'Дробовое') return [41,48].includes(Number(r?.item_id));
+  const wcls = (w && w.class) ? String(w.class).trim() : '';
+  return !wcls || !ammoClass || ammoClass === wcls;
+}
 function gearAmmoOptions(r, w){
   const wcls = (w && w.class) ? String(w.class).trim() : '';
   if (LAUNCHER_CLASSES.has(wcls)){
@@ -5286,7 +5300,7 @@ function gearAmmoOptions(r, w){
   list.forEach(a => { if (a.weapon === r.name && a.loaded) current = a.name; });
   const opts = ['<option value="">— не выбран —</option>']
     .concat(list
-      .filter(a => { const cls = AMMO_MAP[a.ammo_id]?.used_for || a.class; return Number(a.ammo_id) === 6 || cls === 'Дробовое' ? [41,48].includes(Number(r.item_id)) : (!wcls || !cls || cls === wcls); })
+      .filter(a => ammoMatchesWeapon(AMMO_MAP[a.ammo_id]?.used_for || a.class, a.ammo_id, r, w))
       .map(a => `<option value="${esc(a.name)}"${a.name === current ? ' selected' : ''}>${esc(a.name)}${a.class ? ' (' + esc(a.class) + ')' : ''}</option>`))
     .join('');
   return opts;
@@ -5443,9 +5457,7 @@ function ammoWeaponOptions(ammoClass, ammoId){
     if (!w) return;
     if (w.type === 'field') return;
     const wcls = (w.class || '').trim();
-    const shotgun = Number(ammoId) === 6 || ammoClass === 'Дробовое';
-    if (shotgun && ![41,48].includes(Number(r.item_id))) return;
-    if (!shotgun && ammoClass && wcls && wcls !== ammoClass) return;
+    if (!ammoMatchesWeapon(ammoClass, ammoId, r, w)) return;
     opts.push({ id: (r.item_id != null && r.item_id !== '') ? Number(r.item_id) : null, name: r.name, class: wcls, mag: w.mag || 0 });
   });
   return opts;
