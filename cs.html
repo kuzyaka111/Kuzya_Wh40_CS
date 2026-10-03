@@ -994,6 +994,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .action-foot,.action-modifier-head,.action-choose-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:14px;}
 .action-foot{position:sticky;bottom:-20px;background:#161618;padding:12px 0;margin-top:20px;}
 .action-foot button{flex:1;min-width:0;white-space:normal;}
+#action-modal .action-foot{top:0;bottom:auto;z-index:1;margin:0 0 12px;}
+#action-modal .action-foot button{margin-right:0;}
 .action-error{color:#e88282;font-size:11px;margin:8px 0;white-space:pre-wrap;}
 .action-source-note{color:var(--text-dim);font-size:10px;line-height:1.6;margin-top:10px;}
 .action-modifier-editor{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) minmax(65px,.5fr) auto;gap:6px;margin:8px 0;align-items:center;}
@@ -2104,13 +2106,13 @@ html,body{max-width:100%;overflow-x:hidden;}
 <div class="modal-overlay" id="action-modal">
   <div class="modal-box action-box">
     <h3>Совершить действие</h3>
+    <div class="action-foot"><button type="button" class="modal-close" id="action-cancel">Отменить</button><button type="button" class="modal-confirm" id="action-confirm" disabled>Подтвердить</button></div>
     <div id="action-selected" class="action-selected" hidden></div>
     <div class="action-error" id="action-error" role="alert"></div>
     <div class="action-choose-toolbar"><button type="button" class="modal-close" id="action-add-custom">+ Добавить своё</button></div>
     <div class="desc" id="action-load-status" role="status"></div>
     <button type="button" class="modal-close" id="action-retry" hidden>Повторить загрузку</button>
     <div id="action-choices"></div>
-    <div class="action-foot"><button type="button" class="modal-close" id="action-cancel">Закрыть</button><button type="button" class="modal-confirm" id="action-confirm" disabled>Подтвердить</button></div>
   </div>
 </div>
 <div class="modal-overlay" id="custom-action-modal">
