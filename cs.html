@@ -220,6 +220,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .tooltip td:first-child{white-space:nowrap;color:#c7c2b8;}
 .tooltip b{color:#d8d2c4;font-weight:600;}
 .tooltip.active{display:block;}
+.tooltip.action-description-tooltip{pointer-events:auto;overflow-y:auto;overflow-x:hidden;white-space:pre-wrap;overscroll-behavior:contain;scrollbar-color:#a8862f #161618;}
 
 /* SHEET MODALS */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;align-items:center;justify-content:center;overflow:auto;font-family:'Unbounded',sans-serif;}
@@ -6790,11 +6791,36 @@ function renderNotes(){
 }
 
 let tooltipEventsBound = false;
-function hideTooltip(){
-  $('tooltip').classList.remove('active');
+let tooltipHideTimer = null;
+let actionTooltipAnchor = null;
+function cancelTooltipHide(){
+  clearTimeout(tooltipHideTimer);
+  tooltipHideTimer = null;
 }
-function showTooltip(el){
+function hideTooltip(){
+  cancelTooltipHide();
   const t = $('tooltip');
+  t.classList.remove('active','action-description-tooltip');
+  t.removeAttribute('tabindex');
+  actionTooltipAnchor = null;
+}
+function scheduleTooltipHide(){
+  cancelTooltipHide();
+  tooltipHideTimer = setTimeout(hideTooltip, 250);
+}
+function dismissTooltipOutside(e){
+  const t = $('tooltip');
+  if (t.classList.contains('action-description-tooltip') && t.contains(e.target)) return;
+  hideTooltip();
+}
+function showTooltip(el, actionDescription = false){
+  cancelTooltipHide();
+  const t = $('tooltip');
+  const sameAction = actionDescription && actionTooltipAnchor === el;
+  actionTooltipAnchor = actionDescription ? el : null;
+  t.classList.toggle('action-description-tooltip', actionDescription);
+  if (actionDescription) t.setAttribute('tabindex','0');
+  else t.removeAttribute('tabindex');
   const zoomText = getComputedStyle(document.body).zoom;
   const zoom = (parseFloat(zoomText) / (String(zoomText).endsWith('%') ? 100 : 1)) || 1;
   const viewport = window.visualViewport;
@@ -6802,14 +6828,17 @@ function showTooltip(el){
   const vw = viewport?.width || document.documentElement.clientWidth;
   const vh = viewport?.height || document.documentElement.clientHeight;
   const gap = 8;
-  t.textContent = el.dataset.tooltip;
-  t.style.maxWidth = Math.min(340, Math.max(1, vw - gap * 2) / zoom) + 'px';
-  t.style.maxHeight = Math.max(1, vh - gap * 2) / zoom + 'px';
+  const r = el.getBoundingClientRect();
+  const availableHeight = actionDescription
+    ? Math.max(r.top - vy - gap * 2, vy + vh - r.bottom - gap * 2)
+    : vh - gap * 2;
+  if (!sameAction) { t.textContent = el.dataset.tooltip; t.scrollTop = 0; }
+  t.style.maxWidth = Math.min(actionDescription ? 560 : 340, Math.max(1, vw - gap * 2) / zoom) + 'px';
+  t.style.maxHeight = Math.max(1, availableHeight) / zoom + 'px';
   t.style.left = '0px';
   t.style.top = '0px';
   t.classList.add('active');
   const origin = t.getBoundingClientRect();
-  const r = el.getBoundingClientRect();
   const x = Math.max(vx + gap, Math.min(r.left, vx + vw - origin.width - gap));
   const preferredY = r.top - origin.height - gap >= vy + gap
     ? r.top - origin.height - gap : r.bottom + gap;
@@ -6820,8 +6849,14 @@ function showTooltip(el){
 }
 function bindTooltips(){
   if (!tooltipEventsBound){
-    document.addEventListener('pointerdown', hideTooltip, true);
-    document.addEventListener('scroll', hideTooltip, true);
+    document.addEventListener('pointerdown', dismissTooltipOutside, true);
+    document.addEventListener('scroll', dismissTooltipOutside, true);
+    const t = $('tooltip');
+    t.addEventListener('pointerenter', cancelTooltipHide);
+    t.addEventListener('pointerleave', scheduleTooltipHide);
+    t.addEventListener('focusin', cancelTooltipHide);
+    t.addEventListener('focusout', scheduleTooltipHide);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') hideTooltip(); }, true);
     window.addEventListener('resize', hideTooltip);
     window.addEventListener('blur', hideTooltip);
     window.visualViewport?.addEventListener('resize', hideTooltip);
@@ -6897,10 +6932,10 @@ function actionDescription(a){
 }
 function bindActionTooltips(host){
   host.querySelectorAll('[data-tooltip]').forEach(el=>{
-    el.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch') showTooltip(el);});
-    el.addEventListener('pointerleave',hideTooltip);
-    el.addEventListener('focus',()=>{if(el.matches(':focus-visible')) showTooltip(el);});
-    el.addEventListener('blur',hideTooltip);
+    el.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch') showTooltip(el,true);});
+    el.addEventListener('pointerleave',scheduleTooltipHide);
+    el.addEventListener('focus',()=>{if(el.matches(':focus-visible')) showTooltip(el,true);});
+    el.addEventListener('blur',scheduleTooltipHide);
   });
 }
 function actionWeapons(d){
