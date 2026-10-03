@@ -1346,94 +1346,117 @@ html,body{max-width:100%;overflow-x:hidden;}
 .combi-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 0}.combi-controls label{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.combi-controls select{max-width:100%;min-width:0;background:var(--bg-main,#10110d);color:var(--text-main);border:1px solid var(--border-dark);padding:5px}.combi-secondary .g-name{font-size:13px}
 </style>
 <style data-feature="compact-statblocks">
-/* Compact NPC / vehicle sheets. All new layout rules are scoped. */
-#screen-statblock{
+/* Compact sheets reuse the character sheet's typography and components. */
+#screen-statblock,#sb-entry-modal{
   --bg-main:#0d0d0f;--bg-panel:#161618;--bg-panel-alt:#1c1c1f;
   --border-gold:#a8862f;--border-dark:#3a3a3d;--red:#8c1c1c;--red-bright:#c92a2a;
   --gold:#c9a24b;--text-main:#e6e2d8;--text-dim:#9a958a;
-  padding:24px;font-family:'Unbounded',sans-serif;color:var(--text-main);
+  --txt:var(--text-main);--txt-dim:var(--text-dim);--line:var(--border-dark);
+  font-family:'Unbounded',sans-serif;color:var(--text-main);
 }
-#sb-root .header{display:flex;gap:18px;align-items:center;}
+#screen-statblock{padding:24px;max-width:none;}
+#sb-root .header{display:flex;}
 #sb-root .titles{flex:1;min-width:0;}
 #sb-root h1{overflow-wrap:anywhere;}
-#sb-root .sb-type{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
-#sb-root .sb-class{min-width:116px;text-align:center;color:var(--gold);font-family:'Russo One',serif;text-transform:uppercase;letter-spacing:2px;border:1px solid var(--border-gold);padding:18px 12px;background:#141315;}
-#sb-root .sb-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;color:var(--gold);font-size:11px;overflow-wrap:anywhere;}
-#sb-root .sb-tag{border:1px solid var(--border-dark);padding:3px 7px;max-width:100%;}
-#sb-root .sb-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 22px;border-bottom:1px solid var(--border-dark);}
-#sb-root .sb-toolbar .sb-back{margin-left:auto;}
-#sb-root .sb-status{font-size:11px;color:var(--gold);}
+#sb-root .sb-class{font-family:'Russo One',serif;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);flex-shrink:0;}
+#sb-root .sb-tags{display:flex;flex-wrap:wrap;gap:4px 8px;overflow-wrap:anywhere;}
+#sb-root .sb-tag{max-width:100%;}
+#sb-root .sb-toolbar{grid-template-columns:minmax(0,1fr) auto;height:auto;min-height:56px;}
+#sb-root .sb-toolbar-main,#sb-root .sb-toolbar-right{display:flex;align-items:center;gap:10px;min-width:0;}
+#sb-root .sb-toolbar-right{justify-content:flex-end;}
+#sb-root .sb-status{font-size:11px;color:var(--text-dim);padding:12px 22px 0;}
+#sb-root .sb-status:empty{display:none;}
 #sb-root .sb-error{border:1px solid #a54c46;background:#2a1718;padding:12px;margin:14px 22px;color:#edb3aa;font-size:12px;line-height:1.6;}
-#sb-root .sb-error button{margin-top:8px;}
+#sb-root .sb-error button{margin-top:8px;white-space:normal;}
 #sb-root .sb-identity{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;padding:18px 22px 0;}
 #sb-root .sb-identity .sb-tags-field{grid-column:1/-1;}
-#sb-root .stats-strip{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:8px;}
-#sb-root .stat-box{min-width:0;}
-#sb-root .stat-box .total{cursor:default;font-size:24px;}
-#sb-root .sb-stat-value{width:100%;min-width:0;font-size:19px;text-align:center;padding:5px 0;color:var(--gold);}
-#sb-root .sb-stat-bonus{width:100%;min-width:0;font-size:10px;padding:4px 0;text-align:center;}
-#sb-root .sb-bonus{font-size:10px;color:var(--text-dim);}
-#sb-root .vitals-strip-wrap{padding:14px 0 0;}
+#sb-root input:not(.vit-inline),#sb-root textarea,#sb-root select,
+#sb-entry-modal input,#sb-entry-modal textarea{
+  background:#101012;border:1px solid var(--border-dark);color:var(--text-main);
+  font-family:'Unbounded',sans-serif;font-size:12px;
+}
+#sb-root input:focus,#sb-root textarea:focus,#sb-root select:focus,
+#sb-entry-modal input:focus,#sb-entry-modal textarea:focus{outline:none;border-color:var(--border-gold);}
+#sb-root select option{background:#101012;color:var(--text-main);}
+#sb-root label,#sb-entry-modal label{color:var(--text-dim);}
+#sb-root .stat-box .total{cursor:default;}
+#sb-root .stat-box .total:hover{color:var(--gold);text-shadow:none;}
+#sb-root .stat-box .value-row{max-width:100%;gap:6px;}
+#sb-root .stat-box .bonus-box{min-width:26px;width:auto;padding:0 3px;flex-shrink:0;}
+#sb-root .stat-box input.sb-stat-value{width:60px;min-width:0;color:var(--gold);font-size:26px;font-weight:700;padding:2px 0;text-align:center;}
+#sb-root .stat-box input.sb-stat-bonus{width:32px;min-width:26px;padding:0 2px;background:rgba(140,28,28,.18);border-color:var(--red-bright);color:var(--red-bright);font-size:16px;font-weight:700;text-align:center;}
+#sb-root .sb-stat-bonus::placeholder{color:var(--red-bright);opacity:.65;}
+#sb-root .sb-stat-value::-webkit-inner-spin-button,#sb-root .sb-stat-bonus::-webkit-inner-spin-button,
+#sb-root .sb-stat-value::-webkit-outer-spin-button,#sb-root .sb-stat-bonus::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+#sb-root .sb-stat-value,#sb-root .sb-stat-bonus{appearance:textfield;-moz-appearance:textfield;}
 #sb-root .vitals-strip{grid-template-columns:repeat(3,minmax(0,1fr));}
-#sb-root .vit-name{white-space:normal;font-size:10px;line-height:1.5;}
+#sb-root .vit-name{white-space:normal;line-height:1.5;}
 #sb-root .vit-control{margin-top:auto;}
-#sb-root .vit-inline{width:44px;font-size:12px;}
-#sb-root .sb-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px;padding:18px 22px;align-items:start;}
-#sb-root .sb-column{display:grid;gap:16px;min-width:0;}
+#sb-root .sb-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:18px;padding:18px 22px 22px;align-items:start;}
+#sb-root .sb-column{display:grid;gap:18px;min-width:0;}
 #sb-root .panel{padding:0;min-width:0;}
-#sb-root .panel .section-title{font-size:12px;letter-spacing:1px;overflow-wrap:anywhere;}
-#sb-root .sb-panel-body{padding:14px 16px;}
-#sb-root .sb-group + .sb-group{border-top:1px solid var(--border-dark);padding-top:14px;margin-top:14px;}
-#sb-root .sb-group-head{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px;}
-#sb-root .sb-group-head h3{font-size:12px;margin:0;color:var(--gold);letter-spacing:1px;}
-#sb-root .sb-entry{padding:9px 0;border-bottom:1px solid var(--border-dark);overflow-wrap:anywhere;line-height:1.65;font-size:12px;}
+#sb-root .section-title{overflow-wrap:anywhere;}
+#sb-root .sb-panel-body{padding:12px 16px 16px;}
+#sb-root .sb-panel-body:has(> .panel-tabs){padding:0;}
+#sb-root .sb-group + .sb-group{margin-top:12px;}
+#sb-root .skill-subtitle{margin-top:0;}
+#sb-root .sb-entry{padding:6px 0;border-bottom:1px solid var(--border-dark);overflow-wrap:anywhere;line-height:1.5;font-size:12px;}
 #sb-root .sb-entry:last-child{border-bottom:0;}
-#sb-root .sb-entry-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
-#sb-root .sb-entry-name{font-weight:600;color:var(--text-main);}
+#sb-root .sb-entry-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+#sb-root .sb-entry-name{font-weight:600;color:var(--text-main);min-width:0;overflow-wrap:anywhere;}
 #sb-root .sb-entry-actions{display:flex;gap:4px;flex-shrink:0;}
-#sb-root .sb-entry-actions button{padding:3px 6px;font-size:10px;}
-#sb-root .sb-description{white-space:pre-wrap;color:var(--text-dim);margin-top:5px;}
-#sb-root .sb-weapon-meta{color:var(--gold);font-size:11px;line-height:1.8;margin-top:5px;}
-#sb-root .sb-fields{display:grid;gap:12px;}
-#sb-root .sb-vehicle-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
-#sb-root .sb-field-value{font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;}
-#sb-root .sb-fields label{font-size:9px;}
-#sb-root .sb-empty{font-size:11px;color:var(--text-dim);font-style:italic;line-height:1.6;}
+#sb-root .sb-description{white-space:pre-wrap;color:var(--text-dim);margin-top:4px;font-size:11px;line-height:1.6;overflow-wrap:anywhere;}
+#sb-root .sb-weapon{min-width:0;}
+#sb-root .sb-weapon .gw-slot-head{flex-wrap:wrap;font-size:13px;}
+#sb-root .sb-weapon .sb-entry-name{color:var(--gold);}
+#sb-root .sb-weapon-table{min-width:440px;width:100%;table-layout:auto;}
+#sb-root .sb-weapon-table th{background:#101012;}
+#sb-root .sb-weapon-table td{white-space:nowrap;}
+#sb-root .sb-weapon-qualities .gw-q-chip{cursor:default;white-space:normal;line-height:1.5;}
+#sb-root .sb-arc{color:var(--gold);}
+#sb-root .sb-weapon-tab{cursor:default;}
+#sb-root .sb-fields{display:grid;}
+#sb-root .sb-fields>div{display:grid;grid-template-columns:minmax(110px,.7fr) minmax(0,1.3fr);gap:12px;align-items:start;padding:8px 4px;border-bottom:1px solid var(--border-dark);}
+#sb-root .sb-fields>div:last-child{border-bottom:0;}
+#sb-root .sb-fields label{font-size:11px;letter-spacing:.5px;margin:2px 0 0;}
+#sb-root .sb-field-value{font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--gold);}
+#sb-root .sb-empty{font-size:11px;color:var(--text-dim);font-style:italic;line-height:1.6;padding:6px 0;}
 #sb-root .sb-critical{display:flex;gap:12px;align-items:center;margin-bottom:12px;font-size:11px;color:var(--text-dim);}
 #sb-root .sb-critical input{width:72px;}
 #sb-root textarea{min-height:65px;}
-#sb-root input,#sb-root textarea,#sb-root select{font-family:inherit;font-size:12px;}
 #sb-root .sb-footer{padding:0 22px 18px;text-align:right;font-size:10px;color:var(--text-dim);}
-#sb-entry-modal .box{max-width:660px;}
+#sb-entry-modal{z-index:999;}
+#sb-entry-modal .box{background:#161618;border:2px solid #a8862f;padding:20px;max-width:660px;width:90%;max-height:80vh;color:#e6e2d8;box-shadow:none;}
+#sb-entry-modal h2{font-family:'Russo One',serif;font-size:16px;font-weight:700;letter-spacing:normal;color:#c9a24b;margin:0 0 12px;}
+#sb-entry-modal button{font-family:'Unbounded',sans-serif;background:#1c1c1f;border:1px solid #a8862f;color:#c9a24b;letter-spacing:normal;padding:8px 16px;font-size:12px;}
+#sb-entry-modal button:hover{background:#242024;}
 #sb-entry-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 #sb-entry-fields .sb-wide{grid-column:1/-1;}
 #sb-entry-fields textarea{min-height:130px;}
 #statblock-list .list-item{width:100%;text-align:left;text-transform:none;letter-spacing:normal;white-space:normal;}
 #statblock-list .nm{overflow-wrap:anywhere;}
 #statblock-list .badge{flex-shrink:0;}
-@media(max-width:1000px){
-  #sb-root .sb-columns{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
-  #sb-root .stats-strip{grid-template-columns:repeat(5,minmax(0,1fr));}
+@media(max-width:900px){
+  #sb-root .header{gap:14px;padding:16px;flex-wrap:wrap;}
+  #sb-root .sb-columns{grid-template-columns:1fr;padding:14px;gap:14px;}
+  #sb-root .sb-column{gap:14px;}
+  #sb-root .sb-panel-body{padding:12px;}
+  #sb-root .sb-identity{grid-template-columns:1fr 1fr;padding:14px 14px 0;}
+  #sb-root .sb-identity>div:first-child{grid-column:1/-1;}
 }
-@media(max-width:700px){
-  #screen-statblock{padding:8px;}
-  #sb-root .header{padding:14px;flex-direction:column;align-items:stretch;gap:12px;}
-  #sb-root .titles h1{font-size:22px;}
-  #sb-root .sb-class{font-size:12px;padding:10px;min-width:90px;align-self:flex-end;}
-  #sb-root .sb-columns{grid-template-columns:minmax(0,1fr);padding:14px 12px;gap:14px;}
-  #sb-root .stats-strip-wrap{padding:14px 12px 0;}
-  #sb-root .stats-strip{grid-template-columns:repeat(3,minmax(0,1fr));}
-  #sb-root .vitals-strip{grid-template-columns:1fr;gap:8px;}
-  #sb-root .vit-box{padding:10px;}
-  #sb-root .sb-toolbar{padding:10px 12px;}
-  #sb-root .sb-toolbar button{padding:7px 8px;font-size:10px;}
-  #sb-root .sb-toolbar .sb-back{margin-left:0;}
-  #sb-root .sb-identity{grid-template-columns:1fr;padding:14px 12px 0;}
+@media(max-width:520px){
+  #screen-statblock{padding:10px;}
+  #sb-root{padding-top:76px;}
+  #sb-root .sb-toolbar{grid-template-columns:1fr;gap:6px;padding:8px 10px;}
+  #sb-root .sb-toolbar-main,#sb-root .sb-toolbar-right{gap:6px;justify-content:flex-start;}
+  #sb-root .sb-toolbar .btn{font-size:11px;padding:7px 10px;}
+  #sb-root .sb-class{margin-left:auto;font-size:13px;}
+  #sb-root .vitals-strip{grid-template-columns:1fr;}
+  #sb-root .sb-fields>div{grid-template-columns:1fr;gap:6px;}
   #sb-entry-fields{grid-template-columns:1fr;}
   #sb-entry-modal{padding:10px;}
-  #sb-entry-modal .box{padding:16px;}
+  #sb-entry-modal .box{width:100%;padding:16px;}
   #sb-root .sb-entry-head{flex-wrap:wrap;}
-  #sb-root .sb-vehicle-fields{grid-template-columns:1fr;}
 }
 
 </style>
@@ -11280,24 +11303,33 @@ function sbInput(path,label,value,options={}){
 }
 function sbGroup(key,title){
   const d=sbData(),editing=!!SB.draft;
-  return `<div class="sb-group"><div class="sb-group-head"><h3>${esc(title||SB_GROUPS[key])}</h3>${editing?`<button type="button" class="sm" data-sb-add="${key}" aria-label="Добавить: ${esc(title||SB_GROUPS[key])}">+ Добавить</button>`:''}</div>
-    ${d[key].length?d[key].map((r,i)=>sbEntry(key,r,i)).join(''):'<div class="sb-empty">Нет записей</div>'}</div>`;
+  const add=editing?`<button type="button" class="add-row-btn" data-sb-add="${key}" aria-label="Добавить: ${esc(title||SB_GROUPS[key])}">+ Добавить</button>`:'';
+  const entries=d[key].length?d[key].map((r,i)=>sbEntry(key,r,i)).join(''):'<div class="sb-empty">Нет записей</div>';
+  if(key==='weapons') return `<div class="panel-tabs"><div class="panel-tab active sb-weapon-tab">Оружие</div></div><div class="panel-tab-body active"><div class="gw-slot-grid">${entries}</div>${add}</div>`;
+  return `<div class="sb-group"><h3 class="skill-subtitle">${esc(title||SB_GROUPS[key])}</h3>${entries}${add}</div>`;
 }
 function sbEntry(key,row,index){
-  const actions=SB.draft?`<span class="sb-entry-actions"><button type="button" data-sb-edit="${key}:${index}" aria-label="Изменить: ${esc(row.name)}">Изм.</button><button type="button" class="danger" data-sb-remove="${key}:${index}" aria-label="Убрать: ${esc(row.name)}">×</button></span>`:'';
-  const weaponLabels={weapon_type:'Тип',range:'Дальность',rof:'Темп',damage:'Урон',pen:'ББ',magazine:'Магазин',reload:'Перезарядка',qualities:'Качества',arc:'Сектор обстрела'};
-  const meta=key==='weapons'?Object.entries(weaponLabels).filter(([k])=>row[k]!=='' && row[k]!=null).map(([k,label])=>`${label}: ${esc(row[k])}`).join(' · '):'';
-  return `<div class="sb-entry"><div class="sb-entry-head"><span class="sb-entry-name">${esc(row.name)}</span>${actions}</div>${meta?`<div class="sb-weapon-meta">${meta}</div>`:''}${row.description?`<div class="sb-description">${esc(row.description)}</div>`:''}</div>`;
+  const actions=SB.draft?`<span class="sb-entry-actions"><button type="button" class="mods-edit" data-sb-edit="${key}:${index}" aria-label="Изменить: ${esc(row.name)}">✎</button><button type="button" class="mods-del" data-sb-remove="${key}:${index}" aria-label="Убрать: ${esc(row.name)}">×</button></span>`:'';
+  const description=row.description?`<div class="sb-description">${esc(row.description)}</div>`:'';
+  if(key==='weapons'){
+    const fields=[['range','Дальн.'],['rof','Темп'],['damage','Урон'],['pen','ББ'],['magazine','Маг.'],['reload','Перез.']];
+    const table=`<div class="gw-table-wrap"><table class="gw-table sb-weapon-table" aria-label="Параметры: ${esc(row.name)}"><thead><tr>${fields.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody><tr>${fields.map(([key])=>`<td><b>${esc(row[key]??'')||'—'}</b></td>`).join('')}</tr></tbody></table></div>`;
+    const qualities=row.qualities?`<div class="sb-weapon-qualities"><span class="gw-q-chip">${esc(row.qualities)}</span></div>`:'';
+    const arc=row.arc?`<div class="sb-description">Сектор обстрела: <span class="sb-arc">${esc(row.arc)}</span></div>`:'';
+    return `<div class="gw-slot sb-weapon"><div class="gw-slot-head"><span class="sb-entry-name">${esc(row.name)}${row.weapon_type?` <span class="ammo-class">${esc(row.weapon_type)}</span>`:''}</span>${actions}</div>${table}${qualities}${arc}${description}</div>`;
+  }
+  return `<div class="sb-entry"><div class="sb-entry-head"><span class="sb-entry-name">${esc(row.name)}</span>${actions}</div>${description}</div>`;
 }
 function sbPanel(title,body){ return `<section class="panel"><div class="section-title" data-no-collapse="1"><span>${esc(title)}</span></div><div class="sb-panel-body">${body}</div></section>`; }
 function sbStatsHtml(d){
   return STATS.map(([key,name,tip,hasBonus])=>{
     const value=d.stats[key],bonus=d.bonuses[key]??(value==null?null:Math.floor(Number(value)/10));
-    return `<div class="stat-box"><div class="name" title="${esc(tip)}">${name}</div>${SB.draft
+    const bonusBox=hasBonus?(SB.draft
+      ?`<input class="bonus-box sb-stat-bonus" type="number" min="0" max="999" step="1" data-sb-number="bonuses.${key}" aria-label="Бонус ${name}" value="${d.bonuses[key]??''}" placeholder="${bonus??'—'}" title="Пустое поле: десятки характеристики. Можно указать собственный бонус.">`
+      :`<span class="bonus-box" title="Бонус ${name}" aria-label="Бонус ${name}: ${bonus??'—'}">${bonus??'—'}</span>`):'';
+    return `<div class="stat-box"><div class="name" title="${esc(tip)}">${name}</div><div class="value-row">${bonusBox}${SB.draft
       ?`<input class="sb-stat-value" type="number" min="0" max="999" step="1" data-sb-number="stats.${key}" aria-label="${name}" value="${value??''}" placeholder="—">`
-      :`<div class="total">${value==null?'—':esc(value)}</div>`}${hasBonus?(SB.draft
-        ?`<input class="sb-stat-bonus" type="number" min="0" max="999" step="1" data-sb-number="bonuses.${key}" aria-label="Бонус ${name}" value="${d.bonuses[key]??''}" placeholder="Бонус: ${bonus??'—'}" title="Пустое поле: десятки характеристики. Можно указать собственный бонус.">`
-        :`<span class="sb-bonus">Бонус ${bonus??'—'}</span>`):''}</div>`;
+      :`<div class="total">${value==null?'—':esc(value)}</div>`}</div></div>`;
   }).join('');
 }
 function sbVitalsHtml(d){
@@ -11311,18 +11343,19 @@ function sbVitalsHtml(d){
 function renderStatblock(){
   const d=sbData(),root=$('sb-root'); if(!d) return;
   const editing=!!SB.draft,isVehicle=d.type==='vehicle',p=d.parameters;
-  const tagLine=[d.race,...d.tags].filter(Boolean).map(t=>`<span class="sb-tag">${esc(t)}</span>`).join('');
+  const tagLine=[d.race,...d.tags].filter(Boolean).map(t=>`<span class="sb-tag">[<span class="bracket-tag">${esc(t)}</span>]</span>`).join(' ');
   const identity=editing?`<div class="sb-identity">${sbInput('name','Имя',d.name)}<div><label for="sb-race">Раса</label><select id="sb-race" data-sb-field="race">${sbOptions(SB_RACES,d.race)}</select></div><div><label for="sb-category">Категория</label><select id="sb-category" data-sb-field="category">${sbOptions(SB_CLASSES,d.category)}</select></div><div class="sb-tags-field">${sbInput('tags','Теги — через запятую',d.tags.join(', '))}</div></div>`:'';
   const parameters=isVehicle
     ?sbInput('parameters.vehicle_type','Тип машины',p.vehicle_type,{placeholder:'Наземная машина / шагоход / скиммер…'})+sbInput('parameters.size','Размер',p.size)+sbInput('parameters.tactical_speed','Тактическая скорость, м',p.tactical_speed)+sbInput('parameters.cruising_speed','Крейсерская скорость, км/ч',p.cruising_speed)+sbInput('parameters.manoeuvrability','Манёвренность',p.manoeuvrability,{placeholder:'+0 / +10 / —'})+sbInput('parameters.front','Броня — лоб',p.front)+sbInput('parameters.side','Броня — борт',p.side)+sbInput('parameters.rear','Броня — корма',p.rear)+sbInput('parameters.armour','Броня — примечания',p.armour,{multiline:true})+sbInput('parameters.crew','Экипаж',p.crew)+sbInput('parameters.capacity','Транспортная вместимость',p.capacity)+sbInput('parameters.carry','Грузоподъёмность',p.carry)
     :sbInput('parameters.armour','Броня',p.armour,{multiline:true,placeholder:'Название, зоны и значения'})+sbInput('parameters.speed','Скорости',p.speed,{placeholder:'Полудвижение / движение / натиск / бег'})+sbInput('parameters.carry','Грузоподъёмность',p.carry,{placeholder:'Нести / поднять / толкать'});
   root.classList.toggle('edit-mode',editing);
-  root.innerHTML=`<div class="header"><div class="titles"><div class="sb-type">${isVehicle?'Техника':'НПЦ'} · ${esc(S.chronicle?.name||'')}</div><h1>${esc(d.name)}</h1><div class="sb-tags">${tagLine}</div></div><div class="sb-class">${esc(d.category)}</div></div>
-    <div class="sb-toolbar"><button type="button" data-sb-action="${editing?'save':'edit'}">${editing?'Сохранить':'Редактировать'}</button>${editing?'<button type="button" class="ghost" data-sb-action="cancel">Отменить</button>':''}<span class="sb-status" role="status">${SB.busy?'Сохранение…':SB.dirty?'Есть несохранённые изменения':editing?'Режим редактирования':''}</span><button type="button" class="ghost sb-back" data-sb-action="back">← Хроника</button>${editing?'<button type="button" class="danger" data-sb-action="delete">Удалить</button>':''}</div>
-    ${SB.error?`<div class="sb-error" role="alert">${esc(SB.error)}<br><button type="button" class="sm" data-sb-action="reload">Загрузить сохранённую версию</button></div>`:''}${identity}
-    <div class="stats-strip-wrap"><div class="stats-strip">${sbStatsHtml(d)}</div><div class="vitals-strip-wrap"><div class="vitals-strip">${sbVitalsHtml(d)}</div></div></div>
-    <div class="sb-columns"><div class="sb-column">${sbPanel('Умения, таланты и особенности',sbGroup('skills')+sbGroup('talents')+sbGroup('features'))}${sbPanel('Броня, скорости, грузоподъёмность',`<div class="sb-fields${isVehicle?' sb-vehicle-fields':''}">${parameters}</div>`)}</div>
-    <div class="sb-column">${sbPanel('Снаряжение',sbGroup('weapons'))}</div>
+  root.innerHTML=`<div class="header"><div class="titles"><h1>${esc(d.name)}</h1><div class="sub sb-tags">${tagLine}</div></div><div class="sb-class" aria-label="Категория">${esc(d.category)}</div></div>
+    <div class="footer-actions sb-toolbar"><div class="sb-toolbar-main"><button type="button" class="btn ${editing?'save':''}" data-sb-action="${editing?'save':'edit'}">${editing?'Сохранить':'Редактировать'}</button>${editing?'<button type="button" class="btn cancel" data-sb-action="cancel">Отменить</button>':''}</div><div class="sb-toolbar-right"><button type="button" class="btn sb-back" data-sb-action="back">← Хроника</button>${editing?'<button type="button" class="btn danger" data-sb-action="delete">Удалить</button>':''}</div></div>
+    <div class="sb-status" role="status">${SB.busy?'Сохранение…':SB.dirty?'Есть несохранённые изменения':editing?'Режим редактирования':''}</div>
+    ${SB.error?`<div class="sb-error" role="alert">${esc(SB.error)}<br><button type="button" class="btn" data-sb-action="reload">Загрузить сохранённую версию</button></div>`:''}${identity}
+    <div class="stats-strip-wrap"><div class="stats-strip">${sbStatsHtml(d)}</div></div><div class="vitals-strip-wrap"><div class="vitals-strip">${sbVitalsHtml(d)}</div></div>
+    <div class="sb-columns"><div class="sb-column">${sbPanel('Умения, таланты и особенности',sbGroup('skills')+sbGroup('talents')+sbGroup('features'))}</div>
+    <div class="sb-column">${sbPanel('Снаряжение',sbGroup('weapons'))}${sbPanel('Броня, скорости, грузоподъёмность',`<div class="sb-fields${isVehicle?' sb-vehicle-fields':''}">${parameters}</div>`)}</div>
     ${sbPanel(isVehicle?'Критические повреждения':'Крит-травмы',`<div class="sb-critical"><label for="sb-critical">Критический урон</label><input id="sb-critical" type="number" min="0" step="1" data-sb-number="vitals.critical" aria-label="Критический урон" value="${Number(d.vitals.critical)||0}"></div>`+sbGroup('injuries',isVehicle?'Повреждения':'Травмы'))}
     ${sbPanel('Черты',sbGroup('traits'))}</div><div class="sb-footer">${editing?'Изменения применяются кнопкой «Сохранить»':'Статблок сохранён в Хронике'}</div>`;
   root.inert=SB.busy;
@@ -11413,7 +11446,9 @@ function openStatblockEntry(key,index=-1){
   if(key==='weapons' && SB.draft.type==='vehicle') fields.push(['arc','Сектор обстрела','wide']);
   fields.push(['description','Описание','textarea']);
   $('sb-entry-fields').innerHTML=fields.map(([field,label,kind])=>`<div class="${kind?'sb-wide':''}"><label for="sb-entry-${field}">${label}</label>${kind==='textarea'?`<textarea id="sb-entry-${field}" name="${field}">${esc(row[field]||'')}</textarea>`:`<input id="sb-entry-${field}" name="${field}" value="${esc(row[field]||'')}"${field==='name'?' required maxlength="200"':''}>`}</div>`).join('');
-  openModal('sb-entry-modal');
+  // The Chronicle modal helper clears inputs; keep the selected entry's values.
+  $('sb-entry-modal').classList.remove('hidden');
+  $('sb-entry-name').focus();
 }
 $('sb-entry-form').addEventListener('submit',e=>{
   e.preventDefault();const entry=SB.entry;
