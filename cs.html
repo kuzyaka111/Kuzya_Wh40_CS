@@ -7016,12 +7016,32 @@ function renderNotes(){
 
 let tooltipEventsBound = false;
 let tooltipHideTimer = null;
+let tooltipShowTimer = null;
 let actionTooltipAnchor = null;
+function cancelTooltipShow(){
+  clearTimeout(tooltipShowTimer);
+  tooltipShowTimer = null;
+}
+function scheduleTooltipShow(el, actionDescription = false){
+  cancelTooltipShow();
+  // Возврат из уже открытого описания сохраняет его прокрутку.
+  if (actionDescription && actionTooltipAnchor === el && $('tooltip').classList.contains('active')){
+    cancelTooltipHide();
+    return;
+  }
+  hideTooltip();
+  tooltipShowTimer = setTimeout(() => {
+    tooltipShowTimer = null;
+    if (!el.isConnected || !el.matches(':hover') || !el.getClientRects().length) return;
+    showTooltip(el, actionDescription);
+  }, 1000);
+}
 function cancelTooltipHide(){
   clearTimeout(tooltipHideTimer);
   tooltipHideTimer = null;
 }
 function hideTooltip(){
+  cancelTooltipShow();
   cancelTooltipHide();
   const t = $('tooltip');
   t.classList.remove('active','action-description-tooltip');
@@ -7029,6 +7049,7 @@ function hideTooltip(){
   actionTooltipAnchor = null;
 }
 function scheduleTooltipHide(){
+  cancelTooltipShow();
   cancelTooltipHide();
   tooltipHideTimer = setTimeout(hideTooltip, 250);
 }
@@ -7038,6 +7059,7 @@ function dismissTooltipOutside(e){
   hideTooltip();
 }
 function showTooltip(el, actionDescription = false){
+  cancelTooltipShow();
   cancelTooltipHide();
   const t = $('tooltip');
   const sameAction = actionDescription && actionTooltipAnchor === el;
@@ -7092,7 +7114,7 @@ function bindTooltips(){
     el.dataset.tipBound = '1';
     el.addEventListener('pointerenter', e => {
       if (e.pointerType === 'touch') return;
-      showTooltip(el);
+      scheduleTooltipShow(el);
     });
     el.addEventListener('pointerleave', hideTooltip);
   });
@@ -7156,7 +7178,7 @@ function actionDescription(a){
 }
 function bindActionTooltips(host){
   host.querySelectorAll('[data-tooltip]').forEach(el=>{
-    el.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch') showTooltip(el,true);});
+    el.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch') scheduleTooltipShow(el,true);});
     el.addEventListener('pointerleave',scheduleTooltipHide);
     el.addEventListener('focus',()=>{if(el.matches(':focus-visible')) showTooltip(el,true);});
     el.addEventListener('blur',scheduleTooltipHide);
