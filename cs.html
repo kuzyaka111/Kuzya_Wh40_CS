@@ -3949,7 +3949,7 @@ function raceModsFor(race){
       { name:'Усиление Брони',                       target:'stat', target_name:'sil', mode:'add', effect:20, timing:'post' }
     ],
     cond: [
-      { name:'Авточувства',                         target:'stat', target_name:'vos', mode:'add', effect:10, timing:'post' },
+      { name:'Авточувства',                         target:'stat', target_name:'vos', mode:'add', effect:0, timing:'post' },
       { name:'Обострённые Чувства (Зрение, Слух)',  target:'stat', target_name:'vos', mode:'add', effect:10, timing:'post' }
     ]
   };
@@ -5813,6 +5813,25 @@ function charBase(d, k){
 // Множители mode:'mul' в броске не участвуют — они только для красных полей.
 // В отличие от расчётов листа (permMods) здесь берутся и постоянные, и
 // ситуационные: ситуационные приходят с галочкой, выключенной по умолчанию.
+// Automatic auto-senses always follow the selected armour, never a saved flat bonus.
+function isArmourAutoSenses(m){
+  return m && m.source === RACE_SRC && m.name === 'Авточувства';
+}
+function armourAutoSenses(d){
+  const a = d.armour || {};
+  const item = a.item_id != null && a.item_id !== '' ? GEAR_MAP[Number(a.item_id)]
+    : Object.values(GEAR_MAP).find(g => g && a.name && g.name === a.name);
+  let st = item && item.stats;
+  if (typeof st === 'string'){ try { st = JSON.parse(st); } catch(e){ st = null; } }
+  const entry = Array.isArray(st?.extras) ? st.extras.find(x => String(x?.name || '').trim().toLowerCase() === 'авточувства') : null;
+  const match = String(entry?.text || '').trim().match(/^\+?(\d+)(?=\s|$)/);
+  const value = match ? Number(match[1]) : 0;
+  if (dwActive(d) || !item) return { value:0, unavailable:true, scope:'Не выбрана броня с авточувствами' };
+  if (!value) return { value:0, unavailable:true, scope:'У брони нет авточувств' };
+  const head = equippedHelmetAp(d) ?? (st?.custom_zones ? a.zones?.head : st?.ap?.head);
+  if (a.head_worn === false || !(Number(head) > 0)) return { value, unavailable:true, scope:'Шлем не надет — бонус не применяется' };
+  return { value, unavailable:false, scope:item.name || 'Авточувства брони' };
+}
 function rollMods(d, k){
   const out = [];
   const add = (m, section, locked) => {
@@ -5821,7 +5840,7 @@ function rollMods(d, k){
     const isStat  = m.target === 'stat' && (m.target_name === k || m.target_name === 'all');
     if (!isCheck && !isStat) return;
     const label = m.name || (isCheck ? 'Проверки' : (statFullName(k) || 'Характеристика'));
-    out.push({ label, value: Number(m.effect) || 0, section, locked });
+    out.push({ label, value: Number(m.effect) || 0, section, locked, ...(isArmourAutoSenses(m) ? armourAutoSenses(d) : {}) });
   };
   const mm = d.modifiers || {};
   (mm.perm || []).forEach(m => add(m, 'perm', true));
@@ -7435,7 +7454,7 @@ function rollCharKey(){
 function rollModRows(){
   const rows = rollMods(S.character.character_data, rollCharKey())
     .map((m, i) => ({ label:m.label, value:m.value, locked:m.locked, mi:i,
-                      on: m.locked ? true : ROLL.on[i] === true, scope:m.scope || '' }));
+                      on: !m.unavailable && (m.locked ? true : ROLL.on[i] === true), unavailable:!!m.unavailable, scope:m.scope || '' }));
   ROLL.temp.forEach((m, i) => rows.push({label:m.label,value:m.value,locked:false,temp:i,
     on:m.actionPreset ? m.enabled!==false && actionModifierApplies(m) : true,
     actionPreset:!!m.actionPreset,applicable:!m.actionPreset || actionModifierApplies(m),
@@ -7549,7 +7568,7 @@ function rollModRowHtml(r){
     + '<span class="vl ' + (counted ? tone : 'mod-idle') + '">'
     + (counted && r.value > 0 ? '+' : '') + r.value + '</span>'
     + (r.actionPreset ? '<input type="checkbox" data-action-roll-mod="'+r.temp+'"'+(r.on ? ' checked' : '')+(r.applicable ? '' : ' disabled')+'>' : r.locked || r.temp != null ? '<span class="mk">✓</span>'
-                                  : '<input type="checkbox" data-roll-mod="' + r.mi + '"' + (r.on ? ' checked' : '') + '>')
+                                  : '<input type="checkbox" data-roll-mod="' + r.mi + '"' + (r.on ? ' checked' : '') + (r.unavailable ? ' disabled' : '') + '>')
     + (r.temp == null ? '' : '<button class="rm" data-roll-tmp="' + r.temp + '" title="Убрать">&times;</button>')
     + '</div>';
 }
@@ -7780,7 +7799,8 @@ function bindRollModal(){
     }
     const cb = e.target.closest('[data-roll-mod]');
     if (cb){
-      ROLL.on[cb.dataset.rollMod] = cb.checked;
+      const row = rollModRows().find(r => r.mi === Number(cb.dataset.rollMod));
+      ROLL.on[cb.dataset.rollMod] = !!row && !row.unavailable && cb.checked;
       renderRollMods(); renderRollTotal();
       return;
     }
@@ -8284,6 +8304,7 @@ function renderModDraft(){
 }
 /** Зафиксированная строка: значение только для чтения, правка — карандашом. */
 function renderModEntry(m, section, i){
+  if (isArmourAutoSenses(m)) m = {...m, effect:armourAutoSenses(S.character.character_data).value};
   const t = MOD_TARGET_LABELS[m.target] || m.target;
   const sub = modTargetNameLabel(m.target, m.target_name);
   const mode = m.mode === 'mul' ? '×' : '+';
