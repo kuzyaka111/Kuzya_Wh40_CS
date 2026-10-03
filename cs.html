@@ -348,12 +348,14 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .stats-strip{display:flex;gap:10px;}
 .stats-strip .stat-box{flex:1;}
 .body-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;padding:18px 22px 22px;}
-.combat-grid{grid-template-columns:repeat(6,1fr);}
+.combat-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+.combat-grid > .panel{min-width:0;}
 .col-span-2{grid-column:span 2;}
 .col-span-3{grid-column:span 3;}
-.combat-grid .col-span-2{grid-column:span 2;}
+.combat-grid .col-span-2{grid-column:span 1;}
 .combat-grid .col-span-3{grid-column:span 3;}
-.combat-half-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:18px;}
+.combat-half-row{display:contents;}
+.combat-half-row > .panel:last-child{grid-column:span 2;}
 .combat-half-row > .panel{min-width:0;overflow:hidden;}
 .sheet .panel{background:var(--bg-panel-alt);border:1px solid var(--border-dark);padding:16px;}
 
@@ -429,6 +431,19 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .param-speed-input:focus{outline:none;border-color:var(--border-gold);}
 .sheet .add-alt-speed-li{display:none;}
 .sheet.edit-mode .add-alt-speed-li{display:list-item;}
+.extra-params{container:extra-params / inline-size;}
+.extra-params .param-row .label{min-width:0;overflow-wrap:anywhere;}
+.extra-params .param-chips{min-width:0;max-width:100%;}
+@container extra-params (max-width:480px){
+  .param-row{flex-wrap:wrap;}
+  .param-row > .label,.param-row > .param-name-input{flex:1 0 100%;max-width:100%;}
+  .param-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));flex:1 1 100%;width:100%;}
+  .param-chips.carry-chips{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .param-chip{min-width:0;overflow-wrap:anywhere;}
+  .param-chips.carry-chips .param-chip{white-space:normal;}
+  .param-speed-input{width:100%;min-width:0;}
+}
+
 
 /* ARMOUR ZONES */
 .armour-list{margin:12px 0 0;padding:0;}
@@ -894,6 +909,15 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .injuries-list{list-style:none;margin:8px 0;padding:0;}
 .injury-entry{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#101012;border:1px solid var(--border-dark);margin-bottom:6px;cursor:pointer;transition:border-color .15s;}
 .injury-entry:hover{border-color:var(--border-gold);}
+.injury-entry{gap:8px;min-width:0;}
+.injury-entry > div{min-width:0;overflow-wrap:anywhere;}
+.injury-entry .remove-row-btn{flex:0 0 auto;}
+.injury-edit-form{display:grid;gap:10px;min-width:0;}
+.injury-edit-form label{display:grid;gap:6px;color:var(--text-dim);font-size:12px;}
+.injury-edit-form input,.injury-edit-form textarea{width:100%;min-width:0;background:#101012;border:1px solid var(--border-dark);color:var(--text-main);padding:8px;font:inherit;}
+.injury-edit-form textarea{min-height:160px;resize:vertical;}
+.injury-edit-actions{display:flex;flex-wrap:wrap;gap:8px;}
+
 .injury-entry .i-title{color:var(--text-main);font-size:13px;font-weight:600;margin-bottom:2px;}
 .injury-entry .i-name{color:var(--gold);font-weight:600;font-size:12px;}
 .injury-entry .i-type{font-size:10px;color:var(--text-dim);margin:2px 0 0;}
@@ -1064,7 +1088,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .body-grid{grid-template-columns:1fr;}
   .col-span-2,.col-span-3{grid-column:span 1;}
   .combat-grid{grid-template-columns:1fr;}
-  .combat-half-row{grid-column:auto;grid-template-columns:1fr;}
+  .combat-half-row > .panel:last-child{grid-column:auto;}
   .abilities-grid{grid-template-columns:1fr;}
   .armour-main{grid-template-columns:1fr;}
   .tabs-nav{flex-wrap:wrap;}
@@ -1610,7 +1634,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 
       </div>
 
-      <div class="panel col-span-2" style="padding:0">
+      <div class="panel col-span-2 extra-params" style="padding:0">
         <div class="section-title" data-no-collapse="1"><span>Дополнительные параметры</span></div>
         <div class="panel-body" style="padding:12px 16px 16px;">
           <ul class="param-list">
@@ -1628,7 +1652,7 @@ html,body{max-width:100%;overflow-x:hidden;}
               <button class="add-row-btn" style="width:100%;">+ Добавить скорость</button>
             </li>
             <li class="param-row">
-              <span class="label"><a href="javascript:void(0)" onclick="showCarryHelp('груп');return false;" style="cursor:pointer">Грузоподъёмность</a></span>
+              <span class="label">Грузоподъёмность</span>
               <div class="param-chips carry-chips">
                 <div class="param-chip" id="carry-val" title="Переносимый груз" onclick="showCarryHelp('перенос')">—</div>
                 <div class="param-chip" id="lift-val" title="Подъём" onclick="showCarryHelp('подъём')">—</div>
@@ -6385,8 +6409,63 @@ function renderInjuries(){
   list.querySelectorAll('[data-inj]').forEach(el =>
     el.addEventListener('click', () => {
       const r = rows[Number(el.dataset.inj)];
-      showInfo('Травма: ' + r.name, r.desc || 'Описание отсутствует.');
+      showInjuryInfo(r);
     }));
+}
+
+function showInjuryInfo(row){
+  const character = S.character;
+  if (!character || !character.character_data.injuries.includes(row)) return;
+  showInfo('Травма: ' + (row.title || row.name), row.desc || 'Описание отсутствует.');
+  $('info-params').style.display = '';
+  $('info-params').textContent = row.name || '';
+  const host = $('info-edit');
+  host.innerHTML = '<button type="button" class="modal-confirm" id="injury-edit-open">Изменить</button>';
+  host.querySelector('#injury-edit-open').addEventListener('click', () => editInjuryInfo(row, character));
+}
+
+function editInjuryInfo(row, character = S.character){
+  if (!character || S.character !== character || !character.character_data.injuries.includes(row)) return;
+  showInfo('Изменить травму', '');
+  $('info-params').style.display = '';
+  $('info-params').textContent = row.name || '';
+  const host = $('info-edit');
+  host.innerHTML = `<div class="injury-edit-form">
+    <label for="injury-edit-title">Название<input id="injury-edit-title" type="text" placeholder="Название травмы (необязательно)"></label>
+    <label for="injury-edit-desc">Описание<textarea id="injury-edit-desc"></textarea></label>
+    <div class="injury-edit-actions">
+      <button type="button" class="modal-confirm" id="injury-edit-apply">Применить</button>
+      <button type="button" class="modal-close" id="injury-edit-cancel">Отменить</button>
+    </div>
+  </div>`;
+  const form = host.querySelector('.injury-edit-form');
+  const titleInput = form.querySelector('#injury-edit-title');
+  const descInput = form.querySelector('#injury-edit-desc');
+  titleInput.value = row.title || '';
+  descInput.value = row.desc || '';
+  form.querySelector('#injury-edit-cancel').addEventListener('click', () => {
+    if (S.character !== character || !character.character_data.injuries.includes(row)){
+      closeSheetModal('info-modal');
+      return;
+    }
+    showInjuryInfo(row);
+  });
+  form.querySelector('#injury-edit-apply').addEventListener('click', () => {
+    if (!$('info-modal').classList.contains('active') || host.querySelector('.injury-edit-form') !== form) return;
+    if (S.character !== character || !character.character_data.injuries.includes(row)){
+      closeSheetModal('info-modal');
+      return;
+    }
+    const title = titleInput.value.trim();
+    const desc = descInput.value.trim();
+    if (title !== (row.title || '') || desc !== (row.desc || '')){
+      row.title = title;
+      row.desc = desc;
+      renderInjuries();
+      debouncedSave();
+    }
+    showInjuryInfo(row);
+  });
 }
 
 async function confirmInjury(){
