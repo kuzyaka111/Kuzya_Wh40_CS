@@ -1929,10 +1929,18 @@ html,body{max-width:100%;overflow-x:hidden;}
       </div>
     </div>
     <div style="margin-top:12px;">
+      <label for="injury-severity" style="display:block;margin-bottom:6px;">Номер критической травмы</label>
+      <select id="injury-severity" style="width:100%;background:#101012;border:1px solid var(--border-dark);color:var(--text-main);padding:8px;font-size:12px;margin-bottom:8px;">
+        <option value="">— выберите номер —</option>
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+        <option value="10">10+</option>
+      </select>
       <input type="text" id="injury-title" placeholder="Название травмы (необязательно)" style="width:100%;background:#101012;border:1px solid var(--border-dark);color:var(--text-main);padding:8px;font-size:12px;margin-bottom:8px;">
       <textarea id="injury-desc" placeholder="Описание (необязательно)" style="width:100%;background:#101012;border:1px solid var(--border-dark);color:var(--text-main);padding:8px;font-size:12px;min-height:60px;resize:vertical;"></textarea>
     </div>
-    <button class="modal-confirm" onclick="confirmInjury()">Подтвердить и получить травму</button>
+    <button class="modal-confirm" id="injury-confirm" onclick="confirmInjury()">Добавить травму</button>
     <button class="modal-close" onclick="closeSheetModal('injury-modal')">Отменить</button>
   </div>
 </div>
@@ -2942,7 +2950,35 @@ function grantChapterBonus(d, name){
   grantChapterSquad(d, name);
   (b.talents || []).forEach(spec => grantChapterTalent(d, spec));
   (b.skills || []).forEach(spec => grantChapterSkill(d, spec));
+  grantChapterAugmentations(d, name);
   return b;
+}
+// Орденский имплант хранит собственные качество и правила, не меняя общий справочник.
+function grantChapterAugmentations(d, ref){
+  const chapter = chapterByIdOrName(ref);
+  const grants = chapter?.bonus?.augmentations;
+  if (!d || !Array.isArray(grants)) return;
+  const rows = d.aug_personal || (d.aug_personal = []);
+  grants.forEach(g => {
+    const item = specAugItem(g);
+    if (!item) return;
+    const itemId = toId(item.id);
+    const location = g.location || '';
+    const key = [chapter.id, itemId, location].join(':');
+    if (rows.some(r => r && r.source === CHAPTER_SRC && r.chapter_augmentation && r.grant_key === key)) return;
+    // Уже записанная вручную рука с явно указанной стороной и тем же качеством
+    // удовлетворяет выдаче, но не становится автоматически выданным предметом.
+    if (location && rows.some(r => r && toId(r.item_id) === itemId
+        && r.location === location && (r.quality || '') === (g.quality || ''))) return;
+    const stats = JSON.parse(JSON.stringify(item.stats || {}));
+    if (Array.isArray(g.extras)) stats.extras = JSON.parse(JSON.stringify(g.extras));
+    rows.push({
+      item_id: itemId, name: g.name || item.name || '',
+      desc: g.description || item.description || '', stats,
+      quality: g.quality || '', location,
+      source: CHAPTER_SRC, auto: true, chapter_augmentation: true, grant_key: key
+    });
+  });
 }
 function grantChapterSolo(d, chapterName){
   const key = abilityKeysForChapter(chapterName, 'solo_abilities');
@@ -3541,6 +3577,8 @@ function revokeChapterBonus(d, name){
   ['solo_chapter','solo_codex','squad_chapter','squad_codex','talents'].forEach(k => {
     if (Array.isArray(d[k])) d[k] = d[k].filter(r => r.source !== CHAPTER_SRC);
   });
+  if (Array.isArray(d.aug_personal)) d.aug_personal = d.aug_personal.filter(r =>
+    !(r && r.source === CHAPTER_SRC && r.auto && r.chapter_augmentation));
   [d.skills_adv, d.skills_basic].forEach(arr => {
     if (!Array.isArray(arr)) return;
     arr.forEach(r => {
@@ -4240,8 +4278,12 @@ async function openSheet(id){
     const chRow = chapterByIdOrName(chapRef);
     if (chRow && chRow.id != null) cinfo.chapter_id = Number(chRow.id);
     if (chRow && !cinfo.chapter) cinfo.chapter = chRow.name;
-    grantChapterSolo(S.character.character_data, chRow && chRow.id != null ? Number(chRow.id) : chapRef);
-    grantChapterSquad(S.character.character_data, chRow && chRow.id != null ? Number(chRow.id) : chapRef);
+    const currentChapterRef = chRow && chRow.id != null ? Number(chRow.id) : chapRef;
+    if (Number(chRow?.id) === 53) grantChapterBonus(S.character.character_data, currentChapterRef);
+    else {
+      grantChapterSolo(S.character.character_data, currentChapterRef);
+      grantChapterSquad(S.character.character_data, currentChapterRef);
+    }
   }
   else { grantCommonSolo(S.character.character_data); grantCommonAbilities(S.character.character_data, 'squad_abilities'); }
   // Специализация не зависит от главы: персонаж без главы (а в готовых
@@ -6340,25 +6382,46 @@ function renderInjuries(){
 }
 
 async function confirmInjury(){
+  if (!S.character || S.injurySaving) return;
   const bp = document.querySelector('input[name="bodypart"]:checked');
   const dt = document.querySelector('input[name="damageType"]:checked');
+  const severity = Number($('injury-severity').value);
   if (!bp || !dt) return toast('Выберите часть тела и тип урона');
-  const name = BP_MAP[bp.value] + ' / ' + DMG_MAP[dt.value];
-  let desc = '';
-  const { data, error: injErr } = await sb.from('critical_effects')
-    .select('name, effect, description').eq('zone', BP_MAP[bp.value])
-    .eq('damage_type', DMG_MAP[dt.value]).limit(1);
-  if (injErr) console.warn('Ошибка загрузки крит. травмы:', injErr.message);
-  if (data && data.length) desc = data[0].effect || data[0].description || '';
+  if (!Number.isInteger(severity) || severity < 1 || severity > 10) return toast('Выберите номер критической травмы');
+  const zone = {head:'Голова', torso:'Корпус', 'left-arm':'Рука', 'right-arm':'Рука', 'left-leg':'Нога', 'right-leg':'Нога'}[bp.value];
+  const damageType = DMG_MAP[dt.value];
+  if (!zone || !damageType) return toast('Выберите часть тела и тип урона');
+  const name = BP_MAP[bp.value] + ' / ' + damageType + ' / ' + (severity === 10 ? '10+' : severity);
+  const character = S.character;
   const title = $('injury-title').value.trim();
-  const userDesc = $('injury-desc').value.trim();
-  S.character.character_data.injuries.push({ title, name, desc: userDesc || desc });
-  renderInjuries();
-  closeSheetModal('injury-modal');
-  document.querySelectorAll('input[name="bodypart"],input[name="damageType"]')
-    .forEach(i => i.checked = false);
-  $('injury-title').value = '';
-  $('injury-desc').value = '';
+  let desc = $('injury-desc').value.trim();
+  S.injurySaving = true;
+  $('injury-confirm').disabled = true;
+  try {
+    if (!desc){
+      const {data, error} = await sb.from('critical_effects')
+        .select('name, effect, description').eq('zone', zone)
+        .eq('damage_type', damageType).eq('roll_number', severity).maybeSingle();
+      if (error) throw error;
+      desc = data?.effect || data?.description || '';
+      if (!desc) return toast('Эта критическая травма не найдена. Повторите загрузку или введите описание.');
+    }
+    if (S.character !== character || !$('injury-modal').classList.contains('active')) return;
+    character.character_data.injuries.push({title, name, desc, zone, damage_type: damageType, roll_number: severity});
+    renderInjuries();
+    closeSheetModal('injury-modal');
+    document.querySelectorAll('input[name="bodypart"],input[name="damageType"]')
+      .forEach(i => i.checked = false);
+    $('injury-title').value = '';
+    $('injury-desc').value = '';
+    $('injury-severity').value = '';
+    debouncedSave();
+  } catch(error){
+    toast('Не удалось загрузить критическую травму. Повторите попытку или введите описание.');
+  } finally {
+    S.injurySaving = false;
+    $('injury-confirm').disabled = false;
+  }
 }
 
 function renderArmour(){
@@ -9202,23 +9265,32 @@ function renderChapterList(query){
 
 }
 
-function changeChapter(name){
-  if (!S.character) return;
+async function changeChapter(name){
+  if (!S.character || S.chapterChanging) return;
   if(S.chapterCatalogLoading) return toast('Справочник орденов ещё загружается');
-  const d = S.character.character_data;
-  const prev = (d.info && d.info.chapter) || '';
-  // Отзыв нужен и при повторном выборе того же ордена: выдача бонусов
-  // идемпотентна, а revoke+grant заодно схлопывает накопившиеся дубли.
-  if (prev) revokeChapterBonus(d, prev);
+  const character = S.character;
   const ch = chapterByIdOrName(name);
-  d.info.chapter = name;
-  d.info.chapter_id = (ch && ch.id != null) ? Number(ch.id) : null;
-  grantChapterBonus(d, ch && ch.id != null ? Number(ch.id) : name);
-  Object.keys(SECTIONS).forEach(renderList);
-  closeChapterModal();
-  renderAltSpeeds();
-  updateStatsOnly();
-  debouncedSave();
+  S.chapterChanging = true;
+  try {
+    const grants = ch?.bonus?.augmentations;
+    if (Array.isArray(grants) && grants.length){
+      if (!await loadGearCache()) return;
+      if (grants.some(g => !specAugItem(g))) return toast('Орденский имплант не найден в справочнике снаряжения');
+    }
+    if (S.character !== character) return;
+    const d = character.character_data;
+    const prev = (d.info && d.info.chapter) || '';
+    // Повторный выбор тоже отзывает старую автоматическую выдачу, не затрагивая ручные записи.
+    if (prev) revokeChapterBonus(d, prev);
+    d.info.chapter = name;
+    d.info.chapter_id = (ch && ch.id != null) ? Number(ch.id) : null;
+    grantChapterBonus(d, ch && ch.id != null ? Number(ch.id) : name);
+    Object.keys(SECTIONS).forEach(renderList);
+    closeChapterModal();
+    renderAltSpeeds();
+    updateStatsOnly();
+    debouncedSave();
+  } finally { S.chapterChanging = false; }
 }
 
 function saveCustomChapter(){
