@@ -5478,6 +5478,15 @@ return `<div class="gear-item gear-weapon-row">
   </div>`;
 }
 
+function gearPsyDamageBonus(w, d){
+  if (!d || w?.type !== 'weapon_melee' || !(w.qualities || []).some(q => Number(q?.qid ?? q) === 87)) return 0;
+  const pr = dwPsyRating(d);
+  return pr >= (Number(w.force_min_psy_rating) || 0) ? pr : 0;
+}
+function gearPsyDamageBadgeHtml(w){
+  const value = gearPsyDamageBonus(w, S.character?.character_data);
+  return value ? ` <span class="mod-pos" data-psy-damage-bonus="${value}" title="Бонус урона: текущий Пси-рейтинг">+${value}</span>` : '';
+}
 function gearDmgCellHtml(f, w, i, editable, hasLetter, key, wcls){
   const fval = w ? w[f] : undefined;
   if (editable){
@@ -5495,7 +5504,8 @@ function gearDmgCellHtml(f, w, i, editable, hasLetter, key, wcls){
   const dts = dt ? (DMG_TYPE_LETTER[dt] || dt) : '';
   const badge = key && wcls ? weaponModBadgeHtml(S.character.character_data, wcls, key, f) : '';
   const shown = (raw || dts) ? `${raw} ${dts}`.trim() : '—';
-  return `<td class="gw-h-${f}"><b>${esc(shown)}${badge}</b></td>`;
+  const psyBadge = f === 'dmg' && raw ? gearPsyDamageBadgeHtml(w) : '';
+  return `<td class="gw-h-${f}"><b>${esc(shown)}${badge}${psyBadge}</b></td>`;
 }
 
 function gearSksGlyphs(w){
@@ -7278,6 +7288,7 @@ function updatePsyRating(){
   else if (p.mode === 'push') r = r + 3;
   r += modsAdd(d, 'indicator', 'psi_rating', 'pre') + modsAdd(d, 'indicator', 'psi_rating', 'post');
   $('psy-rating-display').textContent = r;
+  renderList('gear');
 }
 function renderPsySupported(){
   const host = $('psy-supported');
