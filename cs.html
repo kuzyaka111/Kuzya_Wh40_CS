@@ -9026,7 +9026,7 @@ function showGearInfo(row, key, idx){
     const wcls = (w && w.class) ? String(w.class).trim() : '';
     if (wcls) params.push(`<div class="ip-row"><span class="ip-label">Тип боеприпасов:</span><span>${esc(gearAmmoClassLabel(wcls))}</span></div>`);
   }
-  if (w?.cost!=null) params.push(`<div class="ip-row"><span class="ip-label">Реквизиция:</span><span>${esc(gearRequisition(row))}</span></div>`);
+  if (w && Object.prototype.hasOwnProperty.call(w,'cost')) params.push(`<div class="ip-row"><span class="ip-label">Реквизиция:</span><span>${esc(gearRequisition(row) ?? '—')}</span></div>`);
   if (gearCombiConfig(row)) params.push(gearCombiControls(row,idx));
   if (gearAlternateProfiles(row).length){
     const pg=GEAR_GROUPS[gearPrimaryProfile(row).type];
