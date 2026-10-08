@@ -5442,7 +5442,11 @@ function gearBaseQuality(row){
   return GEAR_QUALITIES.some(x=>x.code===q) ? q : 'С';
 }
 function gearItemQuality(row){ return gearHasRelicProperty(row) ? 'И' : gearBaseQuality(row); }
-function gearQualityBadge(row){
+function gearQualityBadge(row,hideOnWeaponCard=false){
+  if(hideOnWeaponCard){
+    const type=gearPrimaryProfile(row)?.type || gearRowType(row);
+    if(['weapon_ranged','weapon_melee'].includes(type))return '';
+  }
   const q=GEAR_QUALITIES.find(x=>x.code===gearItemQuality(row));
   return `<span class="g-quality-badge q-${q.tone}" title="${q.name}">${q.code}</span>`;
 }
@@ -5540,7 +5544,7 @@ function gearItemHtml(r, i, key){
   const wcls = (w && w.class) ? String(w.class).trim() : '';
   return `<div class="gear-item gear-weapon-row ${gearCardClasses(r)}">${gearDeleteButtonHtml(key,i,r.name)}
     <div class="gear-head" data-open="${key}:${i}">
-      <span class="g-name">${esc(r.name)}${gearQualityBadge(r)}${wcls ? `<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>` : ''}</span>
+      <span class="g-name">${esc(r.name)}${gearQualityBadge(r,true)}${wcls ? `<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>` : ''}</span>
       ${r.source === 'custom' ? `<span class="g-src-custom">самодел</span>` : ''}
     </div>${gearQualitiesHtml(r,i,w || {},false)}
   </div>`;
@@ -5683,7 +5687,7 @@ function gearStatsCellsHtml(r,i,g,key,w,editable){
 function gearRowHtml(r, i, g, key){
   const w=gearResolve(r),editable=editMode && r.source==='custom' && w!=null && !gearActiveAlternateProfile(r);
   const wclsv=String(w?.class || '').trim(),quals=gearQualitiesHtml(r,i,w || {},editable);
-  let html=`<tr class="gw-tr"><td class="gw-name-td"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r)}${wclsv?`<span class="ammo-class">${esc(gearAmmoClassLabel(wclsv))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span></td>${gearStatsCellsHtml(r,i,g,key,w,editable)}${gearQtyCell(r,i,g,key)}</tr>`;
+  let html=`<tr class="gw-tr"><td class="gw-name-td"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r,true)}${wclsv?`<span class="ammo-class">${esc(gearAmmoClassLabel(wclsv))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span></td>${gearStatsCellsHtml(r,i,g,key,w,editable)}${gearQtyCell(r,i,g,key)}</tr>`;
   if(quals)html+=`<tr class="gw-qual-tr"><td colspan="${g.fields.length+1+(g.qty || g.qtyCurMax?1:0)}">${quals}</td></tr>`;
   return html;
 }
@@ -5784,7 +5788,7 @@ function gearCardHtml(r,i,g,key,layout=gearColumnLayout([r],g)){
   if(!multi)return `<div class="gw-card ${gearCardClasses(r)}">${remove}<table class="gw-table">${gearColgroupHtml(g,true,layout)}<tbody>${gearRowHtml(r,i,g,key)}</tbody></table></div>`;
   const w=gearResolve(r),wcls=String(w?.class || '').trim();
   const editable=editMode && r.source==='custom' && !gearActiveAlternateProfile(r);
-  return `<div class="gw-card gw-multi-card ${gearCardClasses(r)}">${remove}<div class="gw-card-head"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r)}${wcls?`<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span>${gearProfileSelectorHtml(r,i)}</div>${gearCombiConfig(r)?`<div class="gear-profile-config">${gearCombiControls(r,i)}</div>`:''}${gearProfileTableHtml(r,i,key)}<div class="gw-card-properties">${gearQualitiesHtml(r,i,w || {},editable)}</div></div>`;
+  return `<div class="gw-card gw-multi-card ${gearCardClasses(r)}">${remove}<div class="gw-card-head"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r,true)}${wcls?`<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span>${gearProfileSelectorHtml(r,i)}</div>${gearCombiConfig(r)?`<div class="gear-profile-config">${gearCombiControls(r,i)}</div>`:''}${gearProfileTableHtml(r,i,key)}<div class="gw-card-properties">${gearQualitiesHtml(r,i,w || {},editable)}</div></div>`;
 }
 
 function gearQtyCell(r, i, g, key){
