@@ -834,7 +834,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .gear-quality-card.gq-s{--gear-tone:#a9784b;--gear-fill:rgba(169,120,75,.075);}
 .gear-quality-card.gq-v{--gear-tone:#b7c1cf;--gear-fill:rgba(183,193,207,.07);}
 .gear-quality-card.gq-i{--gear-tone:#d0a84e;--gear-fill:rgba(208,168,78,.085);}
-.gear-quality-card{border:1px solid var(--gear-tone);border-radius:13px;background:var(--gear-fill);box-shadow:none;margin:7px 0;overflow:hidden;}
+.gear-quality-card{position:relative;border:1px solid var(--gear-tone);border-radius:13px;background:var(--gear-fill);box-shadow:none;margin:7px 0;overflow:hidden;}
 .gear-quality-card:last-child{border-bottom:1px solid var(--gear-tone);}
 .gear-quality-card.gear-relic{box-shadow:0 0 10px rgba(224,177,61,.3),inset 0 0 14px rgba(224,177,61,.08);border-color:#e0b13d;}
 .gear-quality-card:hover{background:var(--gear-fill);}
@@ -842,17 +842,28 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .gear-quality-card .g-name{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;}
 .talent-item.gear-quality-card .t-name{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .gw-card-group{min-width:var(--gear-table-min,0);padding:0 5px 5px;}
-.gw-card-group>.gw-table{width:100%;}
+.gw-card-group>.gw-table{width:calc(100% - 2px);margin:0 1px;}
 .gw-card-group>.gw-table th{border:0;background:none;}
 .gw-card .gw-table{width:100%;min-width:100%;table-layout:fixed;}
-.gw-card .gw-table th,.gw-card .gw-table td{border:0;border-left:0;border-right:0;padding:8px 10px;}
+.gw-card .gw-table th,.gw-card .gw-table td{border:0;border-left:0;border-right:0;padding:8px 7px;}
 .gw-card .gw-table th{background:rgba(0,0,0,.12);}
 .gw-card .gw-table .gw-name-td{white-space:normal;}
 .gw-card .gw-table .gw-tr:hover td{background:none;}
 .gw-card .gw-qual-tr td{padding:0 10px 9px;white-space:normal;}
 .gw-card .gw-quals>div,.gear-quality-card>.gw-quals>div{display:flex;flex-wrap:wrap;gap:4px;max-width:100%;overflow:visible;}
-.gw-card-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 10px 6px;}
-.gw-card-head>.remove-row-btn{margin-left:auto;}
+.gw-card-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 38px 6px 10px;}
+.gw-card-group .gw-table th,.gw-card-group .gw-table td,.gear-profile-table .gw-table th,.gear-profile-table .gw-table td{width:auto;min-width:0;max-width:none;}
+.gw-card-group .gw-table input,.gw-card-group .gw-table select,.gear-profile-table .gw-table input,.gear-profile-table .gw-table select{min-width:0;max-width:100%;}
+.gw-card-group .gw-table .gw-ammo-sel,.gear-profile-table .gw-table .gw-ammo-sel{width:100%;}
+.gw-card .g-name{overflow-wrap:anywhere;}
+.gw-card:not(.gw-multi-card) .gw-tr:first-child td:last-child{padding-right:35px;}
+.gw-card-group>.gw-table th:last-child{padding-right:35px;}
+.gear-item.gear-quality-card>.gear-head,.talent-item.gear-quality-card .t-head{padding-right:28px;}
+.sheet.edit-mode .gear-delete{display:flex;position:absolute;top:4px;right:4px;background:rgba(140,28,28,.7);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;line-height:1;width:22px;height:22px;min-width:22px;border-radius:50%;z-index:2;align-items:center;justify-content:center;padding:0;margin:0;opacity:0;pointer-events:none;}
+.sheet.edit-mode .gear-quality-card:hover>.gear-delete,.sheet.edit-mode .gear-quality-card:focus-within>.gear-delete{opacity:1;pointer-events:auto;}
+.sheet.edit-mode .gear-delete:hover{background:rgba(180,40,40,.9);}
+.sheet.edit-mode .gear-delete:focus-visible{opacity:1;pointer-events:auto;outline:2px solid #fff;outline-offset:2px;}
+@media (hover:none),(pointer:coarse){.sheet.edit-mode .gear-quality-card>.gear-delete{opacity:1;pointer-events:auto;}}
 .gear-profile-control{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);max-width:100%;}
 .gear-profile-control select{background:#101012;color:var(--text-main);border:1px solid var(--border-dark);border-radius:5px;padding:4px 7px;font:inherit;width:auto;max-width:300px;min-width:0;}
 .gear-profile-config{padding:0 10px;}
@@ -5212,6 +5223,7 @@ function gearCombiControls(row,i){
   return `<div class="combi-controls"><label>Дополнительное оружие <select data-combi-secondary="${i}"${editMode ? '' : ' disabled'}>${options.join('')}</select></label><span>Реквизиция: <b>${esc(gearRequisition(row))}</b></span></div>`;
 }
 function bindCombiControls(host){
+  bindGearTableSizing(host);
   bindAlternateProfileControls(host);
   host.querySelectorAll('[data-combi-secondary],[data-combi-active]').forEach(el=>el.addEventListener('change',()=>{
     const i=Number(el.dataset.combiSecondary ?? el.dataset.combiActive),row=S.character.character_data.gear[i];
@@ -5520,14 +5532,16 @@ function setArmourExtraValue(d,itemId,name,value){
 function gearRelicBadge(r){
   return gearHasRelicProperty(r) ? '<span class="g-relic-badge gw-q-chip">◆ Реликвия</span>' : '';
 }
+function gearDeleteButtonHtml(key,i,name){
+  return `<button type="button" class="remove-row-btn gear-delete" data-del="${key}:${i}" title="Удалить снаряжение" aria-label="${escAttr('Удалить '+(name || 'снаряжение'))}">&times;</button>`;
+}
 function gearItemHtml(r, i, key){
   const w = gearResolve(r);
   const wcls = (w && w.class) ? String(w.class).trim() : '';
-  return `<div class="gear-item gear-weapon-row ${gearCardClasses(r)}">
+  return `<div class="gear-item gear-weapon-row ${gearCardClasses(r)}">${gearDeleteButtonHtml(key,i,r.name)}
     <div class="gear-head" data-open="${key}:${i}">
       <span class="g-name">${esc(r.name)}${gearQualityBadge(r)}${wcls ? `<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>` : ''}</span>
       ${r.source === 'custom' ? `<span class="g-src-custom">самодел</span>` : ''}
-      <button class="remove-row-btn" data-del="${key}:${i}">✕</button>
     </div>${gearQualitiesHtml(r,i,w || {},false)}
   </div>`;
 }
@@ -5669,19 +5683,91 @@ function gearStatsCellsHtml(r,i,g,key,w,editable){
 function gearRowHtml(r, i, g, key){
   const w=gearResolve(r),editable=editMode && r.source==='custom' && w!=null && !gearActiveAlternateProfile(r);
   const wclsv=String(w?.class || '').trim(),quals=gearQualitiesHtml(r,i,w || {},editable);
-  let html=`<tr class="gw-tr"><td class="gw-name-td"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r)}${wclsv?`<span class="ammo-class">${esc(gearAmmoClassLabel(wclsv))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span><button class="remove-row-btn" data-del="${key}:${i}">✕</button></td>${gearStatsCellsHtml(r,i,g,key,w,editable)}${gearQtyCell(r,i,g,key)}</tr>`;
+  let html=`<tr class="gw-tr"><td class="gw-name-td"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r)}${wclsv?`<span class="ammo-class">${esc(gearAmmoClassLabel(wclsv))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span></td>${gearStatsCellsHtml(r,i,g,key,w,editable)}${gearQtyCell(r,i,g,key)}</tr>`;
   if(quals)html+=`<tr class="gw-qual-tr"><td colspan="${g.fields.length+1+(g.qty || g.qtyCurMax?1:0)}">${quals}</td></tr>`;
   return html;
 }
-const GEAR_COLUMN_WIDTHS={name:250,weight_class:105,dmg:120,pen:64,mag:64,range:80,reload:90,sks:94,ammo:224,qty:140,field_level:150,overload:130};
+let gearMeasureContext=null;
+function gearTextWidth(text,header=false){
+  if(!gearMeasureContext)gearMeasureContext=document.createElement('canvas').getContext('2d');
+  const family=getComputedStyle($('screen-sheet')).fontFamily || 'sans-serif';
+  gearMeasureContext.font=`${header?'400 10':'600 13'}px ${family}`;
+  const value=String(text ?? '');
+  return Math.ceil(gearMeasureContext.measureText(value).width)+(header?value.length:0);
+}
+function gearColumnText(row,field){
+  const w=gearEffWeapon(row,gearResolve(row)) || {};
+  if(field==='name')return row.name || '';
+  if(field==='dmg'){
+    const damage=String(w.dmg ?? ''),letter=DMG_TYPE_LETTER[w.dmg_type] || w.dmg_type || '';
+    const psy=gearPsyDamageBonus(w,S.character?.character_data);
+    const modifier=weaponModBadgeHtml(S.character.character_data,w.class || '','gear','dmg');
+    const span=document.createElement('span');span.innerHTML=modifier;
+    return `${damage} ${letter}${span.textContent || ''}${psy?' +'+psy:''}`.trim();
+  }
+  if(field==='pen'){
+    const span=document.createElement('span');span.innerHTML=weaponModBadgeHtml(S.character.character_data,w.class || '','gear','pen');
+    return String(w.pen ?? '—')+(span.textContent || '');
+  }
+  if(field==='sks'){const sks=gearSksGlyphs(w);return `${sks.s}/${sks.c}/${sks.d}`;}
+  if(field==='ammo'){
+    const select=document.createElement('select');select.innerHTML=gearAmmoOptions(row,w);
+    return select.selectedOptions[0]?.textContent || '— не выбран —';
+  }
+  if(field==='qty')return '';
+  return String(w[field] ?? '—');
+}
+function gearColumnLayout(rows,g,withName=true,readOnly=false){
+  const fields=gearTableColumns(g,withName);
+  const editable=!readOnly && editMode && rows.some(row=>row.source==='custom' && !gearActiveAlternateProfile(row));
+  const columns=fields.map((field,index)=>{
+    const heading=field==='name'?'Название':field==='qty'?'Кол-во':GEAR_FIELD_LABELS[field] || field;
+    const texts=rows.map(row=>gearColumnText(row,field));
+    const longest=Math.max(0,...texts.map(text=>gearTextWidth(text)));
+    const header=gearTextWidth(heading,true)+14;
+    let minimum=header,preferred=Math.max(header,longest+14),grow=1;
+    if(field==='name'){minimum=140;preferred=Math.max(180,Math.min(340,longest+42));grow=3;}
+    else if(field==='ammo'){minimum=Math.max(header,110);preferred=Math.max(minimum,Math.min(260,longest+35));grow=2;}
+    else if(field==='qty'){minimum=g.qtyCurMax?120:110;preferred=minimum;grow=0.4;}
+    else if(field==='weight_class'){minimum=Math.max(header,Math.min(120,longest+14));preferred=Math.max(minimum,longest+14);grow=1.2;}
+    else {minimum=Math.max(header,longest+14);preferred=minimum;grow=field==='dmg'?1.2:0.35;}
+    if(editable && field!=='name' && field!=='ammo' && field!=='qty')minimum=Math.max(minimum,field==='dmg'?140:field==='sks'?150:74);
+    if(withName && index===fields.length-1){minimum+=28;preferred+=28;}
+    preferred=Math.max(minimum,preferred);
+    return {field,minimum,weight:Math.max(grow,(preferred-minimum)/35+grow)};
+  });
+  const minimum=columns.reduce((sum,c)=>sum+c.minimum,0),weight=columns.reduce((sum,c)=>sum+c.weight,0);
+  return {minimum,columns:columns.map(c=>({...c,share:c.weight/weight}))};
+}
 function gearTableColumns(g,withName=true){
   return [...(withName?['name']:[]),...g.fields,...(g.qty || g.qtyCurMax?['qty']:[])];
 }
-function gearTableMinWidth(g,withName=true){
-  return gearTableColumns(g,withName).reduce((sum,f)=>sum+(GEAR_COLUMN_WIDTHS[f] || 90),0);
+function gearTableMinWidth(g,withName=true,rows=[]){
+  return gearColumnLayout(rows,g,withName).minimum;
 }
-function gearColgroupHtml(g,withName=true){
-  return '<colgroup>'+gearTableColumns(g,withName).map(f=>`<col${f==='name'?'':` style="width:${GEAR_COLUMN_WIDTHS[f] || 90}px"`}>`).join('')+'</colgroup>';
+function gearColgroupHtml(g,withName=true,layout=gearColumnLayout([],g,withName)){
+  return '<colgroup>'+layout.columns.map(c=>`<col data-gear-min="${c.minimum}" data-gear-share="${c.share}" style="width:${100*c.minimum/layout.minimum}%">`).join('')+'</colgroup>';
+}
+function fitGearTableColumns(table){
+  const columns=[...table.querySelectorAll(':scope>colgroup>col[data-gear-min]')];
+  const parent=table.parentElement,style=getComputedStyle(parent);
+  const available=parent.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-(parent.classList.contains('gw-card-group')?2:0);
+  if(!columns.length || !available)return;
+  const minimum=columns.reduce((sum,col)=>sum+Number(col.dataset.gearMin),0);
+  const extra=Math.max(0,available-minimum);
+  columns.forEach(col=>col.style.width=(Number(col.dataset.gearMin)+extra*Number(col.dataset.gearShare))+'px');
+}
+const gearSizedTables=new Set();
+const gearTableResizeObserver=new ResizeObserver(entries=>entries.forEach(entry=>entry.target.querySelectorAll(':scope>.gw-table').forEach(fitGearTableColumns)));
+function bindGearTableSizing(host){
+  gearSizedTables.forEach(table=>{
+    if(!table.isConnected){gearTableResizeObserver.unobserve(table.parentElement);gearSizedTables.delete(table);}
+  });
+  host.querySelectorAll('.gw-table').forEach(table=>{
+    if(!table.querySelector('col[data-gear-min]'))return;
+    fitGearTableColumns(table);
+    if(!gearSizedTables.has(table)){gearSizedTables.add(table);gearTableResizeObserver.observe(table.parentElement);}
+  });
 }
 function gearTableHeadHtml(g,withName=true){
   return '<thead><tr>'+gearTableColumns(g,withName).map(f=>`<th class="gw-h-${f}">${f==='name'?'Название':f==='qty'?'Кол-во':esc(GEAR_FIELD_LABELS[f] || f)}</th>`).join('')+'</tr></thead>';
@@ -5689,14 +5775,16 @@ function gearTableHeadHtml(g,withName=true){
 function gearProfileTableHtml(row,i,key,readOnly=false){
   const w=gearResolve(row),g=GEAR_GROUPS[w?.type];if(!g)return '';
   const editable=!readOnly && editMode && row.source==='custom' && !gearActiveAlternateProfile(row);
-  return `<div class="gear-profile-table" style="--gear-table-min:${gearTableMinWidth(g,false)}px"><table class="gw-table">${gearColgroupHtml(g,false)}${gearTableHeadHtml(g,false)}<tbody><tr class="gw-tr">${gearStatsCellsHtml(row,i,g,key,w,editable)}${gearQtyCell(row,i,g,key)}</tr></tbody></table></div>`;
+  const layout=gearColumnLayout([row],g,false,readOnly);
+  return `<div class="gear-profile-table" data-gear-profile-table="${i}" data-gear-profile-readonly="${readOnly}" style="--gear-table-min:${layout.minimum}px"><table class="gw-table">${gearColgroupHtml(g,false,layout)}${gearTableHeadHtml(g,false)}<tbody><tr class="gw-tr">${gearStatsCellsHtml(row,i,g,key,w,editable)}${gearQtyCell(row,i,g,key)}</tr></tbody></table></div>`;
 }
-function gearCardHtml(r,i,g,key){
+function gearCardHtml(r,i,g,key,layout=gearColumnLayout([r],g)){
   const multi=!!gearCombiConfig(r) || gearAlternateProfiles(r).length>0;
-  if(!multi)return `<div class="gw-card ${gearCardClasses(r)}"><table class="gw-table">${gearColgroupHtml(g)}<tbody>${gearRowHtml(r,i,g,key)}</tbody></table></div>`;
+  const remove=gearDeleteButtonHtml(key,i,r.name);
+  if(!multi)return `<div class="gw-card ${gearCardClasses(r)}">${remove}<table class="gw-table">${gearColgroupHtml(g,true,layout)}<tbody>${gearRowHtml(r,i,g,key)}</tbody></table></div>`;
   const w=gearResolve(r),wcls=String(w?.class || '').trim();
   const editable=editMode && r.source==='custom' && !gearActiveAlternateProfile(r);
-  return `<div class="gw-card ${gearCardClasses(r)}"><div class="gw-card-head"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r)}${wcls?`<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span>${gearProfileSelectorHtml(r,i)}<button class="remove-row-btn" data-del="${key}:${i}">✕</button></div>${gearCombiConfig(r)?`<div class="gear-profile-config">${gearCombiControls(r,i)}</div>`:''}${gearProfileTableHtml(r,i,key)}<div class="gw-card-properties">${gearQualitiesHtml(r,i,w || {},editable)}</div></div>`;
+  return `<div class="gw-card gw-multi-card ${gearCardClasses(r)}">${remove}<div class="gw-card-head"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r)}${wcls?`<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span>${gearProfileSelectorHtml(r,i)}</div>${gearCombiConfig(r)?`<div class="gear-profile-config">${gearCombiControls(r,i)}</div>`:''}${gearProfileTableHtml(r,i,key)}<div class="gw-card-properties">${gearQualitiesHtml(r,i,w || {},editable)}</div></div>`;
 }
 
 function gearQtyCell(r, i, g, key){
@@ -5718,9 +5806,32 @@ function gearQtyCell(r, i, g, key){
 }
 
 function gearGroupTableHtml(items, g, key){
-  const minWidth=Math.max(gearTableMinWidth(g),...items.map(({r})=>{const active=GEAR_GROUPS[gearResolve(r)?.type];return active?gearTableMinWidth(active,false)+12:0;}));
-  return `<div class="gw-table-wrap"><div class="gw-card-group" style="--gear-table-min:${minWidth}px"><table class="gw-table">${gearColgroupHtml(g)}${gearTableHeadHtml(g)}</table>${items.map(({r,i})=>gearCardHtml(r,i,g,key)).join('')}</div></div>`;
+  const rows=items.filter(({r})=>!gearCombiConfig(r) && !gearAlternateProfiles(r).length).map(({r})=>r);
+  const layout=gearColumnLayout(rows,g);
+  const minWidth=Math.max(layout.minimum,...items.map(({r})=>{const active=GEAR_GROUPS[gearResolve(r)?.type];return active?gearColumnLayout([r],active,false).minimum:0;}))+12;
+  const type=Object.keys(GEAR_GROUPS).find(t=>GEAR_GROUPS[t]===g);
+  return `<div class="gw-table-wrap"><div class="gw-card-group" data-gear-table-type="${type}" data-gear-table-rows="${items.map(x=>x.i).join(',')}" style="--gear-table-min:${minWidth}px"><table class="gw-table">${gearColgroupHtml(g,true,layout)}${gearTableHeadHtml(g)}</table>${items.map(({r,i})=>gearCardHtml(r,i,g,key,layout)).join('')}</div></div>`;
 }
+function refitGearTables(host=document){
+  if(!S.character)return;
+  const rows=S.character.character_data.gear || [];
+  host.querySelectorAll('.gw-card-group[data-gear-table-type]').forEach(group=>{
+    const g=GEAR_GROUPS[group.dataset.gearTableType];if(!g)return;
+    const items=group.dataset.gearTableRows.split(',').map(i=>rows[Number(i)]).filter(Boolean);
+    const plain=items.filter(r=>!gearCombiConfig(r) && !gearAlternateProfiles(r).length),layout=gearColumnLayout(plain,g);
+    const minimum=Math.max(layout.minimum,...items.map(r=>{const active=GEAR_GROUPS[gearResolve(r)?.type];return active?gearColumnLayout([r],active,false).minimum:0;}))+12;
+    group.style.setProperty('--gear-table-min',minimum+'px');
+    group.querySelectorAll(':scope>.gw-table,:scope>.gw-card>.gw-table').forEach(table=>table.querySelector('colgroup').outerHTML=gearColgroupHtml(g,true,layout));
+  });
+  host.querySelectorAll('[data-gear-profile-table]').forEach(profile=>{
+    const row=rows[Number(profile.dataset.gearProfileTable)],g=GEAR_GROUPS[gearResolve(row || {})?.type];if(!row || !g)return;
+    const layout=gearColumnLayout([row],g,false,profile.dataset.gearProfileReadonly==='true');
+    profile.style.setProperty('--gear-table-min',layout.minimum+'px');
+    profile.querySelector('colgroup').outerHTML=gearColgroupHtml(g,false,layout);
+  });
+  bindGearTableSizing(host);
+}
+if(document.fonts)document.fonts.ready.then(()=>refitGearTables());
 
 function gearTableHtml(rows, key, opts){
   const o = opts || {};
@@ -5887,9 +5998,10 @@ function renderList(key){
     const qBadge = key==='aug_personal' || r.quality ? gearQualityBadge(r) : '';
     const equipmentClasses=key==='aug_personal' ? ' '+gearCardClasses(r) : '';
     return `<div class="talent-item${equipmentClasses}" data-open="${key}:${i}">
+      ${key==='aug_personal'?gearDeleteButtonHtml(key,i,r.name):''}
       <div class="t-head">
         <div class="t-name">${esc(tName)}${qBadge}${abTbl ? abilityReqBadge(r.name, abTbl) : ''}</div>
-        <button class="remove-row-btn" data-del="${key}:${i}">✕</button>
+        ${key==='aug_personal'?'':`<button class="remove-row-btn" data-del="${key}:${i}">✕</button>`}
       </div>
       ${abTbl ? `<div class="solo-item-meta">${abilityCardMeta(r.name, abTbl)}</div>` : ''}
       ${key==='aug_personal' ? gearQualitiesHtml(r,i,r.stats || {},false) : ''}
@@ -5903,6 +6015,7 @@ function bindListEvents(host){
   host.querySelectorAll('[data-del]').forEach(b =>
     b.addEventListener('click', e => {
       e.stopPropagation();
+      if(b.classList.contains('gear-delete') && !editMode)return;
       const [k, i] = b.dataset.del.split(':');
       S.character.character_data[k].splice(Number(i), 1);
       renderList(k);
@@ -5925,6 +6038,7 @@ function bindListEvents(host){
       const row = S.character.character_data.gear[Number(i)];
       if (!row.weapon) row.weapon = {};
       row.weapon[f] = el.value;
+      refitGearTables();
       debouncedSave();
     });
   });
@@ -6937,11 +7051,10 @@ function renderArmourAux(){
   }
   host.innerHTML = rows.map(r => {
     const i = gear.indexOf(r);
-    return `<div class="gear-item ${gearCardClasses(r)}">
+    return `<div class="gear-item ${gearCardClasses(r)}">${gearDeleteButtonHtml('gear',i,r.name)}
       <div class="gear-head" data-open="gear:${i}">
         <span class="g-name">${esc(r.name)}${gearQualityBadge(r)}</span>
         ${r.source === 'custom' ? '<span class="g-src-custom">самодел</span>' : ''}
-        ${editMode ? `<button class="remove-row-btn" data-del="gear:${i}">✕</button>` : ''}
       </div>${gearQualitiesHtml(r,i,catalogItemStats(r),false)}
     </div>`;
   }).join('');
