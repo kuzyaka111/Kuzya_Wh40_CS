@@ -1527,6 +1527,13 @@ html,body{max-width:100%;overflow-x:hidden;}
   #sb-entry-modal .sb-catalog-row .sb-catalog-type{text-align:left}
 }
 
+/* Expandable NPC talents and features; editing controls stay outside the toggle. */
+#sb-root .sb-disclosure-row{display:flex;align-items:flex-start;gap:8px}
+#sb-root .sb-entry-disclosure{flex:1;min-width:0}
+#sb-root .sb-entry-disclosure summary{cursor:pointer;color:var(--gold);overflow-wrap:anywhere;padding:4px 0}
+#sb-root .sb-entry-disclosure summary:focus-visible{outline:1px solid var(--gold);outline-offset:3px}
+#sb-root .sb-entry-disclosure .sb-description{padding:8px 0 2px}
+#sb-root .sb-disclosure-row>.sb-entry-actions{flex:none;padding-top:4px}
 </style>
 </head>
 <body>
@@ -2443,7 +2450,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 <div id="modal-character" class="modal hidden">
   <div class="box">
     <h2 id="char-modal-title">Новый персонаж</h2>
-    <div id="char-kind-wrap" class="hidden"><label>Тип статблока</label><input type="hidden" id="char-kind-input" value="character"><div class="sb-kind-chips" role="group" aria-label="Тип статблока"><button type="button" data-sb-kind="character" aria-pressed="true">Персонаж</button><button type="button" data-sb-kind="npc" aria-pressed="false">НПЦ</button><button type="button" data-sb-kind="vehicle" aria-pressed="false">Техника</button></div></div>
+    <div id="char-kind-wrap" class="hidden"><label>Тип статблока</label><input type="hidden" id="char-kind-input" value="character"><div class="sb-kind-chips" role="group" aria-label="Тип статблока"><button type="button" data-sb-kind="character" aria-pressed="true">Персонаж</button><button type="button" data-sb-kind="npc" aria-pressed="false">НПЦ</button></div></div>
     <label for="char-name-input">Имя</label>
     <input id="char-name-input" placeholder="имя...">
     <div class="row" style="margin-top:16px; justify-content:flex-end">
@@ -11391,6 +11398,7 @@ function sbUuid(){
   const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
   return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
 }
+function sbIsVehicle(d){ return d.race==='Техника' || d.type==='vehicle'; }
 function blankStatblock(type,name){
   return {schema_version:1,type,name:name.trim(),race:'',category:'Рядовой',tags:[],
     stats:Object.fromEntries(STATS.map(([key])=>[key,type==='vehicle'?null:30])),bonuses:{},
@@ -11415,6 +11423,7 @@ function normalizeStatblock(raw){
   delete d.skills; // Obsolete free-text list removed by request; structured skills remain.
   sbNormalizeDetails(d,raw);
   d.tags=Array.isArray(d.tags)?d.tags.map(String):[];
+  if(d.type==='vehicle'){d.type='npc';d.race='Техника';} // Legacy vehicle records keep all parameter values.
   return d;
 }
 function sbOptions(values,selected){
@@ -11452,7 +11461,7 @@ async function loadStatblocks(){
     rows.sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'ru'));
     host.innerHTML=rows.length?rows.map(([id,d])=>`<button type="button" class="list-item clickable" data-sb-open="${esc(id)}">
       <span style="min-width:0"><span class="nm">${esc(d.name)}</span><span class="tags-row">${[d.race,d.category,...(Array.isArray(d.tags)?d.tags:[])].filter(Boolean).map(t=>`<span class="chr-tag">${esc(t)}</span>`).join('')}</span></span>
-      <span class="badge gm">${d.type==='vehicle'?'Техника':'НПЦ'}</span></button>`).join(''):'<div class="empty">НПЦ и техники пока нет.</div>';
+      <span class="badge gm">${sbIsVehicle(d)?'Техника':'НПЦ'}</span></button>`).join(''):'<div class="empty">НПЦ и техники пока нет.</div>';
   } catch(error){
     if(token!==SB.loadToken || !sbAllowed() || S.chronicle.id!==chronicleId) return;
     host.innerHTML=`<div class="empty">Ошибка загрузки: ${esc(error.message)}<br><button type="button" class="sm" onclick="loadStatblocks()">Повторить</button></div>`;
@@ -11532,6 +11541,7 @@ function sbEntry(key,row,index){
     const arc=row.arc?`<div class="sb-description">Сектор обстрела: <span class="sb-arc">${esc(row.arc)}</span></div>`:'';
     return `<div class="gw-slot sb-weapon"><div class="gw-slot-head"><span class="sb-entry-name">${esc(row.name)}${row.weapon_type?` <span class="ammo-class">${esc(row.weapon_type)}</span>`:''}</span>${actions}</div>${table}${sbWeaponProfilesHtml(row)}${qualities}${arc}${description}</div>`;
   }
+  if(['talents','features'].includes(key)) return `<div class="sb-entry sb-disclosure-row"><details class="sb-entry-disclosure"><summary><span class="sb-entry-name">${esc(row.name)}</span></summary>${description||'<div class="sb-description">Описание отсутствует.</div>'}</details>${actions}</div>`;
   return `<div class="sb-entry"><div class="sb-entry-head"><span class="sb-entry-name">${esc(row.name)}</span>${actions}</div>${description}</div>`;
 }
 function sbPanel(title,body){ return `<section class="panel"><div class="section-title" data-no-collapse="1"><span>${esc(title)}</span></div><div class="sb-panel-body">${body}</div></section>`; }
@@ -11547,7 +11557,7 @@ function sbStatsHtml(d){
   }).join('');
 }
 function sbVitalsHtml(d){
-  return [['health',d.type==='vehicle'?'Структурная целостность':'Раны','wounds'],['fatigue','Усталость','fatigue'],['fate','Очки Судьбы','fate']].map(([key,name,cls])=>{
+  return [['health',sbIsVehicle(d)?'Структурная прочность':'Раны','wounds'],['fatigue','Усталость','fatigue'],['fate','Очки Судьбы','fate']].map(([key,name,cls])=>{
     const cur=Number(d.vitals[key])||0,max=Number(d.vitals['max_'+key])||0,pct=max>0?Math.min(100,Math.max(0,cur/max*100)):0;
     return `<div class="vit-box"><div class="vit-name">${name}</div><div class="vit-control"><button type="button" class="vit-arrow" data-sb-step="${key}:-1" aria-label="${name}: уменьшить">◀</button>
       <div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${pct}%"></div><div class="bar-num"><input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.${key}" aria-label="${name}: текущее" value="${cur}"><span>/</span><input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.max_${key}" aria-label="${name}: максимум" value="${max}"${SB.draft?'':' readonly'}></div></div>
@@ -11556,8 +11566,8 @@ function sbVitalsHtml(d){
 }
 function renderStatblock(){
   const d=sbData(),root=$('sb-root'); if(!d) return;
-  const editing=!!SB.draft,isVehicle=d.type==='vehicle',p=d.parameters;
-  const tagLine=`<button type="button" class="sb-tag-button" data-sb-choice="race">[${esc(d.race||'Определить расу')}]</button> <button type="button" class="sb-tag-button" data-sb-choice="preset">[+ Пресет]</button> `+d.tags.map(t=>`<span class="sb-tag">[${esc(t)}]</span>`).join(' ')+` <button type="button" class="sb-tag-button" data-sb-choice="tags" aria-label="Изменить теги">[+ Тег]</button>`;
+  const editing=!!SB.draft,isVehicle=sbIsVehicle(d),p=d.parameters;
+  const tagLine=`<button type="button" class="sb-tag-button" data-sb-choice="race">[${esc(d.race||'Определить тип')}]</button> <button type="button" class="sb-tag-button" data-sb-choice="preset">[+ Пресет]</button> `+d.tags.map(t=>`<span class="sb-tag">[${esc(t)}]</span>`).join(' ')+` <button type="button" class="sb-tag-button" data-sb-choice="tags" aria-label="Изменить теги">[+ Тег]</button>`;
   const identity='';
   const parameters=sbParametersHtml(d);
   root.classList.toggle('edit-mode',editing);
@@ -11658,7 +11668,7 @@ function openStatblockEntry(key,index=-1){
   $('sb-entry-title').textContent=(index<0?'Добавить: ':'Изменить: ')+SB_GROUPS[key];
   let fields=[['name','Название','wide']];
   if(key==='weapons') fields.push(['weapon_type','Тип оружия'],['range','Дальность'],['rof','Темп стрельбы'],['damage','Урон'],['pen','Бронебойность'],['magazine','Магазин'],['reload','Перезарядка'],['qualities','Качества','wide']);
-  if(key==='weapons' && SB.draft.type==='vehicle') fields.push(['arc','Сектор обстрела','wide']);
+  if(key==='weapons' && sbIsVehicle(SB.draft)) fields.push(['arc','Сектор обстрела','wide']);
   fields.push(['description','Описание','textarea']);
   $('sb-entry-fields').innerHTML=fields.map(([field,label,kind])=>`<div class="${kind?'sb-wide':''}"><label for="sb-entry-${field}">${label}</label>${kind==='textarea'?`<textarea id="sb-entry-${field}" name="${field}">${esc(row[field]??'')}</textarea>`:`<input id="sb-entry-${field}" name="${field}" value="${esc(row[field]??'')}"${field==='name'?' required maxlength="200"':''}>`}</div>`).join('');
   // The Chronicle modal helper clears inputs; keep the selected entry's values.
@@ -11792,7 +11802,7 @@ const SB_SPEEDS=[['half','Полудвижение',1],['full','Движение
 const SB_CARRY=[['carry','Нести'],['lift','Поднять'],['push','Толкать']];
 let sbSkillsError='',sbSkillPane='basic';
 function sbChooseKind(kind){
-  if(!['character','npc','vehicle'].includes(kind)) return;
+  if(!['character','npc'].includes(kind)) return;
   $('char-kind-input').value=kind;
   document.querySelectorAll('[data-sb-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sbKind===kind)));
 }
@@ -11842,7 +11852,7 @@ function sbChip(path,label,value,fallback=null,tone=''){
 function sbArmourValue(d,key){const base=d.defence.zones[key];return base==null?null:base+(d.defence.covered[key]?(d.defence.shield||0):0);}
 function sbParametersHtml(d){
   const p=d.parameters;
-  if(d.type==='vehicle'){
+  if(sbIsVehicle(d)){
     const row=(title,fields)=>`<div class="sb-param-row"><h3>${title}</h3><div class="sb-param-chips">${fields.map(([key,label])=>`<div class="sb-param-chip">${sbInput('parameters.'+key,label,p[key])}</div>`).join('')}</div></div>`;
     return row('Броня',[['front','Броня — лоб'],['side','Броня — борт'],['rear','Броня — корма']])+row('Скорости',[['tactical_speed','Тактическая скорость, м'],['cruising_speed','Крейсерская скорость, км/ч'],['manoeuvrability','Манёвренность']])+row('Техника',[['vehicle_type','Тип машины'],['size','Размер'],['crew','Экипаж'],['capacity','Транспортная вместимость'],['carry','Грузоподъёмность']])+(p.armour||SB.draft?sbInput('parameters.armour','Броня — примечания',p.armour,{multiline:true}):'');
   }
@@ -11870,7 +11880,7 @@ function sbBeginChange(){if(!SB.draft) SB.draft=sbClone(SB.record);}
 function sbChoice(kind){
   const d=sbData();
   if(kind==='preset')return sbModal('preset','Пресеты','<div class="sb-wide sb-empty">Пресетов пока нет.</div>');
-  if(kind==='race'||kind==='category') return sbModal('choice',kind==='race'?'Выбрать расу':'Выбрать категорию',`<div class="sb-wide sb-choice-grid">${(kind==='race'?SB_RACES:SB_CLASSES).map(v=>`<button type="button" data-sb-choice-value="${esc(v)}" aria-pressed="${d[kind]===v}">${esc(v)}</button>`).join('')}</div>`,{field:kind});
+  if(kind==='race'||kind==='category') return sbModal('choice',kind==='race'?'Выбрать тип':'Выбрать категорию',`<div class="sb-wide sb-choice-grid">${(kind==='race'?SB_RACES:SB_CLASSES).map(v=>`<button type="button" data-sb-choice-value="${esc(v)}" aria-pressed="${d[kind]===v}">${esc(v)}</button>`).join('')}</div>`,{field:kind});
   if(!['name','tags'].includes(kind))return;
   sbModal('identity',kind==='name'?'Имя':'Теги',`<div class="sb-wide"><label for="sb-identity-value">${kind==='name'?'Имя':'Теги — через запятую'}</label><input id="sb-identity-value" name="value" value="${esc(kind==='name'?d.name:d.tags.join(', '))}" ${kind==='name'?'required maxlength="200"':''}></div>`,{field:kind});
 }
