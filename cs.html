@@ -1496,6 +1496,37 @@ html,body{max-width:100%;overflow-x:hidden;}
 #sb-entry-modal .sb-description{white-space:pre-wrap;font-size:12px;line-height:1.6}
 @media(max-width:760px){#sb-root .sb-armour-chips{grid-template-columns:repeat(4,minmax(0,1fr))}#sb-entry-modal .sb-skill-group-edit{grid-template-columns:1fr 1fr}#sb-root .sb-param-chip{flex-basis:85px}#sb-root .sb-param-chip label{min-height:44px}#sb-root .sb-weapon-add{flex-wrap:wrap}}
 
+/* Compact parameter rows: section label beside fixed-width chips. */
+#sb-root .sb-param-row{display:flex;align-items:center;gap:10px;padding:10px 0;flex-wrap:wrap}
+#sb-root .sb-param-row h3{flex:0 0 140px;margin:0;font-size:9px;line-height:1.4}
+#sb-root .sb-param-chips{flex:0 1 auto;gap:6px;align-items:flex-start;min-width:0}
+#sb-root .sb-param-chip{flex:0 0 58px;width:58px;min-width:0}
+#sb-root .sb-armour-chips{display:flex;flex-wrap:wrap;gap:4px;grid-template-columns:none}
+#sb-root .sb-armour-chips .sb-param-chip{flex-basis:42px;width:42px}
+#sb-root .sb-speed-row .sb-param-chip{flex-basis:76px;width:76px}
+#sb-root .sb-param-label,#sb-root .sb-param-chip label{font-size:8px;line-height:1.3;min-height:22px;margin:0;letter-spacing:0;overflow-wrap:anywhere}
+#sb-root .sb-chip-value,#sb-root .sb-param-chip input,#sb-root .sb-param-chip .sb-field-value{min-height:30px;padding:6px 2px;font-size:11px}
+#sb-root .sb-param-chip input[type="number"]{appearance:textfield;-moz-appearance:textfield}
+#sb-root .sb-param-chip input[type="number"]::-webkit-inner-spin-button,#sb-root .sb-param-chip input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+#sb-root .sb-param-row:has([data-sb-field]) .sb-param-chip,#sb-root .sb-param-row:has(.sb-field-value) .sb-param-chip{flex-basis:76px;width:76px}
+#sb-root .sb-param-row:has([data-sb-field]) .sb-param-chip label,#sb-root .sb-param-row:has(.sb-field-value) .sb-param-chip label{min-height:34px}
+#sb-entry-modal .sb-catalog-filters{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+#sb-entry-modal .sb-catalog-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,32%);gap:14px;align-items:start;padding:12px 8px;white-space:normal;overflow:visible;box-sizing:border-box}
+#sb-entry-modal .sb-catalog-row:has(.sb-catalog-name:only-child){grid-template-columns:minmax(0,1fr)}
+#sb-entry-modal .sb-catalog-row .sb-catalog-name{min-width:0;color:var(--gold);font-size:12px;white-space:normal;overflow-wrap:anywhere}
+#sb-entry-modal .sb-catalog-row .sb-catalog-type{min-width:0;text-align:right;white-space:normal;overflow-wrap:anywhere;font-size:10px;line-height:1.5}
+#sb-catalog-results{overflow-x:hidden;scrollbar-gutter:stable;max-height:42vh;margin-top:10px}
+#sb-root .sb-weapon .ammo-class{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:760px){
+  #sb-root .sb-param-row{gap:8px}
+  #sb-root .sb-param-row h3{flex-basis:100%;font-size:9px}
+  #sb-root .sb-param-chips{gap:6px}
+  #sb-root .sb-armour-chips .sb-param-chip{flex-basis:46px;width:46px}
+  #sb-entry-modal .sb-catalog-filters{grid-template-columns:1fr}
+  #sb-entry-modal .sb-catalog-row{grid-template-columns:minmax(0,1fr);gap:5px}
+  #sb-entry-modal .sb-catalog-row .sb-catalog-type{text-align:left}
+}
+
 </style>
 </head>
 <body>
@@ -11345,7 +11376,7 @@ dwInstallHooks();
 // Compact statblocks: manual values, no character progression or Astartes grants.
 const SB_RACES = ['Империум','Тираниды','Орки','Мутанты','Техника','Демоны','Тау','Эльдары'];
 const SB_CLASSES = ['Орда','Рядовой','Элита','Босс'];
-const SB_GROUPS = {skills:'Умения',talents:'Таланты',features:'Особенности',weapons:'Оружие',injuries:'Крит-травмы',traits:'Черты'};
+const SB_GROUPS = {talents:'Таланты',features:'Особенности',weapons:'Оружие',injuries:'Крит-травмы',traits:'Черты'};
 const SB = {record:null,draft:null,chronicleId:null,busy:false,error:'',dirty:false,entry:null,loadToken:0,createId:null};
 function sbClone(value){ return JSON.parse(JSON.stringify(value)); }
 function sbAllowed(){ return !!(S.user && S.chronicle && S.role === 'gm'); }
@@ -11361,7 +11392,7 @@ function blankStatblock(type,name){
   return {schema_version:1,type,name:name.trim(),race:'',category:'Рядовой',tags:[],
     stats:Object.fromEntries(STATS.map(([key])=>[key,type==='vehicle'?null:30])),bonuses:{},
     vitals:{health:10,max_health:10,fatigue:0,max_fatigue:10,fate:0,max_fate:0,critical:0},
-    skills:[],skills_basic:[],skills_adv:[],show_untrained_basic:false,show_untrained_adv:false,talents:[],features:[],weapons:[],injuries:[],traits:[],defence:{zones:{},shield:0,covered:{}},movement:{},carrying:{},
+    skills_basic:[],skills_adv:[],show_untrained_basic:false,show_untrained_adv:false,talents:[],features:[],weapons:[],injuries:[],traits:[],defence:{zones:{},shield:0,covered:{}},movement:{},carrying:{},
     parameters:{armour:'',speed:'',carry:'',vehicle_type:'',size:'',tactical_speed:'',cruising_speed:'',manoeuvrability:'',front:'',side:'',rear:'',crew:'',capacity:''}};
 }
 function normalizeStatblock(raw){
@@ -11378,6 +11409,7 @@ function normalizeStatblock(raw){
   });
   Object.keys(d.vitals).forEach(key=>{d.vitals[key]=sbNumber('vitals.'+key,d.vitals[key])??0;});
   Object.keys(SB_GROUPS).forEach(k=>{ d[k]=Array.isArray(d[k])?d[k].filter(r=>r&&typeof r==='object'):[]; });
+  delete d.skills; // Obsolete free-text list removed by request; structured skills remain.
   sbNormalizeDetails(d,raw);
   d.tags=Array.isArray(d.tags)?d.tags.map(String):[];
   return d;
@@ -11482,9 +11514,10 @@ function sbInput(path,label,value,options={}){
 function sbGroup(key,title){
   const d=sbData(),editing=!!SB.draft;
   const add=editing?`<button type="button" class="add-row-btn" data-sb-add="${key}" aria-label="Добавить: ${esc(title||SB_GROUPS[key])}">+ Добавить</button>`:'';
+  const catalogAdd=editing&&['talents','features'].includes(key)?`<button type="button" class="add-row-btn" data-sb-catalog="${key}" aria-label="Из базы: ${esc(SB_GROUPS[key])}">+ Из базы</button>`:'';
   const entries=d[key].length?d[key].map((r,i)=>sbEntry(key,r,i)).join(''):'<div class="sb-empty">Нет записей</div>';
   if(key==='weapons') return `<div class="panel-tabs"><div class="panel-tab active sb-weapon-tab">Оружие</div></div><div class="panel-tab-body active"><div class="gw-slot-grid">${entries}</div>${editing?'<div class="sb-weapon-add"><button type="button" class="add-row-btn" data-sb-add="weapons">+ Создать</button><button type="button" class="add-row-btn" data-sb-catalog="1">+ Из базы</button></div>':''}</div>`;
-  return `<div class="sb-group"><h3 class="skill-subtitle">${esc(title||SB_GROUPS[key])}</h3>${entries}${add}</div>`;
+  return `<div class="sb-group"><h3 class="skill-subtitle">${esc(title||SB_GROUPS[key])}</h3>${entries}<div class="sb-weapon-add">${add}${catalogAdd}</div></div>`;
 }
 function sbEntry(key,row,index){
   const actions=SB.draft?`<span class="sb-entry-actions"><button type="button" class="mods-edit" data-sb-edit="${key}:${index}" aria-label="Изменить: ${esc(row.name)}">✎</button><button type="button" class="mods-del" data-sb-remove="${key}:${index}" aria-label="Убрать: ${esc(row.name)}">×</button></span>`:'';
@@ -11811,12 +11844,14 @@ function sbParametersHtml(d){
     return row('Броня',[['front','Броня — лоб'],['side','Броня — борт'],['rear','Броня — корма']])+row('Скорости',[['tactical_speed','Тактическая скорость, м'],['cruising_speed','Крейсерская скорость, км/ч'],['manoeuvrability','Манёвренность']])+row('Техника',[['vehicle_type','Тип машины'],['size','Размер'],['crew','Экипаж'],['capacity','Транспортная вместимость'],['carry','Грузоподъёмность']])+(p.armour||SB.draft?sbInput('parameters.armour','Броня — примечания',p.armour,{multiline:true}):'');
   }
   const tb=sbBonus(d,'wyn'),ab=sbBonus(d,'lov');
-  const armour=sbChip('bonuses.wyn','Мод. ВЫН',d.bonuses.wyn,tb,'sb-toughness')+SB_BODY_ZONES.map(([key,label])=>`<div class="sb-param-chip ${d.defence.covered[key]?'sb-shield-active':''}"><span class="sb-param-label">${label}</span><button type="button" class="sb-chip-value" data-sb-shield="${key}" aria-label="Щит: ${label}" aria-pressed="${!!d.defence.covered[key]}" title="Включить или убрать модификатор щита">${sbArmourValue(d,key)??'—'}</button>${SB.draft?`<input class="sb-armour-base" type="number" min="0" max="1000000" step="1" data-sb-number="defence.zones.${key}" aria-label="Броня: ${label}" value="${d.defence.zones[key]??''}" placeholder="Броня">`:''}</div>`).join('')+sbChip('defence.shield','Мод. щита',d.defence.shield,0,'sb-shield-mod');
-  return `<div class="sb-param-row"><h3>Броня</h3><div class="sb-param-chips sb-armour-chips">${armour}</div></div><div class="sb-param-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div><div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
+  const armour=sbChip('bonuses.wyn','Мод. ВЫН',d.bonuses.wyn,tb,'sb-toughness')+SB_BODY_ZONES.map(([key,label])=>SB.draft
+    ?sbChip('defence.zones.'+key,label,d.defence.zones[key])
+    :`<div class="sb-param-chip ${d.defence.covered[key]?'sb-shield-active':''}"><span class="sb-param-label">${label}</span><button type="button" class="sb-chip-value" data-sb-shield="${key}" aria-label="Щит: ${label}" aria-pressed="${!!d.defence.covered[key]}" title="Включить или убрать модификатор щита">${sbArmourValue(d,key)??'—'}</button></div>`).join('')+sbChip('defence.shield','Мод. щита',d.defence.shield,0,'sb-shield-mod');
+  return `<div class="sb-param-row"><h3>Броня</h3><div class="sb-param-chips sb-armour-chips">${armour}</div></div><div class="sb-param-row sb-speed-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div><div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
 }
 function sbSkillsHtml(d){
   const panes=['basic','adv'].map(key=>`<div class="panel-tab-body skills-group-pane ${sbSkillPane===key?'active':''}"><button type="button" class="skill-filter-toggle" data-sb-expand="${key}" aria-expanded="${!!d['show_untrained_'+key]}">${d['show_untrained_'+key]?'Свернуть':'Развернуть'} ${key==='basic'?'нетренированные':'недоступные'}</button><div id="sb-skills-${key}-render"></div></div>`).join('');
-  return `<div class="sb-group"><h3 class="skill-subtitle">Умения</h3><div class="skills-group-tabs">${[['basic','Базовые'],['adv','Продвинутые']].map(([k,n])=>`<button type="button" class="panel-tab skill-group-chip ${sbSkillPane===k?'active':''}" data-sb-pane="${k}" aria-pressed="${sbSkillPane===k}">${n}</button>`).join('')}</div>${sbSkillsError?`<div class="sb-error">${esc(sbSkillsError)} <button type="button" data-sb-skills-retry="1">Повторить</button></div>`:''}${panes}${d.skills.length?`<details class="sb-legacy"><summary>Ранее добавленные умения</summary>${sbGroup('skills','Свои записи')}</details>`:''}</div>`;
+  return `<div class="sb-group"><h3 class="skill-subtitle">Умения</h3><div class="skills-group-tabs">${[['basic','Базовые'],['adv','Продвинутые']].map(([k,n])=>`<button type="button" class="panel-tab skill-group-chip ${sbSkillPane===k?'active':''}" data-sb-pane="${k}" aria-pressed="${sbSkillPane===k}">${n}</button>`).join('')}</div>${sbSkillsError?`<div class="sb-error">${esc(sbSkillsError)} <button type="button" data-sb-skills-retry="1">Повторить</button></div>`:''}${panes}</div>`;
 }
 function sbModal(kind,title,body,entry={}){
   SB.entry={kind,recordId:SB.record.id,...entry};
@@ -11861,18 +11896,79 @@ function sbDrawGroups(){
   const row=SB.entry.row;
   $('sb-skill-groups').innerHTML=(row.groups||[]).map((g,i)=>`<div class="sb-skill-group-edit"><input aria-label="Название группы" data-sb-group="${i}" data-field="name" value="${esc(g.name)}" maxlength="50"><select aria-label="Характеристика группы" data-sb-group="${i}" data-field="characteristic">${sbOptions(CHARACTERISTICS,g.characteristic||row.characteristic||'')}</select><select aria-label="Обучение группы" data-sb-group="${i}" data-field="level">${SKILL_LEVELS.map(l=>`<option value="${l}" ${l===(g.level||'untrained')?'selected':''}>${esc(SKILL_LEVEL_TITLE[l]||l)}</option>`).join('')}</select><button type="button" data-sb-del-group="${i}" aria-label="Удалить группу">×</button></div>`).join('');
 }
-async function sbOpenCatalog(){
-  const owner=SB.record?.id;if(!SB.draft)return;
-  sbModal('catalog','Оружие из базы','<div class="sb-wide">Загрузка…</div>');
-  const loaded=await loadGearCache();
-  if(SB.record?.id!==owner||SB.entry?.kind!=='catalog'||$('sb-entry-modal').classList.contains('hidden'))return;
-  $('sb-entry-fields').innerHTML=loaded?'<div class="sb-wide"><label for="sb-weapon-search">Поиск оружия</label><input id="sb-weapon-search" placeholder="Название оружия"><div id="sb-catalog-results"></div></div>':'<div class="sb-wide">Не удалось загрузить каталог. <button type="button" data-sb-catalog-retry="1">Повторить</button></div>';
-  if(loaded){sbDrawCatalog('');$('sb-weapon-search').focus();}
+async function sbOpenCatalog(key='weapons'){
+  if(!['weapons','talents','features'].includes(key)||!sbAllowed()||!SB.draft||SB.busy)return;
+  const owner=SB.record.id;
+  sbModal('catalog',SB_GROUPS[key]+' из базы','<div class="sb-wide">Загрузка…</div>',{catalogKey:key,rows:[]});
+  const entry=SB.entry;
+  try {
+    let rows;
+    if(key==='weapons'){
+      if(!await loadGearCache())throw new Error('Не удалось загрузить оружие');
+      rows=Object.values(GEAR_MAP);
+    }else{
+      let query=sb.from(key==='talents'?'talents':'features').select('id, name, description'+(key==='features'?', type':''));
+      if(key==='features')query=query.eq('type','creature_feature');
+      const result=await query.order('name').limit(1000);
+      if(result.error)throw result.error;
+      rows=result.data||[];
+    }
+    if(SB.record?.id!==owner||SB.entry!==entry||$('sb-entry-modal').classList.contains('hidden'))return;
+    entry.rows=rows;
+    const searchLabel=key==='weapons'?'Поиск оружия':key==='talents'?'Поиск талантов':'Поиск особенностей';
+    $('sb-entry-fields').innerHTML=`<div class="sb-wide"><label for="sb-weapon-search">${searchLabel}</label><input id="sb-weapon-search" placeholder="Название">${key==='weapons'?`<div class="sb-catalog-filters"><div><label for="sb-weapon-type">Вид оружия</label><select id="sb-weapon-type"><option value="">Все виды</option>${Object.entries(SB_WEAPON_TYPES).map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div><div><label for="sb-weapon-class">Класс оружия</label><select id="sb-weapon-class"><option value="">Все классы</option></select></div></div>`:`<label for="sb-catalog-param">Значение или группа (если нужны)</label><input id="sb-catalog-param" maxlength="100" placeholder="Например: 2 или Орки">`}<div id="sb-catalog-results"></div></div>`;
+    if(key==='weapons')sbCatalogClasses();
+    sbDrawCatalog('');$('sb-weapon-search').focus();
+  } catch(error){
+    if(SB.entry!==entry||$('sb-entry-modal').classList.contains('hidden'))return;
+    $('sb-entry-fields').innerHTML=`<div class="sb-wide">Не удалось загрузить справочник: ${esc(error.message||'ошибка соединения')} <button type="button" data-sb-catalog-retry="1">Повторить</button></div>`;
+  }
+}
+const SB_WEAPON_TYPES={weapon_ranged:'Дальнобойное',weapon_melee:'Рукопашное',shield:'Щиты',grenades:'Гранаты',rockets:'Ракеты',mines:'Мины'};
+function sbHasDreadTag(d){return (d.tags||[]).some(t=>String(t).trim().toLocaleLowerCase('ru')==='дредноут');}
+function sbWeaponAllowed(item,d){
+  const stats=item?.stats;
+  return !!stats&&Object.hasOwn(SB_WEAPON_TYPES,stats.type)&&(!(stats.dread_compatible===true||stats.dread_compatible==='true')||sbHasDreadTag(d));
+}
+function sbFilterWeapons(rows,d,query='',type='',weaponClass=''){
+  const text=query.trim().toLocaleLowerCase('ru');
+  return rows.filter(item=>sbWeaponAllowed(item,d)&&(!type||item.stats.type===type)&&(!weaponClass||item.stats.class===weaponClass)&&String(item.name).toLocaleLowerCase('ru').includes(text));
+}
+function sbCatalogClasses(){
+  if(SB.entry?.catalogKey!=='weapons')return;
+  const select=$('sb-weapon-class'),previous=select.value,type=$('sb-weapon-type').value;
+  const values=[...new Set(sbFilterWeapons(SB.entry.rows,sbData(),'',type).map(r=>r.stats.class).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+  select.innerHTML='<option value="">Все классы</option>'+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  select.value=values.includes(previous)?previous:'';
 }
 function sbDrawCatalog(query){
-  const rows=Object.values(GEAR_MAP).filter(g=>['weapon_ranged','weapon_melee','shield','grenades','rockets','mines'].includes(g.stats?.type)&&g.name.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
-  $('sb-catalog-results').innerHTML=rows.length?rows.map(g=>`<button type="button" class="sb-catalog-row" data-sb-catalog-pick="${g.id}">${esc(g.name)}<span>${esc(g.stats.class||'')}</span></button>`).join(''):'<div class="sb-empty">Ничего не найдено.</div>';
+  const entry=SB.entry;if(entry?.kind!=='catalog')return;
+  const key=entry.catalogKey;
+  const rows=(key==='weapons'?sbFilterWeapons(entry.rows,sbData(),query,$('sb-weapon-type').value,$('sb-weapon-class').value):entry.rows.filter(r=>String(r.name).toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')))).slice().sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  $('sb-catalog-results').innerHTML=rows.length?rows.map(r=>`<button type="button" class="sb-catalog-row" data-sb-catalog-pick="${esc(r.id)}"><span class="sb-catalog-name">${esc(r.name)}</span>${key==='weapons'?`<span class="sb-catalog-type">${esc(r.stats.class||SB_WEAPON_TYPES[r.stats.type])}</span>`:''}</button>`).join(''):'<div class="sb-empty">Ничего не найдено.</div>';
 }
+function sbCatalogEntry(item,param=''){
+  const value=String(param).trim();let name=String(item.name);
+  if(value){const replaced=name.replace(/\([ХX]\)/g,'('+value+')');name=replaced===name?name+' ('+value+')':replaced;}
+  return {name,description:item.description||'',source:'catalog',item_id:item.id,...(value?{param:value}:{})};
+}
+function sbPickCatalog(id){
+  const entry=SB.entry;if(entry?.kind!=='catalog'||!SB.draft||entry.recordId!==SB.record?.id||!sbAllowed()||SB.busy)return;
+  const item=entry.rows.find(r=>String(r.id)===String(id));if(!item)return;
+  if(entry.catalogKey==='weapons'){
+    if(!sbWeaponAllowed(item,SB.draft))return toast('Это оружие доступно только с тегом «Дредноут»');
+    SB.draft.weapons.push(sbWeaponFromCatalog(item));
+  }else if(['talents','features'].includes(entry.catalogKey)){
+    SB.draft[entry.catalogKey].push(sbCatalogEntry(item,$('sb-catalog-param').value));
+  }else return;
+  sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();
+}
+$('sb-entry-fields').addEventListener('change',e=>{
+  if(!['sb-weapon-type','sb-weapon-class'].includes(e.target.id)||SB.entry?.catalogKey!=='weapons')return;
+  if(e.target.id==='sb-weapon-type')sbCatalogClasses();
+  sbDrawCatalog($('sb-weapon-search').value);
+});
+
 function sbWeaponFromCatalog(item,stats=item.stats){
   const qualities=(stats.qualities||[]).map(q=>{const m=WQ_MAP[q.qid];if(!m)return q.name||'';const param=q.param??q.value;if(param==null||param==='')return m.name;const label=m.name.replace(/\([ХX]\)/g,'('+param+')');return label===m.name?label+' ('+param+')':label;}).filter(Boolean).join(', ');
   return {name:item.name,item_id:item.id,source:'catalog',catalog_stats:sbClone(stats),weapon_type:stats.class||GEAR_GROUPS[stats.type]?.title||'',range:stats.range??'',rof:[stats.rof_single,stats.rof_short,stats.rof_long].map(v=>v??'—').join('/'),damage:[stats.dmg,stats.dmg_type].filter(Boolean).join(' · '),pen:stats.pen??'',magazine:stats.mag??'',reload:stats.reload??'',qualities,description:item.description||''};
@@ -11922,8 +12018,8 @@ $('sb-entry-fields').addEventListener('click',e=>{
   if(!sbAllowed()||SB.busy||SB.entry?.recordId!==SB.record?.id)return;
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.sbChoiceValue){sbBeginChange();SB.draft[SB.entry.field]=b.dataset.sbChoiceValue;sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();}
-  if(b.dataset.sbCatalogRetry)sbOpenCatalog();
-  if(b.dataset.sbCatalogPick&&SB.draft){const item=GEAR_MAP[Number(b.dataset.sbCatalogPick)];if(!item)return;SB.draft.weapons.push(sbWeaponFromCatalog(item));sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();}
+  if(b.dataset.sbCatalogRetry)sbOpenCatalog(SB.entry?.catalogKey||'weapons');
+  if(b.dataset.sbCatalogPick&&SB.draft)sbPickCatalog(b.dataset.sbCatalogPick);
   if(b.dataset.sbAddGroup&&SB.entry?.kind==='skill'){
     const r=SB.entry.row;if(!r.groups)r.groups=[];r.groups.push({name:'',characteristic:r.characteristic,level:'untrained'});$('sb-entry-fields').querySelector('[name="groups_enabled"]').checked=true;sbDrawGroups();
   }
@@ -11934,10 +12030,10 @@ $('sb-root').addEventListener('click',async e=>{
   const t=e.target.closest('[data-sb-choice],[data-sb-shield],[data-sb-expand],[data-sb-pane],[data-sb-catalog],[data-sb-skills-retry],[data-sb-skill-open],[data-sb-skill-cycle],[data-sb-skill-cycle-group],[data-sb-skill-del-group]');if(!t)return;
   if(t.dataset.sbChoice)return sbChoice(t.dataset.sbChoice);
   if(t.dataset.sbPane){sbSkillPane=t.dataset.sbPane;return renderStatblock();}
-  if(t.dataset.sbCatalog)return sbOpenCatalog();
+  if(t.dataset.sbCatalog)return sbOpenCatalog(t.dataset.sbCatalog==='1'?'weapons':t.dataset.sbCatalog);
   if(t.dataset.sbSkillsRetry){await sbLoadSkills();sbMergeSkills(sbData());return renderStatblock();}
   if(t.dataset.sbExpand){const key='show_untrained_'+t.dataset.sbExpand;const quick=!SB.draft;sbBeginChange();SB.draft[key]=!SB.draft[key];sbTouch();return quick?saveStatblock(false):renderStatblock();}
-  if(t.dataset.sbShield){const quick=!SB.draft;sbBeginChange();const z=t.dataset.sbShield;SB.draft.defence.covered[z]=!SB.draft.defence.covered[z];sbTouch();return quick?saveStatblock(false):renderStatblock();}
+  if(t.dataset.sbShield){if(SB.draft)return;const quick=!SB.draft;sbBeginChange();const z=t.dataset.sbShield;SB.draft.defence.covered[z]=!SB.draft.defence.covered[z];sbTouch();return quick?saveStatblock(false):renderStatblock();}
   const spec=t.dataset.sbSkillCycle||t.dataset.sbSkillCycleGroup;
   if(spec){
     if(!SB.draft)return sbOpenSkillRoll(spec);
