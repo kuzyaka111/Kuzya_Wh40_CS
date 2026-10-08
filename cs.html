@@ -1459,6 +1459,41 @@ html,body{max-width:100%;overflow-x:hidden;}
   #sb-root .sb-entry-head{flex-wrap:wrap;}
 }
 
+.sb-kind-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 18px}
+.sb-kind-chips button{flex:1;padding:9px 12px;border-radius:4px;letter-spacing:0}
+.sb-kind-chips button[aria-pressed="true"]{background:#302a17;border-color:#c9a24b;color:#e6c76b}
+#sb-root .sb-tag-button,#sb-root .sb-name-button{background:none;border:0;color:var(--gold);padding:0;font:inherit;letter-spacing:inherit;cursor:pointer;text-transform:inherit;text-align:left}
+#sb-root .sb-name-button{color:inherit;overflow-wrap:anywhere;max-width:100%}
+#sb-root .sb-class.sb-tag-button{font-family:'Russo One',serif;font-size:14px;letter-spacing:1px;text-transform:uppercase}
+#sb-root .sb-tag-button:hover,#sb-root .sb-name-button:hover{color:#e8cf87;text-decoration:underline}
+#sb-root .sb-param-row{padding:12px 0;border-bottom:1px solid var(--border-dark)}
+#sb-root .sb-param-row h3{font-family:inherit;font-size:11px;color:var(--text-dim);font-weight:400;margin:0 0 10px;text-transform:uppercase}
+#sb-root .sb-param-chips{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px}
+#sb-root .sb-param-chip{flex:1 1 80px;min-width:0;text-align:center}
+#sb-root .sb-armour-chips{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
+#sb-root .sb-param-label,#sb-root .sb-param-chip label{display:block;font-size:9px;line-height:1.5;min-height:28px;margin:0;color:var(--text-dim)}
+#sb-root .sb-chip-value,#sb-root .sb-param-chip input,#sb-root .sb-param-chip .sb-field-value{display:block;box-sizing:border-box;width:100%;min-height:36px;padding:8px 3px;margin:0;border:1px solid var(--border-gold);border-radius:4px;background:#101012;color:var(--gold);font-family:'Unbounded',sans-serif;font-size:13px;text-align:center;letter-spacing:0}
+#sb-root button.sb-chip-value{cursor:pointer}
+#sb-root .sb-toughness input,#sb-root .sb-toughness .sb-chip-value{color:#e55858;border-color:#8c3030;background:#271516}
+#sb-root .sb-shield-mod input,#sb-root .sb-shield-mod .sb-chip-value,#sb-root .sb-shield-active .sb-chip-value{color:#e0e3e8;border-color:#818b96;background:#373b42}
+#sb-root .sb-param-chip input.sb-armour-base{min-height:26px;padding:4px 2px;font-size:10px;margin-top:5px;border-color:var(--border-dark);color:var(--text-dim)}
+#sb-root .sb-legacy{font-size:11px;color:var(--text-dim);padding:12px 0}
+#sb-root .sb-legacy summary{cursor:pointer;margin-bottom:8px}
+#sb-root .sb-weapon-add{display:flex;gap:8px}
+#sb-root .skill-filter-toggle{background:none;border:0;color:var(--text-dim);text-align:left;letter-spacing:0;white-space:normal;font:inherit;font-size:10px;padding:10px 0;cursor:pointer}
+#sb-root .skill-filter-toggle:hover{color:var(--gold)}
+#sb-root .skill-item [data-sb-skill-cycle],#sb-root [data-sb-skill-cycle-group]{cursor:pointer}
+#sb-entry-modal select{background:#101012;color:#e6e2d8;border:1px solid #3a3a3d;padding:8px;font:inherit;width:100%}
+#sb-entry-modal input[type="checkbox"]{width:auto;margin-right:8px}
+#sb-entry-modal .sb-choice-grid{display:flex;flex-wrap:wrap;gap:10px}
+#sb-entry-modal [aria-pressed="true"]{background:#39301b;color:#e9d08c}
+#sb-entry-modal .sb-skill-group-edit{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;margin:8px 0}
+#sb-entry-modal .sb-catalog-row{display:flex;justify-content:space-between;gap:12px;text-align:left;width:100%;border:0;border-bottom:1px solid #3a3a3d;padding:12px 0}
+#sb-entry-modal .sb-catalog-row span{color:#9a958a;font-size:10px}
+#sb-catalog-results{max-height:45vh;overflow:auto}
+#sb-entry-modal .sb-description{white-space:pre-wrap;font-size:12px;line-height:1.6}
+@media(max-width:760px){#sb-root .sb-armour-chips{grid-template-columns:repeat(4,minmax(0,1fr))}#sb-entry-modal .sb-skill-group-edit{grid-template-columns:1fr 1fr}#sb-root .sb-param-chip{flex-basis:85px}#sb-root .sb-param-chip label{min-height:44px}#sb-root .sb-weapon-add{flex-wrap:wrap}}
+
 </style>
 </head>
 <body>
@@ -2375,7 +2410,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 <div id="modal-character" class="modal hidden">
   <div class="box">
     <h2 id="char-modal-title">Новый персонаж</h2>
-    <div id="char-kind-wrap" class="hidden"><label for="char-kind-input">Тип статблока</label><select id="char-kind-input" style="margin-bottom:12px"><option value="character">Персонаж</option><option value="npc">НПЦ</option><option value="vehicle">Техника</option></select></div>
+    <div id="char-kind-wrap" class="hidden"><label>Тип статблока</label><input type="hidden" id="char-kind-input" value="character"><div class="sb-kind-chips" role="group" aria-label="Тип статблока"><button type="button" data-sb-kind="character" aria-pressed="true">Персонаж</button><button type="button" data-sb-kind="npc" aria-pressed="false">НПЦ</button><button type="button" data-sb-kind="vehicle" aria-pressed="false">Техника</button></div></div>
     <label for="char-name-input">Имя</label>
     <input id="char-name-input" placeholder="имя...">
     <div class="row" style="margin-top:16px; justify-content:flex-end">
@@ -11231,10 +11266,10 @@ function sbUuid(){
   return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
 }
 function blankStatblock(type,name){
-  return {schema_version:1,type,name:name.trim(),race:type==='vehicle'?'Техника':'Империум',category:'Рядовой',tags:[],
+  return {schema_version:1,type,name:name.trim(),race:'',category:'Рядовой',tags:[],
     stats:Object.fromEntries(STATS.map(([key])=>[key,type==='vehicle'?null:30])),bonuses:{},
     vitals:{health:10,max_health:10,fatigue:0,max_fatigue:10,fate:0,max_fate:0,critical:0},
-    skills:[],talents:[],features:[],weapons:[],injuries:[],traits:[],
+    skills:[],skills_basic:[],skills_adv:[],show_untrained_basic:false,show_untrained_adv:false,talents:[],features:[],weapons:[],injuries:[],traits:[],defence:{zones:{},shield:0,covered:{}},movement:{},carrying:{},
     parameters:{armour:'',speed:'',carry:'',vehicle_type:'',size:'',tactical_speed:'',cruising_speed:'',manoeuvrability:'',front:'',side:'',rear:'',crew:'',capacity:''}};
 }
 function normalizeStatblock(raw){
@@ -11251,6 +11286,7 @@ function normalizeStatblock(raw){
   });
   Object.keys(d.vitals).forEach(key=>{d.vitals[key]=sbNumber('vitals.'+key,d.vitals[key])??0;});
   Object.keys(SB_GROUPS).forEach(k=>{ d[k]=Array.isArray(d[k])?d[k].filter(r=>r&&typeof r==='object'):[]; });
+  sbNormalizeDetails(d,raw);
   d.tags=Array.isArray(d.tags)?d.tags.map(String):[];
   return d;
 }
@@ -11261,10 +11297,11 @@ function sbOptions(values,selected){
 function openCreateRecordModal(){
   SB.createId=null;
   $('char-kind-wrap').classList.toggle('hidden',!sbAllowed());
-  $('char-kind-input').value='character';
+  sbChooseKind('character');
   $('char-modal-title').textContent=sbAllowed()?'Новый статблок':'Новый персонаж';
   $('char-name-input').value='';
   openModal('modal-character');
+  sbChooseKind('character');
 }
 async function readStatblocks(chronicleId){
   const {data,error}=await sb.from('chronicles').select('statblocks').eq('id',chronicleId).single();
@@ -11302,6 +11339,7 @@ async function createStatblock(type){
   const block=blankStatblock(type,name);
   SB.busy=true; $('modal-character').inert=true;
   try {
+    await sbLoadSkills(); sbMergeSkills(block);
     const {data,error}=await sb.rpc('save_chronicle_statblock',{p_chronicle_id:chronicleId,p_block_id:id,p_expected_revision:0,p_block:block,p_delete:false});
     let saved=data;
     if (error){
@@ -11328,6 +11366,7 @@ async function openStatblock(id){
   try {
     const raw=(await readStatblocks(chronicleId))[id];
     if (!raw) throw new Error('Запись не найдена. Возможно, её удалили в другой вкладке.');
+    await sbLoadSkills();
     const record=normalizeStatblock(raw);
     if (!sbAllowed() || S.chronicle.id!==chronicleId) return;
     SB.record=record; SB.chronicleId=chronicleId; SB.draft=null; SB.error=''; SB.dirty=false;
@@ -11352,18 +11391,18 @@ function sbGroup(key,title){
   const d=sbData(),editing=!!SB.draft;
   const add=editing?`<button type="button" class="add-row-btn" data-sb-add="${key}" aria-label="Добавить: ${esc(title||SB_GROUPS[key])}">+ Добавить</button>`:'';
   const entries=d[key].length?d[key].map((r,i)=>sbEntry(key,r,i)).join(''):'<div class="sb-empty">Нет записей</div>';
-  if(key==='weapons') return `<div class="panel-tabs"><div class="panel-tab active sb-weapon-tab">Оружие</div></div><div class="panel-tab-body active"><div class="gw-slot-grid">${entries}</div>${add}</div>`;
+  if(key==='weapons') return `<div class="panel-tabs"><div class="panel-tab active sb-weapon-tab">Оружие</div></div><div class="panel-tab-body active"><div class="gw-slot-grid">${entries}</div>${editing?'<div class="sb-weapon-add"><button type="button" class="add-row-btn" data-sb-add="weapons">+ Создать</button><button type="button" class="add-row-btn" data-sb-catalog="1">+ Из базы</button></div>':''}</div>`;
   return `<div class="sb-group"><h3 class="skill-subtitle">${esc(title||SB_GROUPS[key])}</h3>${entries}${add}</div>`;
 }
 function sbEntry(key,row,index){
   const actions=SB.draft?`<span class="sb-entry-actions"><button type="button" class="mods-edit" data-sb-edit="${key}:${index}" aria-label="Изменить: ${esc(row.name)}">✎</button><button type="button" class="mods-del" data-sb-remove="${key}:${index}" aria-label="Убрать: ${esc(row.name)}">×</button></span>`:'';
-  const description=row.description?`<div class="sb-description">${esc(row.description)}</div>`:'';
+  const description=row.description?`<div class="sb-description">${row.source==='catalog'?sbDescriptionHtml(row.description):esc(row.description)}</div>`:'';
   if(key==='weapons'){
     const fields=[['range','Дальн.'],['rof','Темп'],['damage','Урон'],['pen','ББ'],['magazine','Маг.'],['reload','Перез.']];
     const table=`<div class="gw-table-wrap"><table class="gw-table sb-weapon-table" aria-label="Параметры: ${esc(row.name)}"><thead><tr>${fields.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody><tr>${fields.map(([key])=>`<td><b>${esc(row[key]??'')||'—'}</b></td>`).join('')}</tr></tbody></table></div>`;
     const qualities=row.qualities?`<div class="sb-weapon-qualities"><span class="gw-q-chip">${esc(row.qualities)}</span></div>`:'';
     const arc=row.arc?`<div class="sb-description">Сектор обстрела: <span class="sb-arc">${esc(row.arc)}</span></div>`:'';
-    return `<div class="gw-slot sb-weapon"><div class="gw-slot-head"><span class="sb-entry-name">${esc(row.name)}${row.weapon_type?` <span class="ammo-class">${esc(row.weapon_type)}</span>`:''}</span>${actions}</div>${table}${qualities}${arc}${description}</div>`;
+    return `<div class="gw-slot sb-weapon"><div class="gw-slot-head"><span class="sb-entry-name">${esc(row.name)}${row.weapon_type?` <span class="ammo-class">${esc(row.weapon_type)}</span>`:''}</span>${actions}</div>${table}${sbWeaponProfilesHtml(row)}${qualities}${arc}${description}</div>`;
   }
   return `<div class="sb-entry"><div class="sb-entry-head"><span class="sb-entry-name">${esc(row.name)}</span>${actions}</div>${description}</div>`;
 }
@@ -11390,35 +11429,35 @@ function sbVitalsHtml(d){
 function renderStatblock(){
   const d=sbData(),root=$('sb-root'); if(!d) return;
   const editing=!!SB.draft,isVehicle=d.type==='vehicle',p=d.parameters;
-  const tagLine=[d.race,...d.tags].filter(Boolean).map(t=>`<span class="sb-tag">[<span class="bracket-tag">${esc(t)}</span>]</span>`).join(' ');
-  const identity=editing?`<div class="sb-identity">${sbInput('name','Имя',d.name)}<div><label for="sb-race">Раса</label><select id="sb-race" data-sb-field="race">${sbOptions(SB_RACES,d.race)}</select></div><div><label for="sb-category">Категория</label><select id="sb-category" data-sb-field="category">${sbOptions(SB_CLASSES,d.category)}</select></div><div class="sb-tags-field">${sbInput('tags','Теги — через запятую',d.tags.join(', '))}</div></div>`:'';
-  const parameters=isVehicle
-    ?sbInput('parameters.vehicle_type','Тип машины',p.vehicle_type,{placeholder:'Наземная машина / шагоход / скиммер…'})+sbInput('parameters.size','Размер',p.size)+sbInput('parameters.tactical_speed','Тактическая скорость, м',p.tactical_speed)+sbInput('parameters.cruising_speed','Крейсерская скорость, км/ч',p.cruising_speed)+sbInput('parameters.manoeuvrability','Манёвренность',p.manoeuvrability,{placeholder:'+0 / +10 / —'})+sbInput('parameters.front','Броня — лоб',p.front)+sbInput('parameters.side','Броня — борт',p.side)+sbInput('parameters.rear','Броня — корма',p.rear)+sbInput('parameters.armour','Броня — примечания',p.armour,{multiline:true})+sbInput('parameters.crew','Экипаж',p.crew)+sbInput('parameters.capacity','Транспортная вместимость',p.capacity)+sbInput('parameters.carry','Грузоподъёмность',p.carry)
-    :sbInput('parameters.armour','Броня',p.armour,{multiline:true,placeholder:'Название, зоны и значения'})+sbInput('parameters.speed','Скорости',p.speed,{placeholder:'Полудвижение / движение / натиск / бег'})+sbInput('parameters.carry','Грузоподъёмность',p.carry,{placeholder:'Нести / поднять / толкать'});
+  const tagLine=`<button type="button" class="sb-tag-button" data-sb-choice="race">[${esc(d.race||'Определить расу')}]</button> <button type="button" class="sb-tag-button" data-sb-choice="preset">[+ Пресет]</button> `+d.tags.map(t=>`<span class="sb-tag">[${esc(t)}]</span>`).join(' ')+` <button type="button" class="sb-tag-button" data-sb-choice="tags" aria-label="Изменить теги">[+ Тег]</button>`;
+  const identity='';
+  const parameters=sbParametersHtml(d);
   root.classList.toggle('edit-mode',editing);
-  root.innerHTML=`<div class="header"><div class="titles"><h1>${esc(d.name)}</h1><div class="sub sb-tags">${tagLine}</div></div><div class="sb-class" aria-label="Категория">${esc(d.category)}</div></div>
+  root.innerHTML=`<div class="header"><div class="titles"><h1><button type="button" class="sb-name-button" data-sb-choice="name">${esc(d.name)}</button></h1><div class="sub sb-tags">${tagLine}</div></div><button type="button" class="sb-class sb-tag-button" data-sb-choice="category" aria-label="Категория">${esc(d.category)}</button></div>
     <div class="footer-actions sb-toolbar"><div class="sb-toolbar-main"><button type="button" class="btn ${editing?'save':''}" data-sb-action="${editing?'save':'edit'}">${editing?'Сохранить':'Редактировать'}</button>${editing?'<button type="button" class="btn cancel" data-sb-action="cancel">Отменить</button>':''}</div><div class="sb-toolbar-right"><button type="button" class="btn sb-back" data-sb-action="back">← Хроника</button>${editing?'<button type="button" class="btn danger" data-sb-action="delete">Удалить</button>':''}</div></div>
     <div class="sb-status" role="status">${SB.busy?'Сохранение…':SB.dirty?'Есть несохранённые изменения':editing?'Режим редактирования':''}</div>
     ${SB.error?`<div class="sb-error" role="alert">${esc(SB.error)}<br><button type="button" class="btn" data-sb-action="reload">Загрузить сохранённую версию</button></div>`:''}${identity}
     <div class="stats-strip-wrap"><div class="stats-strip">${sbStatsHtml(d)}</div></div><div class="vitals-strip-wrap"><div class="vitals-strip">${sbVitalsHtml(d)}</div></div>
-    <div class="sb-columns"><div class="sb-column">${sbPanel('Умения, таланты и особенности',sbGroup('skills')+sbGroup('talents')+sbGroup('features'))}</div>
-    <div class="sb-column">${sbPanel('Снаряжение',sbGroup('weapons'))}${sbPanel('Броня, скорости, грузоподъёмность',`<div class="sb-fields${isVehicle?' sb-vehicle-fields':''}">${parameters}</div>`)}</div>
+    <div class="sb-columns"><div class="sb-column">${sbPanel('Умения, таланты и особенности',sbSkillsHtml(d)+sbGroup('talents')+sbGroup('features'))}</div>
+    <div class="sb-column">${sbPanel('Снаряжение',sbGroup('weapons'))}${sbPanel('Броня, скорости, грузоподъёмность',`${parameters}`)}</div>
     ${sbPanel(isVehicle?'Критические повреждения':'Крит-травмы',`<div class="sb-critical"><label for="sb-critical">Критический урон</label><input id="sb-critical" type="number" min="0" step="1" data-sb-number="vitals.critical" aria-label="Критический урон" value="${Number(d.vitals.critical)||0}"></div>`+sbGroup('injuries',isVehicle?'Повреждения':'Травмы'))}
     ${sbPanel('Черты',sbGroup('traits'))}</div><div class="sb-footer">${editing?'Изменения применяются кнопкой «Сохранить»':'Статблок сохранён в Хронике'}</div>`;
   root.inert=SB.busy;
+  sbRenderSkills();
 }
 function sbSetPath(d,path,value){
   const parts=path.split('.');
+  if(sbSetDetailPath(d,parts,value)) return true;
   if(parts.length===1 && ['name','race','category','tags'].includes(path)){ d[path]=value; return true; }
   if(parts.length===2 && ['stats','bonuses','vitals','parameters'].includes(parts[0]) && Object.prototype.hasOwnProperty.call(d[parts[0]],parts[1])){ d[parts[0]][parts[1]]=value;return true; }
   if(parts.length===2 && parts[0]==='bonuses' && STATS.some(([k])=>k===parts[1])){d.bonuses[parts[1]]=value;return true;}
   return false;
 }
 function sbNumber(path,raw){
-  const optional=path.startsWith('stats.')||path.startsWith('bonuses.');
+  const optional=path.startsWith('stats.')||path.startsWith('bonuses.')||/^(defence|movement|carrying)\./.test(path);
   if(String(raw).trim()==='') return optional?null:undefined;
-  const value=Number(raw),limit=optional?999:1000000;
-  return Number.isSafeInteger(value)&&value>=0&&value<=limit?value:undefined;
+  const value=Number(raw),limit=/^(stats|bonuses)\./.test(path)?999:1000000;
+  return Number.isFinite(value)&&value>=0&&value<=limit&&(/^(movement|carrying)\./.test(path)||Number.isSafeInteger(value))?value:undefined;
 }
 function sbTouch(){
   SB.dirty=true;
@@ -11487,18 +11526,20 @@ function openStatblockEntry(key,index=-1){
   if(!sbAllowed() || !SB.draft || SB.busy || !Object.hasOwn(SB_GROUPS,key)) return;
   const row=index<0?{}:SB.draft[key][index];if(!row) return;
   SB.entry={key,index,recordId:SB.record.id};
+  const submit=$('sb-entry-form').querySelector('[type="submit"]');submit.hidden=false;submit.textContent='Применить';
   $('sb-entry-title').textContent=(index<0?'Добавить: ':'Изменить: ')+SB_GROUPS[key];
   let fields=[['name','Название','wide']];
   if(key==='weapons') fields.push(['weapon_type','Тип оружия'],['range','Дальность'],['rof','Темп стрельбы'],['damage','Урон'],['pen','Бронебойность'],['magazine','Магазин'],['reload','Перезарядка'],['qualities','Качества','wide']);
   if(key==='weapons' && SB.draft.type==='vehicle') fields.push(['arc','Сектор обстрела','wide']);
   fields.push(['description','Описание','textarea']);
-  $('sb-entry-fields').innerHTML=fields.map(([field,label,kind])=>`<div class="${kind?'sb-wide':''}"><label for="sb-entry-${field}">${label}</label>${kind==='textarea'?`<textarea id="sb-entry-${field}" name="${field}">${esc(row[field]||'')}</textarea>`:`<input id="sb-entry-${field}" name="${field}" value="${esc(row[field]||'')}"${field==='name'?' required maxlength="200"':''}>`}</div>`).join('');
+  $('sb-entry-fields').innerHTML=fields.map(([field,label,kind])=>`<div class="${kind?'sb-wide':''}"><label for="sb-entry-${field}">${label}</label>${kind==='textarea'?`<textarea id="sb-entry-${field}" name="${field}">${esc(row[field]??'')}</textarea>`:`<input id="sb-entry-${field}" name="${field}" value="${esc(row[field]??'')}"${field==='name'?' required maxlength="200"':''}>`}</div>`).join('');
   // The Chronicle modal helper clears inputs; keep the selected entry's values.
   $('sb-entry-modal').classList.remove('hidden');
   $('sb-entry-name').focus();
 }
 $('sb-entry-form').addEventListener('submit',e=>{
   e.preventDefault();const entry=SB.entry;
+  if(entry?.kind) return sbSubmitModal(e);
   if(!sbAllowed() || SB.busy || !SB.draft || !entry || SB.record.id!==entry.recordId) return;
   const row=Object.fromEntries(new FormData(e.target).entries());
   row.name=row.name.trim();if(!row.name) return;
@@ -11526,7 +11567,7 @@ $('sb-root').addEventListener('change',async e=>{
   if(!sbAllowed() || SB.busy || !path || !SB.record) return;
   if(!SB.draft && (!path.startsWith('vitals.') || path.startsWith('vitals.max_'))) return;
   const value=sbNumber(path,el.value);
-  if(value===undefined){toast('Введите целое неотрицательное число');el.value=sbData()[path.split('.')[0]][path.split('.')[1]]??'';return;}
+  if(value===undefined){toast('Введите целое неотрицательное число');el.value=path.split('.').reduce((value,key)=>value?.[key],sbData())??'';return;}
   const quick=!SB.draft;
   if(quick) SB.draft=sbClone(SB.record);
   // Keep the focused control in place: rebuilding on blur would swallow a Save click.
@@ -11558,6 +11599,270 @@ $('sb-root').addEventListener('click',async e=>{
   }
 });
 window.addEventListener('beforeunload',e=>{if(SB.dirty||SB.busy){e.preventDefault();e.returnValue='';}});
+
+function sbRenderSkills(){
+  const active=sbData(); if(!active) return;
+  const hideBasic = !active.show_untrained_basic;
+  const hideAdv = !active.show_untrained_adv;
+  [['skills_basic',hideBasic],['skills_adv',hideAdv]].forEach(([key,hideUntrained]) => {
+    const container = document.getElementById(key === 'skills_basic' ? 'sb-skills-basic-render' : 'sb-skills-adv-render');
+    if (!container) return;
+    const rows = active[key] || [];
+    if (!rows.length){ container.innerHTML = ''; return; }
+    const sorted = rows.map((r,i) => ({...r, _idx:i})).sort((a,b) => {
+      const ca = (a.characteristic || '').localeCompare(b.characteristic || '');
+      if (ca !== 0) return ca;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    let html = '';
+    sorted.forEach(r => {
+      const lvl = r.level || 'untrained';
+      if (hideUntrained && lvl === 'untrained' && !r.groups_enabled && !r.counts_as_basic) return;
+      if (hideUntrained && r.groups_enabled && !r.counts_as_basic){
+        const anyTrainedG = (r.groups || []).some(g => (g.level || 'untrained') !== 'untrained');
+        if (!anyTrainedG) return;
+      }
+      const basicish = key === 'skills_basic' || !!r.counts_as_basic;
+      const d = active;
+      const hasGroups = r.groups_enabled && r.groups && r.groups.length;
+      const showLevel = !hasGroups;
+      const ch = r.characteristic || '';
+      const showCh = !hasGroups;
+      const nameParts = [showCh && ch ? `<span class="skill-chip">${esc(CH_ABBR[ch] || ch)}</span>` : '', esc(r.name)].filter(Boolean).join('');
+      html += `<div class="skill-item" data-sb-skill-open="${key}:${r._idx}">
+        <span class="skill-name">${nameParts}</span>`;
+      if (showLevel){
+        const bi = skillBadgeInfo(d, r, lvl, basicish, ch);
+        html += `<span class="skill-level ${bi.cls}" data-sb-skill-cycle="${key}:${r._idx}" data-sb-skill-roll="${key}:${r._idx}" data-tooltip="${escAttr(bi.title)}">${esc(bi.text)}</span>`;
+      }
+      html += `</div>`;
+      if (hasGroups){
+        html += `<div class="skill-groups-wrap">`;
+        r.groups.forEach((g, gi) => {
+          if (hideUntrained && (g.level || 'untrained') === 'untrained' && !r.counts_as_basic) return;
+          const glvl = g.level || 'untrained';
+          const sgch = g.characteristic || r.characteristic || '';
+          const gbi = skillBadgeInfo(d, r, glvl, basicish, sgch);
+          html += `<div class="skill-group-row">
+            ${sgch ? `<span class="skill-chip">${esc(CH_ABBR[sgch] || sgch)}</span>` : ''}
+            <span class="skill-group-name">${esc(g.name)}</span>
+            <span class="skill-group-lvl ${gbi.cls}" data-sb-skill-cycle-group="${key}:${r._idx}:${gi}" data-sb-skill-roll="${key}:${r._idx}:${gi}" data-tooltip="${escAttr(gbi.title)}">${esc(gbi.text)}</span>
+            ${!!SB.draft ? `<button class="skill-group-del" data-sb-skill-del-group="${key}:${r._idx}:${gi}">&times;</button>` : ''}
+          </div>`;
+        });
+        html += `</div>`;
+      }
+    });
+    container.innerHTML = html;
+
+  });
+}
+
+// Statblock controls own their data; never borrow S.character or its autosave.
+const SB_BODY_ZONES=[['head','Голова'],['body','Тело'],['left_arm','Л. рука'],['right_arm','П. рука'],['left_leg','Л. нога'],['right_leg','П. нога']];
+const SB_SPEEDS=[['half','Полудвижение',1],['full','Движение',2],['charge','Натиск',3],['run','Бег',6]];
+const SB_CARRY=[['carry','Нести'],['lift','Поднять'],['push','Толкать']];
+let sbSkillsError='',sbSkillPane='basic';
+function sbChooseKind(kind){
+  if(!['character','npc','vehicle'].includes(kind)) return;
+  $('char-kind-input').value=kind;
+  document.querySelectorAll('[data-sb-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sbKind===kind)));
+}
+document.querySelectorAll('[data-sb-kind]').forEach(b=>b.addEventListener('click',()=>sbChooseKind(b.dataset.sbKind)));
+async function sbLoadSkills(){
+  try { await loadSkillsFromDB(); sbSkillsError=DB_SKILLS.length?'':'Не удалось загрузить список умений.'; }
+  catch(e){sbSkillsError='Не удалось загрузить список умений.';}
+}
+function sbMergeSkills(d){
+  for(const key of ['skills_basic','skills_adv']){
+    if(!Array.isArray(d[key])) d[key]=[];
+    d[key]=d[key].filter(r=>r&&typeof r==='object');
+  }
+  for(const meta of DB_SKILLS){
+    const key=meta.category==='Базовое'?'skills_basic':'skills_adv';
+    if(!d[key].some(r=>r.id!=null?String(r.id)===String(meta.id):r.name===meta.name)) d[key].push(makeSkillRow(meta));
+  }
+}
+function sbNormalizeDetails(d,raw){
+  const number=(v)=>v==null||v===''?null:Number.isFinite(Number(v))&&Number(v)>=0?Number(v):null;
+  const defence=raw.defence||{};
+  d.defence={...defence,shield:number(defence.shield)??0,zones:{},covered:{}};
+  for(const [key] of SB_BODY_ZONES){d.defence.zones[key]=number(defence.zones?.[key]);d.defence.covered[key]=!!defence.covered?.[key];}
+  d.movement=Object.fromEntries(SB_SPEEDS.map(([k])=>[k,number(raw.movement?.[k])]));
+  d.carrying=Object.fromEntries(SB_CARRY.map(([k])=>[k,number(raw.carrying?.[k])]));
+  d.show_untrained_basic=!!raw.show_untrained_basic;d.show_untrained_adv=!!raw.show_untrained_adv;
+  sbMergeSkills(d);
+}
+function sbSetDetailPath(d,parts,value){
+  const [group,key,zone]=parts;
+  if(parts.length===3 && group==='defence' && key==='zones' && SB_BODY_ZONES.some(([z])=>z===zone)){d.defence.zones[zone]=value;return true;}
+  if(parts.length===2 && group==='defence' && key==='shield'){d.defence.shield=value;return true;}
+  if(parts.length===2 && ((group==='movement'&&SB_SPEEDS.some(([k])=>k===key))||(group==='carrying'&&SB_CARRY.some(([k])=>k===key)))){d[group][key]=value;return true;}
+  return false;
+}
+function sbBonus(d,key){return d.bonuses[key]??(d.stats[key]==null?null:Math.floor(Number(d.stats[key])/10));}
+function sbDerivedFallback(d,path){
+  const [group,key]=path.split('.');
+  if(group==='bonuses')return sbBonus(d,key);
+  if(group==='movement'){const bonus=sbBonus(d,'lov'),item=SB_SPEEDS.find(([k])=>k===key);return bonus==null?null:bonus*item[2];}
+  if(group==='carrying'){const t=sbBonus(d,'wyn'),s=sbBonus(d,'sil');if(t==null||s==null)return null;const index=SB_CARRY.findIndex(([k])=>k===key);return parseFloat(String(carryTable[Math.max(0,Math.min(t+s,20))][index]).replace(',','.'));}
+  return null;
+}
+function sbChip(path,label,value,fallback=null,tone=''){
+  return `<div class="sb-param-chip ${tone}"><span class="sb-param-label">${esc(label)}</span>${SB.draft?`<input type="number" step="${/^(movement|carrying)/.test(path)?'any':'1'}" min="0" max="1000000" data-sb-number="${path}" aria-label="${esc(label)}" value="${value??''}" placeholder="${fallback??'—'}">`:`<span class="sb-chip-value">${esc(value??fallback??'—')}</span>`}</div>`;
+}
+function sbArmourValue(d,key){const base=d.defence.zones[key];return base==null?null:base+(d.defence.covered[key]?(d.defence.shield||0):0);}
+function sbParametersHtml(d){
+  const p=d.parameters;
+  if(d.type==='vehicle'){
+    const row=(title,fields)=>`<div class="sb-param-row"><h3>${title}</h3><div class="sb-param-chips">${fields.map(([key,label])=>`<div class="sb-param-chip">${sbInput('parameters.'+key,label,p[key])}</div>`).join('')}</div></div>`;
+    return row('Броня',[['front','Броня — лоб'],['side','Броня — борт'],['rear','Броня — корма']])+row('Скорости',[['tactical_speed','Тактическая скорость, м'],['cruising_speed','Крейсерская скорость, км/ч'],['manoeuvrability','Манёвренность']])+row('Техника',[['vehicle_type','Тип машины'],['size','Размер'],['crew','Экипаж'],['capacity','Транспортная вместимость'],['carry','Грузоподъёмность']])+(p.armour||SB.draft?sbInput('parameters.armour','Броня — примечания',p.armour,{multiline:true}):'');
+  }
+  const tb=sbBonus(d,'wyn'),ab=sbBonus(d,'lov');
+  const armour=sbChip('bonuses.wyn','Мод. ВЫН',d.bonuses.wyn,tb,'sb-toughness')+SB_BODY_ZONES.map(([key,label])=>`<div class="sb-param-chip ${d.defence.covered[key]?'sb-shield-active':''}"><span class="sb-param-label">${label}</span><button type="button" class="sb-chip-value" data-sb-shield="${key}" aria-label="Щит: ${label}" aria-pressed="${!!d.defence.covered[key]}" title="Включить или убрать модификатор щита">${sbArmourValue(d,key)??'—'}</button>${SB.draft?`<input class="sb-armour-base" type="number" min="0" max="1000000" step="1" data-sb-number="defence.zones.${key}" aria-label="Броня: ${label}" value="${d.defence.zones[key]??''}" placeholder="Броня">`:''}</div>`).join('')+sbChip('defence.shield','Мод. щита',d.defence.shield,0,'sb-shield-mod');
+  return `<div class="sb-param-row"><h3>Броня</h3><div class="sb-param-chips sb-armour-chips">${armour}</div></div><div class="sb-param-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div><div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
+}
+function sbSkillsHtml(d){
+  const panes=['basic','adv'].map(key=>`<div class="panel-tab-body skills-group-pane ${sbSkillPane===key?'active':''}"><button type="button" class="skill-filter-toggle" data-sb-expand="${key}" aria-expanded="${!!d['show_untrained_'+key]}">${d['show_untrained_'+key]?'Свернуть':'Развернуть'} ${key==='basic'?'нетренированные':'недоступные'}</button><div id="sb-skills-${key}-render"></div></div>`).join('');
+  return `<div class="sb-group"><h3 class="skill-subtitle">Умения</h3><div class="skills-group-tabs">${[['basic','Базовые'],['adv','Продвинутые']].map(([k,n])=>`<button type="button" class="panel-tab skill-group-chip ${sbSkillPane===k?'active':''}" data-sb-pane="${k}" aria-pressed="${sbSkillPane===k}">${n}</button>`).join('')}</div>${sbSkillsError?`<div class="sb-error">${esc(sbSkillsError)} <button type="button" data-sb-skills-retry="1">Повторить</button></div>`:''}${panes}${d.skills.length?`<details class="sb-legacy"><summary>Ранее добавленные умения</summary>${sbGroup('skills','Свои записи')}</details>`:''}</div>`;
+}
+function sbModal(kind,title,body,entry={}){
+  SB.entry={kind,recordId:SB.record.id,...entry};
+  $('sb-entry-title').textContent=title;
+  $('sb-entry-fields').innerHTML=body;
+  const submit=$('sb-entry-form').querySelector('[type="submit"]');
+  submit.hidden=['preset','catalog','choice'].includes(kind);
+  submit.textContent=kind==='roll'?'Бросить d100':'Применить';
+  $('sb-entry-modal').classList.remove('hidden');
+  $('sb-entry-fields').querySelector('input,button,select')?.focus();
+}
+function sbBeginChange(){if(!SB.draft) SB.draft=sbClone(SB.record);}
+function sbChoice(kind){
+  const d=sbData();
+  if(kind==='preset')return sbModal('preset','Пресеты','<div class="sb-wide sb-empty">Пресетов пока нет.</div>');
+  if(kind==='race'||kind==='category') return sbModal('choice',kind==='race'?'Выбрать расу':'Выбрать категорию',`<div class="sb-wide sb-choice-grid">${(kind==='race'?SB_RACES:SB_CLASSES).map(v=>`<button type="button" data-sb-choice-value="${esc(v)}" aria-pressed="${d[kind]===v}">${esc(v)}</button>`).join('')}</div>`,{field:kind});
+  if(!['name','tags'].includes(kind))return;
+  sbModal('identity',kind==='name'?'Имя':'Теги',`<div class="sb-wide"><label for="sb-identity-value">${kind==='name'?'Имя':'Теги — через запятую'}</label><input id="sb-identity-value" name="value" value="${esc(kind==='name'?d.name:d.tags.join(', '))}" ${kind==='name'?'required maxlength="200"':''}></div>`,{field:kind});
+}
+function sbSkillRef(spec){
+  const [key,i,g]=String(spec).split(':');
+  if(!['skills_basic','skills_adv'].includes(key))return null;
+  const row=sbData()[key][Number(i)];if(!row)return null;
+  const group=g==null?null:row.groups?.[Number(g)];
+  return {key,index:Number(i),groupIndex:g==null?null:Number(g),row,group};
+}
+function sbOpenSkill(spec){
+  const ref=sbSkillRef(spec);if(!ref)return;
+  const r=sbClone(ref.row),editing=!!SB.draft;
+  sbModal('skill',r.name,`<div class="sb-wide sb-description">${sbDescriptionHtml(r.desc||r.description||'Описание отсутствует.')}</div>${editing?`<div><label>Характеристика</label><select name="characteristic">${sbOptions(CHARACTERISTICS,r.characteristic||'')}</select></div><div><label>Обучение</label><select name="level">${SKILL_LEVELS.map(l=>`<option value="${l}" ${l===r.level?'selected':''}>${esc(SKILL_LEVEL_TITLE[l]||l)}</option>`).join('')}</select></div><label><input type="checkbox" name="gifted" ${r.gifted?'checked':''}> Одарённый</label>${ref.key==='skills_adv'?`<label><input type="checkbox" name="counts_as_basic" ${r.counts_as_basic?'checked':''}> Считается базовым</label>`:''}<label class="sb-wide"><input type="checkbox" name="groups_enabled" ${r.groups_enabled?'checked':''}> Умение с группами</label><div class="sb-wide" id="sb-skill-groups"></div><button type="button" data-sb-add-group="1">+ Группа</button>`:`${r.gifted?'<div>Одарённый</div>':''}${r.counts_as_basic?'<div>Считается базовым</div>':''}`} `,{key:ref.key,index:ref.index,row:r});
+  $('sb-entry-form').querySelector('[type="submit"]').hidden=!editing;
+  if(editing)sbDrawGroups();
+}
+function sbDescriptionHtml(value){
+  const doc=new DOMParser().parseFromString(String(value),'text/html');
+  doc.querySelectorAll('script,style,iframe,object').forEach(n=>n.remove());
+  const allowed=new Set(['B','STRONG','I','EM','BR','P','UL','OL','LI']);
+  doc.body.querySelectorAll('*').forEach(n=>{if(!allowed.has(n.tagName)){n.replaceWith(...n.childNodes);return;}for(const a of [...n.attributes])n.removeAttribute(a.name);});
+  return doc.body.innerHTML;
+}
+function sbDrawGroups(){
+  const row=SB.entry.row;
+  $('sb-skill-groups').innerHTML=(row.groups||[]).map((g,i)=>`<div class="sb-skill-group-edit"><input aria-label="Название группы" data-sb-group="${i}" data-field="name" value="${esc(g.name)}" maxlength="50"><select aria-label="Характеристика группы" data-sb-group="${i}" data-field="characteristic">${sbOptions(CHARACTERISTICS,g.characteristic||row.characteristic||'')}</select><select aria-label="Обучение группы" data-sb-group="${i}" data-field="level">${SKILL_LEVELS.map(l=>`<option value="${l}" ${l===(g.level||'untrained')?'selected':''}>${esc(SKILL_LEVEL_TITLE[l]||l)}</option>`).join('')}</select><button type="button" data-sb-del-group="${i}" aria-label="Удалить группу">×</button></div>`).join('');
+}
+async function sbOpenCatalog(){
+  const owner=SB.record?.id;if(!SB.draft)return;
+  sbModal('catalog','Оружие из базы','<div class="sb-wide">Загрузка…</div>');
+  const loaded=await loadGearCache();
+  if(SB.record?.id!==owner||SB.entry?.kind!=='catalog'||$('sb-entry-modal').classList.contains('hidden'))return;
+  $('sb-entry-fields').innerHTML=loaded?'<div class="sb-wide"><label for="sb-weapon-search">Поиск оружия</label><input id="sb-weapon-search" placeholder="Название оружия"><div id="sb-catalog-results"></div></div>':'<div class="sb-wide">Не удалось загрузить каталог. <button type="button" data-sb-catalog-retry="1">Повторить</button></div>';
+  if(loaded){sbDrawCatalog('');$('sb-weapon-search').focus();}
+}
+function sbDrawCatalog(query){
+  const rows=Object.values(GEAR_MAP).filter(g=>['weapon_ranged','weapon_melee','shield','grenades','rockets','mines'].includes(g.stats?.type)&&g.name.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  $('sb-catalog-results').innerHTML=rows.length?rows.map(g=>`<button type="button" class="sb-catalog-row" data-sb-catalog-pick="${g.id}">${esc(g.name)}<span>${esc(g.stats.class||'')}</span></button>`).join(''):'<div class="sb-empty">Ничего не найдено.</div>';
+}
+function sbWeaponFromCatalog(item,stats=item.stats){
+  const qualities=(stats.qualities||[]).map(q=>{const m=WQ_MAP[q.qid];if(!m)return q.name||'';const param=q.param??q.value;if(param==null||param==='')return m.name;const label=m.name.replace(/\([ХX]\)/g,'('+param+')');return label===m.name?label+' ('+param+')':label;}).filter(Boolean).join(', ');
+  return {name:item.name,item_id:item.id,source:'catalog',catalog_stats:sbClone(stats),weapon_type:stats.class||GEAR_GROUPS[stats.type]?.title||'',range:stats.range??'',rof:[stats.rof_single,stats.rof_short,stats.rof_long].map(v=>v??'—').join('/'),damage:[stats.dmg,stats.dmg_type].filter(Boolean).join(' · '),pen:stats.pen??'',magazine:stats.mag??'',reload:stats.reload??'',qualities,description:item.description||''};
+}
+function sbWeaponProfilesHtml(row){
+  const profiles=row.catalog_stats?.alternate_profiles;
+  if(!Array.isArray(profiles))return '';
+  return profiles.map(p=>{const w=sbWeaponFromCatalog({id:row.item_id,name:row.name,description:''},p.stats||{});return `<div class="sb-description"><b>${esc(p.name||p.key||'Профиль')}</b><div>${esc(w.damage)} · ББ ${esc(w.pen)} · Дальность ${esc(w.range||'—')} · Темп ${esc(w.rof)}</div></div>`;}).join('');
+}
+function sbOpenSkillRoll(spec){
+  const ref=sbSkillRef(spec);if(!ref)return;
+  const b=skillBadgeInfo(sbData(),ref.row,(ref.group||ref.row).level,ref.key==='skills_basic'||ref.row.counts_as_basic,ref.group?.characteristic||ref.row.characteristic);
+  if(b.value==null)return toast('Умение не тренировано — бросок невозможен');
+  const name=ref.row.name+(ref.group?' · '+ref.group.name:'');
+  sbModal('roll',name,`<div class="sb-wide">Порог: <b>${b.value}</b></div><div class="sb-wide"><label for="sb-roll-mod">Модификатор проверки</label><input id="sb-roll-mod" name="mod" type="number" step="1" min="-999" max="999" value="0"></div><div class="sb-wide" id="sb-roll-result" aria-live="polite"></div>`,{target:b.value});
+}
+function sbEvaluateRoll(target,mod,d100){return {threshold:target+mod,success:d100<=target+mod,degrees:Math.floor(Math.abs(target+mod-d100)/10)};}
+function sbSubmitModal(e){
+  const entry=SB.entry;if(!entry||entry.recordId!==SB.record?.id||!sbAllowed()||SB.busy)return;
+  const form=new FormData(e.target);
+  if(entry.kind==='roll'){
+    const mod=Number(form.get('mod'));if(!Number.isInteger(mod)||Math.abs(mod)>999)return;
+    const bytes=new Uint32Array(1),limit=4294967200;do{crypto.getRandomValues(bytes);}while(bytes[0]>=limit);
+    const d100=bytes[0]%100+1,r=sbEvaluateRoll(entry.target,mod,d100);
+    $('sb-roll-result').innerHTML=`<div class="roll-big ${r.success?'ok':'fail'}">${d100}</div><div>${esc(rollThresholds(entry.target,mod,r.threshold))}</div><div>${r.success?'Успех':'Провал'} ${esc(rollDegreesText(r.degrees))}</div><div class="sb-empty">Локальная проверка НПЦ · без отправки в Discord</div>`;return;
+  }
+  if(entry.kind==='identity'){
+    const v=String(form.get('value')||'').trim();if(entry.field==='name'&&(!v||v.length>200))return;
+    sbBeginChange();SB.draft[entry.field]=entry.field==='tags'?v.split(',').map(x=>x.trim()).filter(Boolean):v;
+  }else if(entry.kind==='skill'&&SB.draft){
+    const row=entry.row;
+    if((row.groups||[]).some(g=>!g.name.trim()))return toast('Введите названия групп');
+    if(new Set((row.groups||[]).map(g=>g.name.trim().toLowerCase())).size!==(row.groups||[]).length)return toast('Названия групп не должны повторяться');
+    row.characteristic=String(form.get('characteristic'));setIndependentSkillLevel(row,String(form.get('level')));
+    row.gifted=form.has('gifted');row.counts_as_basic=form.has('counts_as_basic');row.groups_enabled=form.has('groups_enabled');
+    SB.draft[entry.key][entry.index]=row;
+  }else return;
+  sbTouch();closeModal('sb-entry-modal');SB.entry=null;renderStatblock();
+}
+$('sb-entry-fields').addEventListener('input',e=>{
+  if(e.target.id==='sb-weapon-search')sbDrawCatalog(e.target.value);
+  const el=e.target;if(el.dataset.sbGroup==null||SB.entry?.kind!=='skill')return;
+  const g=SB.entry.row.groups[Number(el.dataset.sbGroup)];if(!g)return;
+  if(el.dataset.field==='level')setIndependentSkillGroupLevel(g,el.value);else if(['name','characteristic'].includes(el.dataset.field))g[el.dataset.field]=el.value;
+});
+$('sb-entry-fields').addEventListener('click',e=>{
+  if(!sbAllowed()||SB.busy||SB.entry?.recordId!==SB.record?.id)return;
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.sbChoiceValue){sbBeginChange();SB.draft[SB.entry.field]=b.dataset.sbChoiceValue;sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();}
+  if(b.dataset.sbCatalogRetry)sbOpenCatalog();
+  if(b.dataset.sbCatalogPick&&SB.draft){const item=GEAR_MAP[Number(b.dataset.sbCatalogPick)];if(!item)return;SB.draft.weapons.push(sbWeaponFromCatalog(item));sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();}
+  if(b.dataset.sbAddGroup&&SB.entry?.kind==='skill'){
+    const r=SB.entry.row;if(!r.groups)r.groups=[];r.groups.push({name:'',characteristic:r.characteristic,level:'untrained'});$('sb-entry-fields').querySelector('[name="groups_enabled"]').checked=true;sbDrawGroups();
+  }
+  if(b.dataset.sbDelGroup!=null&&SB.entry?.kind==='skill'){SB.entry.row.groups.splice(Number(b.dataset.sbDelGroup),1);sbDrawGroups();}
+});
+$('sb-root').addEventListener('click',async e=>{
+  if(!sbAllowed()||SB.busy)return;
+  const t=e.target.closest('[data-sb-choice],[data-sb-shield],[data-sb-expand],[data-sb-pane],[data-sb-catalog],[data-sb-skills-retry],[data-sb-skill-open],[data-sb-skill-cycle],[data-sb-skill-cycle-group],[data-sb-skill-del-group]');if(!t)return;
+  if(t.dataset.sbChoice)return sbChoice(t.dataset.sbChoice);
+  if(t.dataset.sbPane){sbSkillPane=t.dataset.sbPane;return renderStatblock();}
+  if(t.dataset.sbCatalog)return sbOpenCatalog();
+  if(t.dataset.sbSkillsRetry){await sbLoadSkills();sbMergeSkills(sbData());return renderStatblock();}
+  if(t.dataset.sbExpand){const key='show_untrained_'+t.dataset.sbExpand;const quick=!SB.draft;sbBeginChange();SB.draft[key]=!SB.draft[key];sbTouch();return quick?saveStatblock(false):renderStatblock();}
+  if(t.dataset.sbShield){const quick=!SB.draft;sbBeginChange();const z=t.dataset.sbShield;SB.draft.defence.covered[z]=!SB.draft.defence.covered[z];sbTouch();return quick?saveStatblock(false):renderStatblock();}
+  const spec=t.dataset.sbSkillCycle||t.dataset.sbSkillCycleGroup;
+  if(spec){
+    if(!SB.draft)return sbOpenSkillRoll(spec);
+    const ref=sbSkillRef(spec);if(!ref)return;const r=ref.group||ref.row,next=SKILL_LEVELS[(SKILL_LEVELS.indexOf(r.level||'untrained')+1)%SKILL_LEVELS.length];
+    if(ref.group)setIndependentSkillGroupLevel(r,next);else setIndependentSkillLevel(r,next);sbTouch();return sbRenderSkills();
+  }
+  if(t.dataset.sbSkillDelGroup&&SB.draft){const ref=sbSkillRef(t.dataset.sbSkillDelGroup);if(ref?.group){ref.row.groups.splice(ref.groupIndex,1);sbTouch();sbRenderSkills();}return;}
+  if(t.dataset.sbSkillOpen)sbOpenSkill(t.dataset.sbSkillOpen);
+});
+// Recalculate displays after number edits without replacing the focused input.
+$('sb-root').addEventListener('input',e=>{
+  if(!SB.draft||!e.target.dataset.sbNumber)return;
+  const path=e.target.dataset.sbNumber;
+  $('sb-root').querySelectorAll('[data-sb-number]').forEach(input=>{if(input!==e.target&&input.dataset.sbNumber===path)input.value=e.target.value;if(/^(bonuses|movement|carrying)\./.test(input.dataset.sbNumber))input.placeholder=sbDerivedFallback(SB.draft,input.dataset.sbNumber)??'—';});
+  sbRenderSkills();
+  $('sb-root').querySelectorAll('[data-sb-shield]').forEach(b=>{b.textContent=sbArmourValue(SB.draft,b.dataset.sbShield)??'—';});
+});
 
 </script>
 </body>
