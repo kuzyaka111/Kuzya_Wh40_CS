@@ -11398,7 +11398,7 @@ function sbUuid(){
   const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
   return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
 }
-function sbIsVehicle(d){ return d.race==='Техника' || d.type==='vehicle'; }
+function sbIsVehicle(d){ return d.race==='Техника' || (d.type==='vehicle' && !d.type_choice_migrated); }
 function blankStatblock(type,name){
   return {schema_version:1,type,name:name.trim(),race:'',category:'Рядовой',tags:[],
     stats:Object.fromEntries(STATS.map(([key])=>[key,type==='vehicle'?null:30])),bonuses:{},
@@ -11423,7 +11423,7 @@ function normalizeStatblock(raw){
   delete d.skills; // Obsolete free-text list removed by request; structured skills remain.
   sbNormalizeDetails(d,raw);
   d.tags=Array.isArray(d.tags)?d.tags.map(String):[];
-  if(d.type==='vehicle'){d.type='npc';d.race='Техника';} // Legacy vehicle records keep all parameter values.
+  if(d.type==='vehicle' && !d.type_choice_migrated){d.race='Техника';d.type_choice_migrated=true;} // Preserve immutable server type for legacy records.
   return d;
 }
 function sbOptions(values,selected){
