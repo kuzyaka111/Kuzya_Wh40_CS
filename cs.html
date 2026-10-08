@@ -986,7 +986,9 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .action-selected-head b{min-width:0;}
 .action-selected-head button,.action-modifier-editor button{flex:none;background:none;color:var(--text-dim);border:1px solid var(--border-dark);padding:5px 10px;cursor:pointer;font-size:18px;}
 .action-selected-head button:hover,.action-modifier-editor button:hover{color:#e88282;}
-.action-group h4{margin:16px 0 8px;font-size:12px;color:var(--gold);}
+.action-group{margin:16px 0 8px;}
+.action-group summary{cursor:pointer;font-size:12px;font-weight:bold;color:var(--gold);padding:8px 0;}
+.action-group summary:focus-visible{outline:1px solid var(--gold);outline-offset:2px;}
 .action-chips{display:flex;flex-wrap:wrap;gap:7px;}
 .action-chip{max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere;background:#202023;color:var(--text-main);border:1px solid var(--border-dark);border-radius:5px;padding:9px 11px;font:inherit;font-size:11px;cursor:pointer;text-align:left;}
 .action-chip:hover,.action-chip.selected{border-color:var(--border-gold);background:#302819;color:var(--gold);}
@@ -4300,6 +4302,7 @@ function normalize(raw){
     alternative_speeds: Array.isArray(d.alternative_speeds) ? d.alternative_speeds : [],
     modifiers: normalizeModifiers(d.modifiers),
     custom_actions: normalizeCustomActions(d.custom_actions),
+    active_actions: normalizeActiveActions(d.active_actions),
     hide_untrained_basic: !!d.hide_untrained_basic,
     hide_untrained_adv: !!d.hide_untrained_adv,
     discord_rolls: normalizeDiscordRolls(d)
@@ -7377,9 +7380,64 @@ function bindTooltips(){
 // Combat action reference lives in the DB; personal actions live in character_data.
 const ACTION_TYPES = {half:'Полудействие',full:'Полное действие',free:'Свободное действие',reaction:'Реакция',extended:'Длительное действие',variable:'Различная длительность'};
 let ACTION_CATALOG = null, ACTION_LOADING = null;
-const ACTION = {owner:null,selected:null,type:null,weapon:'',error:'',loading:false};
+const ACTION = {owner:null,selected:null,type:null,weapon:'',variant:'',error:'',loading:false};
+const ACTION_NO_CHECK = new Set(['aim','ready','delay','brace','overwatch','defensive_stance','run','disengage','move','stand_mount','tactical_advance','reload']);
+const ACTION_COLLAPSED = new Set();
 let ACTION_DRAFT = null, ACTION_SAVING = false;
 
+function normalizeActiveActions(rows){
+  const unique = new Map();
+  for(const r of Array.isArray(rows) ? rows : []){
+    if(r && (ACTION_NO_CHECK.has(r.code) || r.code==='guarded_attack'))
+      unique.set(r.code,{code:r.code,type:ACTION_TYPES[r.type] ? r.type : 'half'});
+  }
+  return [...unique.values()];
+}
+function activeAction(code){
+  return normalizeActiveActions(S.character?.character_data?.active_actions).find(a=>a.code===code);
+}
+function setActiveAction(code,type,on){
+  if(!S.character || editMode) return;
+  const d=S.character.character_data,rows=normalizeActiveActions(d.active_actions).filter(a=>a.code!==code);
+  if(on) rows.push({code,type});
+  d.active_actions=normalizeActiveActions(rows);scheduleSave();
+}
+function actionVariants(a){
+  if(['full_auto','semi_auto'].includes(a.code)) return [['stationary','Без перемещения'],['moving','С перемещением']];
+  if(a.code==='knock_down') return [['stationary','Без предварительного Полудвижения'],['moving','После Полудвижения']];
+  return [];
+}
+function actionAttackCheck(){
+  if(!['bb','db'].includes(rollCharKey())) return false;
+  return !ROLL.action || (!!ROLL.action.row.subtypes?.includes('attack') && !ACTION_NO_CHECK.has(ROLL.action.row.code));
+}
+function preparedRollModifiers(){
+  const rows=[],aim=activeAction('aim'),guard=activeAction('guarded_attack');
+  if(aim) rows.push({id:'aim',label:'Прицеливание: '+ACTION_TYPES[aim.type],value:aim.type==='full' ? 20 : 10,applicable:actionAttackCheck()});
+  if(guard){
+    const skill=actionSkillRow(ROLL.sel);
+    rows.push({id:'guarded_attack',label:'Осторожная атака: защита',value:10,
+      applicable:(ROLL.action?.row.code==='parry' && rollCharKey()==='bb') || (ROLL.sel?.kind==='skill' && skill?.name==='Уклонение')});
+  }
+  const a=ROLL.action,w=a?.row.requires_weapon ? actionWeaponOptions(a.row).find(w=>w.id===a.weapon_id) : null;
+  const d=S.character.character_data,armour=currentArmourGear();
+  const traits=[...(d.talents || []),...(d.traits || []),...(d.features || [])].map(x=>typeof x==='string' ? x : x.name || '').join(' | ');
+  const steady=dwActive(d) || /Бугрящиеся бицепсы|Bulging Biceps|Автостабилизац|Auto.stabili[sz]/i.test(traits)
+    || armour?.stats?.silhouette==='terminator';
+  if(w?.type==='weapon_ranged' && /^(тяж[её]лое|heavy)$/i.test(String(w.profile?.weight_class || '').trim()) && actionAttackCheck() && !steady){
+    rows.push({id:'unbraced',label:activeAction('brace') ? 'Тяжёлое оружие установлено' : 'Тяжёлое оружие без установки',value:activeAction('brace') ? 0 : -30,applicable:true});
+  }
+  return rows;
+}
+function actionRollModifiers(a,type,variant){
+  let mods=(a.modifiers || []).filter(m=>!m.types?.length || m.types.includes(type)).map(m=>({...m,actionPreset:true}));
+  if(a.code==='all_out_attack') mods=mods.map(m=>({...m,enabled:true}));
+  if(a.code==='guarded_attack') mods=mods.filter(m=>m.value<0);
+  if(a.code==='full_auto') mods=mods.filter(m=>variant==='moving' ? m.value<0 : m.value>0).map(m=>({...m,enabled:true}));
+  if(a.code==='semi_auto' && variant==='moving') mods=[];
+  if(a.code==='knock_down') mods=mods.map(m=>({...m,enabled:variant==='moving'}));
+  return mods;
+}
 function normalizeActionModifier(m){
   if (!m || typeof m !== 'object') return null;
   const value = Number(m.value);
@@ -7488,27 +7546,45 @@ function renderActionSelection(){
   const types=a.action_types || ['half'];
   host.innerHTML='<div class="action-selected-head"><b>'+esc(a.name)+'</b><button type="button" data-action-clear aria-label="Убрать выбранное действие">×</button></div>'
     +(types.length>1 ? '<label>Длительность<select id="action-type">'+types.map(t=>'<option value="'+escAttr(t)+'"'+(t===ACTION.type ? ' selected' : '')+'>'+esc(ACTION_TYPES[t])+'</option>').join('')+'</select></label>' : '<div class="desc">'+esc(ACTION_TYPES[ACTION.type])+'</div>')
+    +(actionVariants(a).length ? '<label>Условия<select id="action-variant">'+actionVariants(a).map(([v,label])=>'<option value="'+v+'"'+(ACTION.variant===v ? ' selected' : '')+'>'+esc(label)+'</option>').join('')+'</select></label>' : '')
     +(a.requires_weapon ? '<label>Оружие / граната<select id="action-weapon"><option value="">Выберите…</option>'+actionWeaponOptions(a).map(w=>'<option value="'+escAttr(w.id)+'"'+(ACTION.weapon===w.id ? ' selected' : '')+'>'+esc(w.label)+'</option>').join('')+'</select></label>' : '')
     +(a.source_note ? '<div class="action-source-note">'+esc(a.source_note)+'</div>' : '');
   $('action-confirm').disabled=false;
   $('action-type')?.addEventListener('change',e=>{ACTION.type=e.target.value;renderActionChoices();});
   $('action-weapon')?.addEventListener('change',e=>{ACTION.weapon=e.target.value;});
+  $('action-variant')?.addEventListener('change',e=>{ACTION.variant=e.target.value;});
 }
 function renderActionChoices(){
   const host=$('action-choices'),rows=actionRows();
-  host.innerHTML=Object.entries(ACTION_TYPES).map(([type,label])=>{
-    const list=rows.filter(a=>a.action_types.includes(type));
-    return !list.length ? '' : '<section class="action-group"><h4>'+esc(label)+'</h4><div class="action-chips">'+list.map(a=>
-      '<button type="button" class="action-chip'+(ACTION.selected?.key===a.key && ACTION.type===type ? ' selected' : '')+'" aria-pressed="'+(ACTION.selected?.key===a.key && ACTION.type===type)+'" data-action="'+escAttr(a.key)+'" data-action-type="'+type+'" data-tooltip="'+escAttr(actionDescription(a))+'">'+esc(a.name)+'</button>').join('')+'</div></section>';
-  }).join('') || '<div class="desc">Действий пока нет.</div>';
+  const chip=(a,type,prep)=>{
+    const on=prep ? activeAction(a.code)?.type===type : ACTION.selected?.key===a.key && ACTION.type===type;
+    const label=a.name+(prep && a.action_types.length>1 ? ' · '+ACTION_TYPES[type] : '');
+    return '<button type="button" class="action-chip'+(on ? ' selected' : '')+'" aria-pressed="'+!!on+'" data-action="'+escAttr(a.key)+'" data-action-type="'+type+'" data-tooltip="'+escAttr(actionDescription(a))+'">'+esc(label)+'</button>';
+  };
+  const group=(key,label,content)=>!content ? '' : '<details class="action-group" data-action-group="'+key+'"'+(ACTION_COLLAPSED.has(key) ? '' : ' open')+'><summary>'+esc(label)+'</summary><div class="action-chips">'+content+'</div></details>';
+  const prepared=rows.filter(a=>ACTION_NO_CHECK.has(a.code));
+  host.innerHTML=(activeAction('guarded_attack') ? '<div class="action-chips"><button type="button" class="action-chip selected" data-action-effect-off="guarded_attack" aria-pressed="true">Осторожная атака: защита ×</button></div>' : '')
+    +group('no_check','Не требующие проверок',prepared.map(a=>a.action_types.map(t=>chip(a,t,true)).join('')).join(''))
+    +Object.entries(ACTION_TYPES).map(([type,label])=>group(type,label,rows.filter(a=>!ACTION_NO_CHECK.has(a.code) && a.action_types.includes(type)).map(a=>chip(a,type,false)).join(''))).join('');
+  if(!host.innerHTML) host.innerHTML='<div class="desc">Действий пока нет.</div>';
+  host.querySelectorAll('[data-action-group]').forEach(el=>el.addEventListener('toggle',()=>{
+    if(!el.isConnected) return;
+    if(el.open) ACTION_COLLAPSED.delete(el.dataset.actionGroup);else ACTION_COLLAPSED.add(el.dataset.actionGroup);
+  }));
   bindActionTooltips(host);
   $('action-load-status').textContent=ACTION.loading ? 'Загрузка действий…' : ACTION.error;
   $('action-retry').hidden=!ACTION.error;
 }
+
 function selectAction(key,type){
   if(!actionOwnerValid()) return;
   const a=actionRows().find(r=>r.key===key); if(!a) return;
-  ACTION.selected=a;ACTION.type=a.action_types.includes(type) ? type : a.action_types[0];ACTION.weapon='';
+  if(ACTION_NO_CHECK.has(a.code)){
+    const chosen=a.action_types.includes(type) ? type : a.action_types[0];
+    setActiveAction(a.code,chosen,activeAction(a.code)?.type!==chosen);
+    hideTooltip();renderActionChoices();return;
+  }
+  ACTION.selected=a;ACTION.type=a.action_types.includes(type) ? type : a.action_types[0];ACTION.weapon='';ACTION.variant=actionVariants(a)[0]?.[0] || '';
   $('action-error').textContent='';hideTooltip();renderActionSelection();renderActionChoices();
 }
 async function openActionModal(force=false){
@@ -7547,7 +7623,7 @@ function renderRollAction(){
     +'<button type="button" class="modal-close" id="roll-action-back">Изменить действие</button>';
   $('roll-action-back').addEventListener('click',()=>{
     if(ROLL.busy || S.character!==a.owner) return;
-    closeRoll();ACTION.owner=a.owner;ACTION.selected=a.row;ACTION.type=a.action_type;ACTION.weapon=a.weapon_id;
+    closeRoll();ACTION.owner=a.owner;ACTION.selected=a.row;ACTION.type=a.action_type;ACTION.weapon=a.weapon_id;ACTION.variant=a.variant || '';
     renderActionSelection();renderActionChoices();openSheetModal('action-modal');
   });
 }
@@ -7555,9 +7631,13 @@ function confirmAction(){
   if(!actionOwnerValid() || !ACTION.selected) return;
   const a=ACTION.selected,weapon=a.requires_weapon ? actionWeaponOptions(a).find(w=>w.id===ACTION.weapon) : null;
   const error=actionWeaponError(a,weapon); if(error){$('action-error').textContent=error;return;}
-  const context={name:a.name,row:a,action_type:ACTION.type,weapon_id:ACTION.weapon,weapon_name:weapon?.name || '',owner:ACTION.owner};
+  if(['full_auto','semi_auto'].includes(a.code) && ACTION.variant==='moving' && !['пистолет','лёгкое','легкое','pistol','basic'].includes(String(weapon?.profile?.weight_class || '').trim().toLowerCase())){
+    $('action-error').textContent='Стрельба очередью с перемещением доступна для Пистолета или Лёгкого оружия.';return;
+  }
+  if(a.code==='guarded_attack') setActiveAction('guarded_attack',ACTION.type,true);
+  const context={name:a.name,row:a,action_type:ACTION.type,variant:ACTION.variant,weapon_id:ACTION.weapon,weapon_name:weapon?.name || '',owner:ACTION.owner};
   const target=(a.check_targets || [])[0];
-  const kind=target?.kind==='skill' && !weapon ? 'skill' : 'stat';
+  const kind=(a.code==='use_skill' || target?.kind==='skill') && !weapon ? 'skill' : 'stat';
   hideTooltip();closeSheetModal('action-modal');
   openRoll({kind,action:context});
   // openRoll can be wrapped with a warning by the dreadnought extension.
@@ -7571,7 +7651,7 @@ function initializeActionRoll(){
   ROLL.sel=ROLL.kind==='stat' ? opts.find(o=>o.statKey===key) || null : opts.find(o=>{
     const r=actionSkillRow(o);return r && (r.name===target?.key || String(r.id)===target?.key || 'name:'+r.name===target?.key);
   }) || null;
-  ROLL.temp=(a.row.modifiers || []).filter(m=>!m.types?.length || m.types.includes(a.action_type)).map(m=>({...m,actionPreset:true}));
+  ROLL.temp=actionRollModifiers(a.row,a.action_type,a.variant);
 }
 function actionTargetOptions(){
   const stats=STATS.map(([key])=>['stat:'+key,statFullName(key)]);
@@ -7644,7 +7724,12 @@ function bindActionModal(){
   $('action-retry').addEventListener('click',()=>openActionModal(true));
   $('action-add-custom').addEventListener('click',openCustomAction);
   $('action-selected').addEventListener('click',e=>{if(e.target.closest('[data-action-clear]')){ACTION.selected=null;ACTION.weapon='';renderActionSelection();renderActionChoices();}});
-  $('action-choices').addEventListener('click',e=>{const chip=e.target.closest('[data-action]');if(chip) selectAction(chip.dataset.action,chip.dataset.actionType);});
+  $('action-choices').addEventListener('click',e=>{
+    if(!actionOwnerValid()) return;
+    const off=e.target.closest('[data-action-effect-off]');
+    if(off){setActiveAction(off.dataset.actionEffectOff,'full',false);renderActionChoices();return;}
+    const chip=e.target.closest('[data-action]');if(chip) selectAction(chip.dataset.action,chip.dataset.actionType);
+  });
   $('custom-action-cancel').addEventListener('click',closeCustomAction);
   $('custom-action-save').addEventListener('click',saveCustomAction);
   $('custom-action-add-mod').addEventListener('click',()=>{
@@ -7678,6 +7763,8 @@ function rollModRows(){
     on:m.actionPreset ? m.enabled!==false && actionModifierApplies(m) : true,
     actionPreset:!!m.actionPreset,applicable:!m.actionPreset || actionModifierApplies(m),
     scope:m.actionPreset ? actionModifierTarget(m)+(m.condition ? ' · '+m.condition : '') : ''}));
+  preparedRollModifiers().forEach(m=>rows.push({label:m.label,value:m.value,locked:false,prepared:m.id,
+    on:m.applicable && !ROLL.preparedOff?.[m.id],applicable:m.applicable,scope:'Подготовленное действие'}));
   return rows;
 }
 function rollModSum(){
@@ -7786,7 +7873,7 @@ function rollModRowHtml(r){
     + (r.scope ? '<span class="action-mod-scope">'+esc(r.scope)+'</span>' : '') + '</span>'
     + '<span class="vl ' + (counted ? tone : 'mod-idle') + '">'
     + (counted && r.value > 0 ? '+' : '') + r.value + '</span>'
-    + (r.actionPreset ? '<input type="checkbox" data-action-roll-mod="'+r.temp+'"'+(r.on ? ' checked' : '')+(r.applicable ? '' : ' disabled')+'>' : r.locked || r.temp != null ? '<span class="mk">✓</span>'
+    + (r.prepared ? '<input type="checkbox" data-prepared-roll-mod="'+r.prepared+'"'+(r.on ? ' checked' : '')+(r.applicable ? '' : ' disabled')+'>' : r.actionPreset ? '<input type="checkbox" data-action-roll-mod="'+r.temp+'"'+(r.on ? ' checked' : '')+(r.applicable ? '' : ' disabled')+'>' : r.locked || r.temp != null ? '<span class="mk">✓</span>'
                                   : '<input type="checkbox" data-roll-mod="' + r.mi + '"' + (r.on ? ' checked' : '') + (r.unavailable ? ' disabled' : '') + '>')
     + (r.temp == null ? '' : '<button class="rm" data-roll-tmp="' + r.temp + '" title="Убрать">&times;</button>')
     + '</div>';
@@ -7848,7 +7935,7 @@ function openRoll(opts){
   ROLL.action = o.action || null;
   ROLL.kind = o.kind || 'custom';
   ROLL.sel = o.sel || (ROLL.kind === 'custom' ? { kind:'custom', id:'custom' } : null);
-  ROLL.temp = []; ROLL.on = {}; ROLL.q = '';
+  ROLL.temp = []; ROLL.on = {}; ROLL.preparedOff = {}; ROLL.q = '';
   ROLL.customName = (ROLL.kind === 'custom' && o.name) || '';
   ROLL.customTarget = (ROLL.kind === 'custom' && o.target != null) ? o.target : '';
   ROLL.busy = false;
@@ -8010,6 +8097,11 @@ function bindRollModal(){
   $('roll-go').addEventListener('click', doRoll);
   $('roll-cancel').addEventListener('click', closeRoll);
   wrap.addEventListener('click', e => {
+    const prepared=e.target.closest('[data-prepared-roll-mod]');
+    if(prepared){
+      ROLL.preparedOff=ROLL.preparedOff || {};ROLL.preparedOff[prepared.dataset.preparedRollMod]=!prepared.checked;
+      renderRollMods();renderRollTotal();return;
+    }
     const actionMod=e.target.closest('[data-action-roll-mod]');
     if(actionMod){
       const m=ROLL.temp[Number(actionMod.dataset.actionRollMod)];
