@@ -7366,7 +7366,11 @@ function showTooltip(el, actionDescription = false){
   const availableHeight = actionDescription
     ? Math.max(r.top - vy - gap * 2, vy + vh - r.bottom - gap * 2)
     : vh - gap * 2;
-  if (!sameAction) { t.textContent = el.dataset.tooltip; t.scrollTop = 0; }
+  if (!sameAction) {
+    if (actionDescription) t.innerHTML = esc(el.dataset.tooltip || '').replace(/&lt;(\/?)b&gt;/g,'<$1b>');
+    else t.textContent = el.dataset.tooltip;
+    t.scrollTop = 0;
+  }
   t.style.maxWidth = Math.min(actionDescription ? 560 : 340, Math.max(1, vw - gap * 2) / zoom) + 'px';
   t.style.maxHeight = Math.max(1, availableHeight) / zoom + 'px';
   t.style.left = '0px';
@@ -7516,8 +7520,7 @@ async function loadActionCatalog(force=false){
 }
 function actionOwnerValid(){return !!S.character && S.character===ACTION.owner && !editMode;}
 function actionDescription(a){
-  const pages=a.source_page ? ' · стр. '+a.source_page+(a.source_page_end>a.source_page ? '–'+a.source_page_end : '') : '';
-  return [a.name,a.summary,a.description,a.source_note,a.source_book+pages].filter(Boolean).join('\n\n');
+  return [a.name,a.summary,a.description,a.source_note].filter(Boolean).join('\n\n');
 }
 function bindActionTooltips(host){
   host.querySelectorAll('[data-tooltip]').forEach(el=>{
@@ -7596,7 +7599,7 @@ function renderActionChoices(){
   const prepared=rows.filter(a=>ACTION_NO_CHECK.has(a.code));
   host.innerHTML=(activeAction('guarded_attack') ? '<div class="action-chips"><button type="button" class="action-chip selected" data-action-effect-off="guarded_attack" aria-pressed="true">Осторожная атака: защита ×</button></div>' : '')
     +group('no_check','Не требующие проверок',prepared.map(a=>a.action_types.map(t=>chip(a,t,true)).join('')).join(''))
-    +Object.entries(ACTION_TYPES).map(([type,label])=>group(type,label,rows.filter(a=>!ACTION_NO_CHECK.has(a.code) && a.action_types.includes(type)).map(a=>chip(a,type,false)).join(''))).join('');
+    +Object.entries(ACTION_TYPES).map(([type,label])=>group(type,type==='variable' ? 'Пси-способности' : label,rows.filter(a=>!ACTION_NO_CHECK.has(a.code) && a.action_types.includes(type)).map(a=>chip(a,type,false)).join(''))).join('');
   if(!host.innerHTML) host.innerHTML='<div class="desc">Действий пока нет.</div>';
   host.querySelectorAll('[data-action-group]').forEach(el=>el.addEventListener('toggle',()=>{
     if(!el.isConnected) return;
