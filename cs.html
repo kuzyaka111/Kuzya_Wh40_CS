@@ -5973,7 +5973,7 @@ function ammoRowHtml(r, i, key, loadedByWeapon){
     ? (weapons.find(w => w.id != null && Number(w.id) === Number(r.weapon_id)) || null)
     : (weapons.find(w => w.name === r.weapon) || null);
   const wOpts = ['<option value="">— не выбрано —</option>']
-    .concat(weapons.map(w => `<option value="${w.id != null ? w.id : esc(w.name)}"${(wSel && w.id != null && wSel.id != null) ? (Number(w.id) === Number(wSel.id)) : (w.name === r.weapon) ? ' selected' : ''}>${esc(w.name)}${w.class ? ' (' + esc(w.class) + ')' : ''}</option>`))
+    .concat(weapons.map(w => `<option value="${w.id != null ? w.id : esc(w.name)}"${((wSel && w.id != null && wSel.id != null) ? (Number(w.id) === Number(wSel.id)) : (w.name === r.weapon)) ? ' selected' : ''}>${esc(w.name)}${w.class ? ' (' + esc(w.class) + ')' : ''}</option>`))
     .join('');
   const isLoaded = r.loaded;
   const anotherLoaded = !isLoaded && !!r.weapon && !!loadedByWeapon[r.weapon];
@@ -6253,7 +6253,7 @@ function bindAmmoEvents(host){
         || gearRows.find(x => x.item_id != null && x.item_id !== '' && String(Number(x.item_id)) === sel.value);
       r.weapon = hit ? hit.name : sel.value;
       r.weapon_id = (hit && hit.item_id != null && hit.item_id !== '') ? Number(hit.item_id) : null;
-      const w = gearResolve(hit);
+      const w = hit ? gearResolve(hit) : null;
       if (w && (!r.max || r.max === 0)){
         r.max = Number(w.mag) || 0;
         const full = r.max || 0;
@@ -9345,7 +9345,7 @@ let saveRevision = 0, savedRevision = 0, savesPending = 0;
 let editSnapshot = null, draftDirty = false, editBusy = false;
 function updateSaveStatus(){
   const status = $('save-status');
-  if (status) status.textContent = savesPending ? 'Сохранение…' : editMode ? '' : saveRevision > savedRevision ? 'Не сохранено' : '';
+  if (status) status.textContent = '';
 }
 function captureSheet(){
   const name = $('sh-name')?.textContent.trim();
