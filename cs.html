@@ -5628,7 +5628,7 @@ function gearIsShotgun(r, w){
     .some(value => /\bshotguns?\b|дробов|\blinebreaker\b/i.test(String(value || '').replace(/[_-]+/g, ' '))));
 }
 function ammoMatchesWeapon(ammoClass, ammoId, r, w){
-  if (/\bxenopurge\b/i.test(String(AMMO_MAP[ammoId]?.name || ''))) return gearIsShotgun(r, w);
+  if (Number(ammoId) === 28) return gearIsShotgun(r, w);
   if (Number(ammoId) === 6 || ammoClass === 'Дробовое') return [41,48].includes(Number(r?.item_id));
   const wcls = (w && w.class) ? String(w.class).trim() : '';
   return !wcls || !ammoClass || ammoClass === wcls;
