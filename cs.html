@@ -1607,15 +1607,18 @@ html,body{max-width:100%;overflow-x:hidden;}
 #sb-root .sb-vehicle-detail input,#sb-root .sb-vehicle-detail .sb-field-value{width:100%;min-width:0;box-sizing:border-box;font-size:12px}
 #sb-weapon-filters[hidden]{display:none}
 /* Defence and critical injuries share the area beneath equipment. */
-#sb-root .sb-defence-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,.3fr);gap:18px;align-items:start}
+#sb-root .sb-defence-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:stretch}
 #sb-root .sb-defence-panel,#sb-root .sb-injuries-panel{min-width:0}
+#sb-root .sb-defence-panel>.panel,#sb-root .sb-injuries-panel>.panel{height:100%;box-sizing:border-box}
+#sb-root .sb-defence-layout .section-title{min-height:54px;box-sizing:border-box}
 #sb-root .sb-defence-panel .sb-param-row h3{flex-basis:100px}
-#sb-root .sb-defence-panel .sb-param-row:has(.sb-armour-heading){display:grid;grid-template-columns:minmax(72px,1fr) auto;gap:10px;align-items:center}
+#sb-root .sb-defence-panel .sb-param-row:has(.sb-armour-heading){display:grid;grid-template-columns:1fr;gap:10px;align-items:center}
 #sb-root .sb-defence-panel .sb-armour-heading{flex:0 1 auto;min-width:0;gap:6px}
 #sb-root .sb-defence-panel .sb-armour-heading h3{flex:0 0 auto}
 #sb-root .sb-defence-panel .sb-armour-name{min-width:0;overflow-wrap:anywhere}
-#sb-root .sb-defence-panel #sb-armour-choice{width:100%;max-width:100%;flex-basis:100%;box-sizing:border-box}
-#sb-root .sb-defence-panel .sb-armour-chips{flex-wrap:nowrap}
+#sb-root .sb-defence-panel #sb-armour-choice{width:auto;max-width:100%;flex:1 1 160px;box-sizing:border-box}
+#sb-root .sb-defence-panel .sb-armour-chips{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+#sb-root .sb-defence-panel .sb-armour-chips .sb-param-chip{width:auto;min-width:0}
 #sb-root .sb-defence-panel .sb-speed-row .sb-param-chip{flex-basis:58px;width:58px}
 #sb-root .sb-injuries-panel .section-title{font-size:13px;line-height:1.5}
 @media(max-width:1200px){#sb-root .sb-defence-layout{grid-template-columns:1fr}}
