@@ -11635,10 +11635,10 @@ async function sbResumeTab(){
  return true;
 }
 
-const SB = {record:null,draft:null,chronicleId:null,busy:false,error:'',dirty:false,entry:null,loadToken:0,createId:null};
+const SB = {record:null,draft:null,chronicleId:null,busy:false,error:'',dirty:false,entry:null,loadToken:0,createId:null,quick:null,quickVersion:0,quickTimer:null,quickFlight:null,quickConflict:false};
 function sbClone(value){ return JSON.parse(JSON.stringify(value)); }
 function sbAllowed(){ return !!(S.user && S.chronicle && S.role === 'gm'); }
-function sbData(){ return SB.draft || SB.record; }
+function sbData(){ return SB.draft || SB.quick || SB.record; }
 function sbUuid(){
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -11745,6 +11745,7 @@ async function createStatblock(type){
 }
 async function openStatblock(id){
   if (!sbAllowed() || SB.busy) return;
+  if(!await sbFlushQuick())return;
   if (SB.dirty && !confirm('Есть несохранённые изменения. Загрузить сохранённую версию и отказаться от них?')) return;
   const chronicleId=S.chronicle.id;
   SB.busy=true;
@@ -11755,7 +11756,7 @@ async function openStatblock(id){
     await sbLoadSkills();
     const record=normalizeStatblock(raw);
     if (!sbAllowed() || S.chronicle.id!==chronicleId) return;
-    SB.record=record; SB.chronicleId=chronicleId; SB.draft=null; SB.error=''; SB.dirty=false;
+    SB.record=record; SB.chronicleId=chronicleId; SB.draft=null; SB.quick=null;SB.quickConflict=false;SB.error=''; SB.dirty=false;
     S.character=null;
     showScreen('statblock');
   } catch(error){
@@ -11845,8 +11846,8 @@ function renderStatblock(){
   root.classList.toggle('edit-mode',editing);
   root.innerHTML=`<div class="header">${factionIcon?`<div class="sb-faction-icon"><img id="sb-faction-img" alt="${esc(d.race)}"></div>`:''}<div class="titles"><h1><button type="button" class="sb-name-button" data-sb-choice="name">${esc(d.name)}</button></h1><div class="sub sb-tags">${tagLine}</div></div><button type="button" class="sb-class sb-tag-button" data-sb-choice="category" aria-label="Категория">${esc(d.category)}</button></div>
     <div class="footer-actions sb-toolbar"><div class="sb-toolbar-main"><button type="button" class="btn ${editing?'save':''}" data-sb-action="${editing?'save':'edit'}">${editing?'Сохранить':'Редактировать'}</button>${editing?'<button type="button" class="btn cancel" data-sb-action="cancel">Отменить</button>':''}</div><div class="sb-toolbar-right"><button type="button" class="btn sb-back" data-sb-action="back">← Хроника</button>${editing?'<button type="button" class="btn danger" data-sb-action="delete">Удалить</button>':''}</div></div>
-    <div class="sb-status" role="status">${SB.busy?'':SB.dirty?'Есть несохранённые изменения':editing?'Режим редактирования':''}</div>
-    ${SB.error?`<div class="sb-error" role="alert">${esc(SB.error)}<br><button type="button" class="btn" data-sb-action="reload">Загрузить сохранённую версию</button></div>`:''}${identity}
+    <div class="sb-status" role="status">${SB.busy?'':SB.dirty&&!SB.quick?'Есть несохранённые изменения':editing?'Режим редактирования':''}</div>
+    ${SB.error?`<div class="sb-error" role="alert">${esc(SB.error)}<br>${SB.quick&&!SB.quickConflict?'<button type="button" class="btn" data-sb-action="retry">Повторить сохранение</button> ':''}<button type="button" class="btn" data-sb-action="reload">Загрузить сохранённую версию</button></div>`:''}${identity}
     <div class="stats-strip-wrap"><div class="stats-strip">${sbStatsHtml(d)}</div></div><div class="vitals-strip-wrap"><div class="vitals-strip">${sbVitalsHtml(d)}</div></div>
     <div class="sb-columns"><div class="sb-column">${sbPanel('Умения, таланты и особенности',sbSkillsHtml(d)+sbGroup('talents')+sbGroup('features'))}</div>
     <div class="sb-column">${sbPanel('Снаряжение',sbGroup('weapons'))}${sbPanel('Броня, скорости, грузоподъёмность',`${parameters}`)}</div>
@@ -11876,7 +11877,43 @@ function sbTouch(quick=false){
   const status=$('sb-root').querySelector('.sb-status');
   if(status && !quick) status.textContent='Есть несохранённые изменения';
 }
+function sbQueueQuick(){
+ if(!SB.draft || SB.busy) return false;
+ SB.quick=SB.draft;SB.draft=null;SB.quickVersion++;SB.dirty=true;
+ if(!SB.quickConflict)SB.error='';
+ clearTimeout(SB.quickTimer);
+ if(!SB.quickConflict)SB.quickTimer=setTimeout(()=>{SB.quickTimer=null;sbFlushQuick();},800);
+ renderStatblock();return true;
+}
+async function sbFlushQuick(){
+ clearTimeout(SB.quickTimer);SB.quickTimer=null;
+ if(SB.quickFlight){if(!await SB.quickFlight)return false;return SB.quick?sbFlushQuick():true;}
+ if(!SB.quick)return true;
+ if(SB.quickConflict || !sbAllowed() || SB.busy)return false;
+ const owner=SB.record.id,chronicle=SB.chronicleId,revision=SB.record.revision,version=SB.quickVersion,payload=sbClone(SB.quick);
+ SB.error='';
+ SB.quickFlight=(async()=>{
+  try{
+   const {data,error}=await sb.rpc('save_chronicle_statblock',{p_chronicle_id:chronicle,p_block_id:owner,p_expected_revision:revision,p_block:payload,p_delete:false});
+   if(error)throw error;
+   if(!data || data.id!==owner || data.revision!==revision+1)throw new Error('Сохранение не подтверждено');
+   if(SB.record?.id!==owner || SB.chronicleId!==chronicle)return false;
+   SB.record=normalizeStatblock(data);
+   if(version===SB.quickVersion){SB.quick=null;SB.dirty=false;}
+   else SB.quick.revision=SB.record.revision;
+   return true;
+  }catch(error){
+   SB.quickConflict=String(error.message).includes('STATBLOCK_CONFLICT');
+   SB.error=SB.quickConflict?'Запись изменилась в другой вкладке. Загрузите сохранённую версию.':'Не удалось сохранить изменения. Они остаются на экране. Повторите сохранение. '+(error.message||'');
+   return false;
+  }finally{SB.quickFlight=null;renderStatblock();}
+ })();
+ const saved=await SB.quickFlight;
+ return saved && SB.quick?sbFlushQuick():saved;
+}
 async function saveStatblock(readInputs=true,quick=false){
+  if(quick)return sbQueueQuick();
+  if(!await sbFlushQuick())return false;
   if(!sbAllowed() || SB.busy || !SB.draft || S.chronicle.id!==SB.chronicleId) return false;
   for(const input of readInputs?$('sb-root').querySelectorAll('[data-sb-number]'):[]){
     const value=sbNumber(input.dataset.sbNumber,input.value);
@@ -11925,8 +11962,9 @@ async function deleteStatblock(){
   finally {SB.busy=false;}
   if(deleted){toast('Статблок удалён');showScreen('chronicle');await loadStatblocks();}else renderStatblock();
 }
-function sbStartEdit(){
+async function sbStartEdit(){
   if(!sbAllowed() || SB.busy || !SB.record) return;
+  if(!await sbFlushQuick())return;
   SB.draft=sbClone(SB.record);SB.error='';SB.dirty=false;renderStatblock();
 }
 function sbCancelEdit(){
@@ -11936,6 +11974,7 @@ function sbCancelEdit(){
 }
 async function sbBack(){
   if(SB.busy) return;
+  if(!await sbFlushQuick())return;
   if(SB.dirty && !confirm('Вернуться в Хронику без сохранения изменений?')) return;
   SB.record=null;SB.draft=null;SB.dirty=false;SB.error='';
   closeModal('sb-entry-modal');
@@ -11990,7 +12029,7 @@ $('sb-root').addEventListener('change',async e=>{
   const value=sbNumber(path,el.value);
   if(value===undefined){toast('Введите целое неотрицательное число');el.value=path.split('.').reduce((value,key)=>value?.[key],sbData())??'';return;}
   const quick=!SB.draft;
-  if(quick) SB.draft=sbClone(SB.record);
+  if(quick) SB.draft=sbClone(sbData());
   // Keep the focused control in place: rebuilding on blur would swallow a Save click.
   if(/^vitals\.(health|critical|fatigue|fate)$/.test(path)?sbSetVital(SB.draft,path.slice(7),value):sbSetPath(SB.draft,path,value)){sbTouch(quick);if(quick) await saveStatblock(false,true);}
 });
@@ -12002,7 +12041,15 @@ $('sb-root').addEventListener('click',async e=>{
   if(action==='save') return saveStatblock();
   if(action==='cancel') return sbCancelEdit();
   if(action==='back') return sbBack();
-  if(action==='reload') return openStatblock(SB.record.id);
+  if(action==='retry')return sbFlushQuick();
+  if(action==='reload'){
+    if(SB.quick){
+      if(!confirm('Отказаться от несохранённых изменений и загрузить сохранённую версию?'))return;
+      if(SB.quickFlight)await SB.quickFlight;
+      clearTimeout(SB.quickTimer);SB.quickTimer=null;SB.quick=null;SB.quickConflict=false;SB.dirty=false;
+    }
+    return openStatblock(SB.record.id);
+  }
   if(action==='delete') return deleteStatblock();
   if(button.dataset.sbAdd) return openStatblockEntry(button.dataset.sbAdd);
   if(button.dataset.sbEdit){const [key,index]=button.dataset.sbEdit.split(':');return openStatblockEntry(key,Number(index));}
@@ -12014,12 +12061,12 @@ $('sb-root').addEventListener('click',async e=>{
     const [key,step]=button.dataset.sbStep.split(':');
     if(!['health','critical','fatigue','fate'].includes(key) || !['-1','1'].includes(step)) return;
     const quick=!SB.draft;
-    if(quick) SB.draft=sbClone(SB.record);
+    if(quick) SB.draft=sbClone(sbData());
     sbSetVital(SB.draft,key,(Number(SB.draft.vitals[key])||0)+Number(step));
     sbTouch(quick);if(quick) await saveStatblock(false,true);else renderStatblock();
   }
 });
-window.addEventListener('beforeunload',e=>{if(SB.dirty||SB.busy){e.preventDefault();e.returnValue='';}});
+window.addEventListener('beforeunload',e=>{if(SB.dirty||SB.busy||SB.quickFlight){e.preventDefault();e.returnValue='';}});
 
 function sbRenderSkills(){
   const active=sbData(); if(!active) return;
@@ -12159,8 +12206,9 @@ function sbModal(kind,title,body,entry={}){
   $('sb-entry-modal').classList.remove('hidden');
   $('sb-entry-fields').querySelector('input,button,select')?.focus();
 }
-function sbBeginChange(){if(!SB.draft) SB.draft=sbClone(SB.record);}
-function sbChoice(kind){
+function sbBeginChange(){if(!SB.draft) SB.draft=sbClone(sbData());}
+async function sbChoice(kind){
+  if(!await sbFlushQuick())return;
   const d=sbData();
   if(kind==='preset')return sbModal('preset','Пресеты','<div class="sb-wide sb-empty">Пресетов пока нет.</div>');
   if(kind==='race'||kind==='category') return sbModal('choice',kind==='race'?'Выбрать тип':'Выбрать категорию',`<div class="sb-wide sb-choice-grid">${(kind==='race'?SB_RACES:SB_CLASSES).map(v=>`<button type="button" data-sb-choice-value="${esc(v)}" aria-pressed="${d[kind]===v}">${esc(v)}</button>`).join('')}</div>`,{field:kind});
