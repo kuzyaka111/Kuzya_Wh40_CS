@@ -2794,6 +2794,7 @@ async function doLogin(){
   if (!data) return toast('Аутентификатор не найден. Зарегистрируйте его.');
   S.user = data;
   localStorage.setItem('dw_user', JSON.stringify(data));
+  if(await sbResumeTab())return;
   await showDash();
 }
 
@@ -9900,6 +9901,7 @@ if (modsEditBtn) modsEditBtn.addEventListener('click', openSettings);
         .select('id, username').eq('id', u.id).maybeSingle();
       if (data){
         S.user = data;
+        if(await sbResumeTab())return;
         if (charId){ await openSheet(Number(charId)); return; }
         return showDash();
       }
@@ -11587,6 +11589,38 @@ dwInstallHooks();
 const SB_RACES = ['Империум','Тираниды','Орки','Мутанты','Техника','Демоны','Тау','Эльдары'];
 const SB_CLASSES = ['Орда','Рядовой','Элита','Босс'];
 const SB_GROUPS = {talents:'Таланты',features:'Особенности',weapons:'Снаряжение',injuries:'Крит-травмы',traits:'Черты'};
+const SB_TAB_PREFIX='dw_statblock_tab:';
+function sbTabRequest(search=location.search){
+ const q=new URLSearchParams(search),id=q.get('statblock'),chronicle=Number(q.get('chronicle')),token=q.get('handoff');
+ if(!id)return null;
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)||!Number.isSafeInteger(chronicle)||chronicle<=0||!token||!/^[0-9a-f-]{36}$/i.test(token))return {invalid:true};
+ return {id,chronicle,token};
+}
+function sbOpenTab(id){
+ if(!sbAllowed()||SB.busy||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return;
+ const token=sbUuid(),key=SB_TAB_PREFIX+token,url=new URL(location.href);
+ url.search='';url.hash='';url.searchParams.set('statblock',id);url.searchParams.set('chronicle',S.chronicle.id);url.searchParams.set('handoff',token);
+ try{
+  // A browser-created child receives a copy of this tab's sessionStorage.
+  // Scope the inherited GM context to one user, chronicle and statblock; never pass a password.
+  sessionStorage.setItem(key,JSON.stringify({userId:S.user.id,chronicleId:S.chronicle.id,chronicleName:S.chronicle.name,recordId:id}));
+  const child=window.open(url.href,'_blank');
+  if(!child)toast('Разрешите открытие новых вкладок для этого сайта');
+ }catch(error){toast('Не удалось открыть новую вкладку: '+error.message);}
+ finally{sessionStorage.removeItem(key);}
+}
+async function sbResumeTab(){
+ const request=sbTabRequest();if(!request)return false;
+ let context=null;
+ try{if(!request.invalid)context=JSON.parse(sessionStorage.getItem(SB_TAB_PREFIX+request.token)||'null');}catch(_){}
+ if(!S.user||!context||String(context.userId)!==String(S.user.id)||Number(context.chronicleId)!==request.chronicle||context.recordId!==request.id){
+  await showDash();toast('Откройте статблок из Хроники в режиме Мастера');return true;
+ }
+ await enterChronicle(request.chronicle,String(context.chronicleName||'Хроника'),'gm');
+ await openStatblock(request.id);
+ return true;
+}
+
 const SB = {record:null,draft:null,chronicleId:null,busy:false,error:'',dirty:false,entry:null,loadToken:0,createId:null};
 function sbClone(value){ return JSON.parse(JSON.stringify(value)); }
 function sbAllowed(){ return !!(S.user && S.chronicle && S.role === 'gm'); }
@@ -11809,7 +11843,7 @@ function sbTouch(){
   const status=$('sb-root').querySelector('.sb-status');
   if(status) status.textContent='Есть несохранённые изменения';
 }
-async function saveStatblock(readInputs=true){
+async function saveStatblock(readInputs=true,quick=false){
   if(!sbAllowed() || SB.busy || !SB.draft || S.chronicle.id!==SB.chronicleId) return false;
   for(const input of readInputs?$('sb-root').querySelectorAll('[data-sb-number]'):[]){
     const value=sbNumber(input.dataset.sbNumber,input.value);
@@ -11824,6 +11858,7 @@ async function saveStatblock(readInputs=true){
       if(sbNumber(group+'.'+key,value??'')===undefined){toast('Проверьте числовые значения');return false;}
     }
   }
+  if(quick)SB.draft=null; // Quick shield updates must render the regular sheet during the request.
   SB.busy=true;SB.error='';renderStatblock();
   try {
     const {data,error}=await sb.rpc('save_chronicle_statblock',{p_chronicle_id:SB.chronicleId,p_block_id:SB.record.id,p_expected_revision:SB.record.revision,p_block:payload,p_delete:false});
@@ -11835,7 +11870,12 @@ async function saveStatblock(readInputs=true){
     SB.error=String(error.message).includes('STATBLOCK_CONFLICT')
       ?'Запись уже изменена или удалена в другой вкладке. Ваши правки остались на экране и не перезаписали сохранённую версию. Загрузите актуальную запись перед повторным редактированием.'
       :'Не удалось подтвердить сохранение. Ваши правки остались на экране. '+(error.message||'Проверьте соединение и повторите сохранение.');
-    SB.dirty=true;return false;
+    if(quick){
+      SB.error=String(error.message).includes('STATBLOCK_CONFLICT')
+        ?'Запись изменилась в другой вкладке. Загрузите актуальную версию перед переключением щита.'
+        :'Не удалось сохранить переключение щита. Сохранённое состояние восстановлено. Повторите нажатие. '+(error.message||'Проверьте соединение.');
+    }
+    SB.dirty=!quick;return false;
   } finally {SB.busy=false;renderStatblock();}
 }
 async function deleteStatblock(){
@@ -11865,7 +11905,9 @@ async function sbBack(){
   if(SB.busy) return;
   if(SB.dirty && !confirm('Вернуться в Хронику без сохранения изменений?')) return;
   SB.record=null;SB.draft=null;SB.dirty=false;SB.error='';
-  closeModal('sb-entry-modal');showScreen('chronicle');await loadStatblocks();
+  closeModal('sb-entry-modal');
+  if(sbTabRequest()){window.close();return;}
+  showScreen('chronicle');await loadStatblocks();
 }
 function openStatblockEntry(key,index=-1){
   if(!sbAllowed() || !SB.draft || SB.busy || !Object.hasOwn(SB_GROUPS,key)) return;
@@ -11894,7 +11936,7 @@ $('sb-entry-form').addEventListener('submit',e=>{
   sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();
 });
 $('statblock-list').addEventListener('click',e=>{
-  const btn=e.target.closest('[data-sb-open]');if(btn) openStatblock(btn.dataset.sbOpen);
+  const btn=e.target.closest('[data-sb-open]');if(btn) sbOpenTab(btn.dataset.sbOpen);
 });
 $('sb-root').addEventListener('input',e=>{
   const el=e.target;
@@ -12254,7 +12296,7 @@ $('sb-root').addEventListener('click',async e=>{
   if(t.dataset.sbCatalog)return sbOpenCatalog(t.dataset.sbCatalog==='1'?'weapons':t.dataset.sbCatalog);
   if(t.dataset.sbSkillsRetry){await sbLoadSkills();sbMergeSkills(sbData());return renderStatblock();}
   if(t.dataset.sbExpand){const key='show_untrained_'+t.dataset.sbExpand;const quick=!SB.draft;sbBeginChange();SB.draft[key]=!SB.draft[key];sbTouch();return quick?saveStatblock(false):renderStatblock();}
-  if(t.dataset.sbShield){if(SB.draft)return;const quick=!SB.draft;sbBeginChange();const z=t.dataset.sbShield;SB.draft.defence.covered[z]=!SB.draft.defence.covered[z];sbTouch();return quick?saveStatblock(false):renderStatblock();}
+  if(t.dataset.sbShield){if(SB.draft)return;const quick=!SB.draft;sbBeginChange();const z=t.dataset.sbShield;SB.draft.defence.covered[z]=!SB.draft.defence.covered[z];sbTouch();return quick?saveStatblock(false,true):renderStatblock();}
   const spec=t.dataset.sbSkillCycle||t.dataset.sbSkillCycleGroup;
   if(spec){
     if(!SB.draft)return sbOpenSkillRoll(spec);
