@@ -1412,6 +1412,8 @@ html,body{max-width:100%;overflow-x:hidden;}
 }
 #screen-statblock{padding:24px;max-width:none;}
 #sb-root .header{display:flex;}
+#sb-root .sb-faction-icon{width:80px;height:80px;flex:0 0 80px;align-self:center;}
+#sb-root .sb-faction-icon img{display:block;width:80px;height:80px;object-fit:contain;}
 #sb-root .titles{flex:1;min-width:0;}
 #sb-root h1{overflow-wrap:anywhere;}
 #sb-root .sb-class{font-family:'Russo One',serif;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);flex-shrink:0;}
@@ -1506,7 +1508,7 @@ html,body{max-width:100%;overflow-x:hidden;}
   #sb-root .sb-toolbar{grid-template-columns:1fr;gap:6px;padding:8px 10px;}
   #sb-root .sb-toolbar-main,#sb-root .sb-toolbar-right{gap:6px;justify-content:flex-start;}
   #sb-root .sb-toolbar .btn{font-size:11px;padding:7px 10px;}
-  #sb-root .sb-class{margin-left:auto;font-size:13px;}
+  #sb-root .sb-class.sb-tag-button{margin-left:auto;font-size:13px;flex-basis:100%;text-align:right;}
   #sb-root .vitals-strip{grid-template-columns:1fr;}
   #sb-root .sb-fields>div{grid-template-columns:1fr;gap:6px;}
   #sb-entry-fields{grid-template-columns:1fr;}
@@ -1519,7 +1521,8 @@ html,body{max-width:100%;overflow-x:hidden;}
 .sb-kind-chips button{flex:1;padding:9px 12px;border-radius:4px;letter-spacing:0}
 .sb-kind-chips button[aria-pressed="true"]{background:#302a17;border-color:#c9a24b;color:#e6c76b}
 #sb-root .sb-tag-button,#sb-root .sb-name-button{background:none;border:0;color:var(--gold);padding:0;font:inherit;letter-spacing:inherit;cursor:pointer;text-transform:inherit;text-align:left}
-#sb-root .sb-name-button{color:inherit;overflow-wrap:anywhere;max-width:100%}
+#sb-root .sb-name-button{color:inherit;overflow-wrap:anywhere;max-width:100%;white-space:normal}
+#sb-root .sb-tags .sb-tag-button{white-space:normal;overflow-wrap:anywhere;}
 #sb-root .sb-class.sb-tag-button{font-family:'Russo One',serif;font-size:14px;letter-spacing:1px;text-transform:uppercase}
 #sb-root .sb-tag-button:hover,#sb-root .sb-name-button:hover{color:#e8cf87;text-decoration:underline}
 #sb-root .sb-param-row{padding:12px 0;border-bottom:1px solid var(--border-dark)}
@@ -11586,7 +11589,12 @@ dwInstallHooks();
 </script>
 <script data-feature="compact-statblocks">
 // Compact statblocks: manual values, no character progression or Astartes grants.
-const SB_RACES = ['Империум','Тираниды','Орки','Мутанты','Техника','Демоны','Тау','Эльдары'];
+const SB_RACES = ['Империум','Тираниды','Орки','Мутанты','Техника','Демоны','Космодесант Хаоса','Тау','Эльдары','Тёмные Эльдары'];
+const SB_FACTION_ICON_FILES = {'Империум':'imperium.png','Тираниды':'tyranids.png','Орки':'orks.png','Техника':'technology.png','Демоны':'chaos.png','Космодесант Хаоса':'chaos.png','Тау':'tau.png','Эльдары':'eldar.png','Тёмные Эльдары':'dark-eldar.png'};
+function sbFactionIconUrl(race){
+  const file=Object.hasOwn(SB_FACTION_ICON_FILES,race)?SB_FACTION_ICON_FILES[race]:null;
+  return file?'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/factions/'+file:'';
+}
 const SB_CLASSES = ['Орда','Рядовой','Элита','Босс'];
 const SB_GROUPS = {talents:'Таланты',features:'Особенности',weapons:'Снаряжение',injuries:'Крит-травмы',traits:'Черты'};
 const SB_TAB_PREFIX='dw_statblock_tab:';
@@ -11807,11 +11815,12 @@ function sbVitalsHtml(d){
 function renderStatblock(){
   const d=sbData(),root=$('sb-root'); if(!d) return;
   const editing=!!SB.draft,isVehicle=sbIsVehicle(d),p=d.parameters;
+  const factionIcon=sbFactionIconUrl(d.race);
   const tagLine=`<button type="button" class="sb-tag-button" data-sb-choice="race">[${esc(d.race||'Определить тип')}]</button> <button type="button" class="sb-tag-button" data-sb-choice="preset">[+ Пресет]</button> `+d.tags.map(t=>`<span class="sb-tag">[${esc(t)}]</span>`).join(' ')+` <button type="button" class="sb-tag-button" data-sb-choice="tags" aria-label="Изменить теги">[+ Тег]</button>`;
   const identity='';
   const parameters=sbParametersHtml(d);
   root.classList.toggle('edit-mode',editing);
-  root.innerHTML=`<div class="header"><div class="titles"><h1><button type="button" class="sb-name-button" data-sb-choice="name">${esc(d.name)}</button></h1><div class="sub sb-tags">${tagLine}</div></div><button type="button" class="sb-class sb-tag-button" data-sb-choice="category" aria-label="Категория">${esc(d.category)}</button></div>
+  root.innerHTML=`<div class="header">${factionIcon?`<div class="sb-faction-icon"><img id="sb-faction-img" alt="${esc(d.race)}"></div>`:''}<div class="titles"><h1><button type="button" class="sb-name-button" data-sb-choice="name">${esc(d.name)}</button></h1><div class="sub sb-tags">${tagLine}</div></div><button type="button" class="sb-class sb-tag-button" data-sb-choice="category" aria-label="Категория">${esc(d.category)}</button></div>
     <div class="footer-actions sb-toolbar"><div class="sb-toolbar-main"><button type="button" class="btn ${editing?'save':''}" data-sb-action="${editing?'save':'edit'}">${editing?'Сохранить':'Редактировать'}</button>${editing?'<button type="button" class="btn cancel" data-sb-action="cancel">Отменить</button>':''}</div><div class="sb-toolbar-right"><button type="button" class="btn sb-back" data-sb-action="back">← Хроника</button>${editing?'<button type="button" class="btn danger" data-sb-action="delete">Удалить</button>':''}</div></div>
     <div class="sb-status" role="status">${SB.busy?'':SB.dirty?'Есть несохранённые изменения':editing?'Режим редактирования':''}</div>
     ${SB.error?`<div class="sb-error" role="alert">${esc(SB.error)}<br><button type="button" class="btn" data-sb-action="reload">Загрузить сохранённую версию</button></div>`:''}${identity}
@@ -11821,6 +11830,7 @@ function renderStatblock(){
     ${sbPanel(isVehicle?'Критические повреждения':'Крит-травмы',`<div class="sb-critical"><label for="sb-critical">Критический урон</label><input id="sb-critical" type="number" min="0" step="1" data-sb-number="vitals.critical" aria-label="Критический урон" value="${Number(d.vitals.critical)||0}"></div>`+sbGroup('injuries',isVehicle?'Повреждения':'Травмы'))}
     ${sbPanel('Черты',sbGroup('traits'))}</div><div class="sb-footer">${editing?'Изменения применяются кнопкой «Сохранить»':'Статблок сохранён в Хронике'}</div>`;
   root.inert=SB.busy;
+  if(factionIcon) fitIconToOpaque($('sb-faction-img'),factionIcon,80,1);
   sbRenderSkills();
   sbLoadArmourChoice();
 }
