@@ -9401,8 +9401,8 @@ async function deleteCharacter(){
 function openAdvancement(sub){
   if (!S.character) return;
   if (!['improvements','requisition','honours'].includes(sub)) sub='improvements';
-  if (sub!=='honours' && typeof dwActive==='function' && dwActive(S.character.character_data))
-    return toast('Все таблицы развития отключены в режиме дредноута');
+  if (sub==='requisition' && typeof dwActive==='function' && dwActive(S.character.character_data))
+    return toast('Реквизиция дредноута пока недоступна');
   document.querySelectorAll('.advancement-subtab').forEach(t =>
     t.classList.toggle('active', t.dataset.subadv === sub));
   ['improvements','requisition','honours'].forEach(key=>{
@@ -10562,7 +10562,7 @@ function renderAdvCatalog(){
             ? (available < item.cost ? 'Купить (недостаточно XP)' : 'Купить (требования не выполнены)')
             : 'Купить';
           const typeBadge = item.type ? `<span class="adv-type-badge">${esc(item.type)}</span>` : '';
-          const xBadge = (remaining > 1) ? ` ×${remaining}` : '';
+          const xBadge = (remaining > 1 && Number.isFinite(remaining)) ? ` ×${remaining}` : '';
 
           return `<div class="advancement-item ${status}" data-adv-id="${item.id}">
             <div class="adv-item-info">
@@ -10881,7 +10881,8 @@ function updateAdvFilter(){
 .dw-fields{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:12px 0}.dw-field input{width:75px;background:#18191d;color:#eee;border:1px solid #555;padding:5px}
 .dw-spec{margin:10px 0;padding:12px;border:1px solid #444}.dw-grants{display:flex;flex-wrap:wrap;gap:8px}.dw-grants>details{min-width:200px;flex:1;padding:8px;border:1px solid #444}
 .dw-restricted .skill-name,.dw-restricted .skill-group-name,.dw-restricted .t-name,.roll-opt.dw-restricted .n{text-decoration:line-through;color:#777}.dw-restricted{opacity:.6}.dw-inactive-size{display:none}
-.dread-mode .armour-vis,.dread-mode #armour-seal-plate,.dread-mode #armour-sil-svg,.dread-mode #armour-aux-list,.dread-mode [data-adv],.dread-mode #alt-speeds-list-container,.dread-mode #add-alt-speed{display:none!important}
+.dread-mode .armour-vis,.dread-mode #armour-seal-plate,.dread-mode #armour-sil-svg,.dread-mode #armour-aux-list,.dread-mode #alt-speeds-list-container,.dread-mode #add-alt-speed{display:none!important}
+.dread-mode [data-adv^="sil:"],.dread-mode [data-adv^="wyn:"],.dread-mode [data-adv^="lov:"]{display:none!important}
 .dread-mode .vit-max:disabled{pointer-events:none;opacity:.55}
 #specialization-modal.dread-advanced .chapter-custom{display:none}
 .dread-mode #armour-extras{padding:12px}.dw-armour{padding:14px}.dw-armour h4{color:var(--gold)}
@@ -11416,8 +11417,7 @@ function dwInstallHooks(){
     }
     return orig.openPicker(key);
   };
-  const guard=(fn)=>(...args)=>{ if(dwActive(dwData())) return toast('Все таблицы развития отключены в режиме дредноута'); return fn(...args); };
-  tryStatAdv=guard(tryStatAdv); applyStatAdv=guard(applyStatAdv); revertStatAdv=guard(revertStatAdv); confirmStatAdv=guard(confirmStatAdv); openBuyModal=guard(openBuyModal); confirmBuy=guard(confirmBuy);
+  // Purchases and physical characteristics are guarded by the progression layer.
 }
 dwInstallHooks();
 
@@ -11610,8 +11610,8 @@ dwInstallHooks();
 </script>
 <script data-feature="compact-statblocks">
 // Compact statblocks: manual values, no character progression or Astartes grants.
-const SB_RACES = ['Империум','Тираниды','Орки','Мутанты','Техника','Демоны','Космодесант Хаоса','Тау','Эльдары','Тёмные Эльдары'];
-const SB_FACTION_ICON_FILES = {'Империум':'imperium.png','Тираниды':'tyranids.png','Орки':'orks.png','Техника':'technology.png','Демоны':'chaos.png','Космодесант Хаоса':'chaos.png','Тау':'tau.png','Эльдары':'eldar.png','Тёмные Эльдары':'dark-eldar.png'};
+const SB_RACES = ['Империум','Тираниды','Орки','Ксеносы','Техника','Демоны','Космодесант Хаоса','Тау','Эльдары','Тёмные Эльдары'];
+const SB_FACTION_ICON_FILES = {'Ксеносы':'xenos.png','Мутанты':'xenos.png','Империум':'imperium.png','Тираниды':'tyranids.png','Орки':'orks.png','Техника':'technology.png','Демоны':'chaos.png','Космодесант Хаоса':'chaos.png','Тау':'tau.png','Эльдары':'eldar.png','Тёмные Эльдары':'dark-eldar.png'};
 function sbFactionIconUrl(race){
   const file=Object.hasOwn(SB_FACTION_ICON_FILES,race)?SB_FACTION_ICON_FILES[race]:null;
   return file?'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/factions/'+file:'';
@@ -11694,6 +11694,7 @@ function normalizeStatblock(raw){
   d.armour_extras=Array.isArray(raw.armour_extras)?raw.armour_extras.filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name??''),value:String(x.value??'')})):[];
   d.armour_choice=raw.armour_choice&&typeof raw.armour_choice==='object'?{id:raw.armour_choice.id,name:String(raw.armour_choice.name||'')}:null;
   d.tags=Array.isArray(d.tags)?d.tags.map(String):[];
+  if(d.race==='Мутанты')d.race='Ксеносы';
   if(d.type==='vehicle' && !d.type_choice_migrated){d.race='Техника';d.type_choice_migrated=true;} // Preserve immutable server type for legacy records.
   return d;
 }
@@ -12767,6 +12768,150 @@ checkRequirement=function(req,d){
     return ADV_SPEC_ORIG.checkRequirement(text,d);
   });
 };
+
+// Dreadnought progression follows the purchased specialization; chassis stays independent.
+function dwCurrentSpec(d){ return DW_SPECS.find(s=>Number(s.id)===Number(d?.dreadnought?.advanced_specialization_id)) || null; }
+function dwProgressionSources(d){
+  const code=dwCurrentSpec(d)?.data.dread_code;
+  return code==='dreadnought' ? ['Дредноут Караула Смерти'] : code==='furioso' ? ['Фуриозо'] : code==='furioso-librarian' ? ['Фуриозо','Библиарий'] : [];
+}
+function dwAdvanceSubject(item){
+  const parsed=purchasedAdvanceSubject(item.name), numericPsi=String(item.name).match(/^Пси-рейтинг\s+(\d+)$/i);
+  const fullTalent=talentByName(item.req_advanced?.grant?.name || item.name);
+  return {...parsed,name:item.req_advanced?.grant?.name || (numericPsi ? 'Пси-рейтинг' : fullTalent ? fullTalent.name : parsed.name),group:fullTalent && !fullTalent.groups_enabled ? '' : parsed.group,psi:numericPsi ? Number(numericPsi[1]) : null};
+}
+function dwAdvanceAllowed(d,item){
+  if(!dwActive(d)) return true;
+  if(dwProgressionSources(d).some(s=>srcEq(s,item.source))) return true;
+  if(!srcEq(item.source,'Общие улучшения') || !DW_RULES) return false;
+  const subject=dwAdvanceSubject(item), skill=/умение/i.test(item.type || '');
+  const row=skill ? DB_SKILLS.find(s=>dwNorm(s.name)===dwNorm(subject.name)) : talentByName(subject.name);
+  return !!row && (skill ? DW_RULES.allowed_skill_ids : DW_RULES.allowed_talent_ids)?.some(id=>Number(id)===Number(row.id));
+}
+function dwAdvancePrice(d,item){ return dwActive(d) && dwCurrentSpec(d)?.data.dread_code==='furioso-librarian' && srcEq(item.source,'Библиарий') ? Number(item.cost)*2 : Number(item.cost); }
+function dwAdvanceOwned(d,item,group){
+  const subject=dwAdvanceSubject(item), label=group ?? subject.group;
+  if(subject.psi) return permanentPsiRating(d)>=subject.psi;
+  if(/умение/i.test(item.type || '')){
+    const skill=DB_SKILLS.find(s=>dwNorm(s.name)===dwNorm(subject.name));
+    const row=[...(d.skills_basic || []),...(d.skills_adv || [])].find(r=>Number(r.id)===Number(skill?.id));
+    if(!row) return false;
+    const entries=label ? (row.groups || []).filter(g=>dwNorm(g.name)===dwNorm(label)) : [row];
+    return entries.some(r=>SKILL_LEVELS.indexOf(r.level)>=SKILL_LEVELS.indexOf(subject.level));
+  }
+  const talent=talentByName(subject.name);
+  return (d.talents || []).some(r=>Number(r.id)===Number(talent?.id) && (!label || dwNorm(r.group)===dwNorm(label) || (r.groups || []).some(g=>dwNorm(g.name || g)===dwNorm(label)))) || dwGrants(d).some(r=>r.kind==='talent' && Number(r.id)===Number(talent?.id) && (!label || dwNorm(r.name).includes('('+dwNorm(label)+')')));
+}
+function dwAnyGroup(item){ return /^(любой|любая|любое|любые)$/i.test(dwAdvanceSubject(item).group); }
+function dwSpecRefund(d){
+  const entries=(d.xp_log || []).filter(e=>e.source==='dreadnought-specialization');
+  const amount=entries.reduce((sum,e)=>sum+(Number(e.cost)||0),0);
+  d.xp_log=(d.xp_log || []).filter(e=>e.source!=='dreadnought-specialization');
+  const names=new Set(DW_SPECS.map(s=>dwNorm(s.name)));
+  d.tags=(d.tags || []).filter(t=>!names.has(dwNorm(t)));
+  const st=dwEnsure(d);st.purchased_specializations={};st.advanced_specialization_id=null;
+  return amount;
+}
+const DW_ADV_ORIG={specializationAdvanceSources,renderAdvCatalog,getAdvStatus,advMaxPurchases,openBuyModal,confirmBuy,charAdvCost,tryStatAdv,applyStatAdv,revertStatAdv,confirmStatAdv,dwSpecWarnings,dwRestricted,removeTag,addTag,renderSheet,checkRequirement};
+specializationAdvanceSources=function(d){ return dwActive(d) ? dwProgressionSources(d) : DW_ADV_ORIG.specializationAdvanceSources(d); };
+dwSpecWarnings=function(d,spec){
+  const credited={...d,xp_log:(d.xp_log || []).filter(e=>e.source!=='dreadnought-specialization'),vitals:{...d.vitals,fate:d.vitals?.max_fate ?? d.vitals?.fate ?? 0}};
+  const messages=DW_ADV_ORIG.dwSpecWarnings(credited,spec).map(m=>m.startsWith('Требование: Очки Судьбы') ? 'Требование: общий запас Судьбы равен 0 (сожжённые очки, а не потраченные на встречу)' : m);
+  const required=spec.data.requirements?.specialization_names || (spec.data.dread_code==='furioso-librarian' ? ['Библиарий'] : []);
+  if(required.length && !required.some(n=>dwNorm(n)===dwNorm(d.info?.specialization))) messages.push('Требование: обычная специализация '+required.join(', '));
+  return messages;
+};
+dwBuySpec=function(d,spec){
+  if(Number(dwCurrentSpec(d)?.id)===Number(spec.id)) return false;
+  dwSpecRefund(d);
+  (d.xp_log ||= []).push({table_id:null,name:spec.name,cost:Number(spec.data.xp_cost),source:'dreadnought-specialization',specialization_id:spec.id,specialization_code:spec.data.dread_code,date:new Date().toISOString().slice(0,10)});
+  const st=dwEnsure(d);st.purchased_specializations[spec.data.dread_code]=true;st.advanced_specialization_id=spec.id;
+  (d.tags ||= []).push(spec.name);return true;
+};
+dwChooseSpec=async function(id){
+  const d=dwData(),spec=DW_SPECS.find(s=>Number(s.id)===Number(id));
+  if(!d || !spec || !dwActive(d) || Number(dwCurrentSpec(d)?.id)===Number(id) || S.dreadSpecChanging) return;
+  S.dreadSpecChanging=true;
+  try{
+    const refund=(d.xp_log || []).filter(e=>e.source==='dreadnought-specialization').reduce((a,e)=>a+(Number(e.cost)||0),0),warnings=dwSpecWarnings(d,spec);
+    const ok=await dwConfirm('Выбрать «'+spec.name+'» за '+spec.data.xp_cost+' XP?'+(refund ? '\nПредыдущая специализация заменится, вернётся '+refund+' XP. Купленные улучшения сохранятся.' : '')+(warnings.length ? '\n\n'+warnings.join('\n') : ''),warnings.length ? 'Выбрать всё равно' : 'Выбрать');
+    if(ok && dwData()===d && dwActive(d)){dwBuySpec(d,spec);closeSpecializationModal();renderSheet();debouncedSave();}
+  }finally{S.dreadSpecChanging=false;}
+};
+removeTag=function(name){
+  const d=dwData(),current=dwCurrentSpec(d);
+  if(d && (DW_SPECS.some(s=>dwNorm(s.name)===dwNorm(name)) || (name==='Дредноут' && (current || (d.xp_log || []).some(e=>e.source==='dreadnought-specialization'))))){
+    if(!confirm('Удалить '+name+'? Стоимость дредноутской специализации вернётся; купленные улучшения сохранятся.')) return;
+    const refund=dwSpecRefund(d);if(name==='Дредноут') d.tags=d.tags.filter(t=>t!=='Дредноут');
+    renderSheet();debouncedSave();toast('Возвращено '+refund+' XP');return;
+  }
+  return DW_ADV_ORIG.removeTag(name);
+};
+addTag=async function(name){const spec=DW_SPECS.find(s=>dwNorm(s.name)===dwNorm(name));return spec ? dwChooseSpec(spec.id) : DW_ADV_ORIG.addTag(name);};
+const dwSpecModalBefore=dwRenderSpecModal;
+dwRenderSpecModal=function(){dwSpecModalBefore();const d=dwData(),current=dwCurrentSpec(d);document.querySelectorAll('#specialization-list [data-specialization-name]').forEach(el=>{if(dwNorm(el.dataset.specializationName)===dwNorm(current?.name))el.remove();});};
+dwRestricted=function(d,kind,row){
+  if(dwActive(d)){
+    const source=dwCurrentSpec(d)?.data.dread_code;
+    if(kind==='talent' && ([138,122].includes(Number(row?.id)) || (Number(row?.id)===117 && ['furioso','furioso-librarian'].includes(source)))) return false;
+  }
+  return DW_ADV_ORIG.dwRestricted(d,kind,row);
+};
+advMaxPurchases=function(item,d){if(dwActive(d) && dwAdvanceAllowed(d,item)){if(dwAnyGroup(item))return Infinity;if(item.req_advanced?.dread_specialization_ids)return Number(item.req_advanced.max_purchases)||1;}return DW_ADV_ORIG.advMaxPurchases(item,d);};
+getAdvStatus=function(item,d){
+  if(!dwActive(d)) return DW_ADV_ORIG.getAdvStatus(item,d);
+  if(!dwAdvanceAllowed(d,item))return 'locked';
+  if(!dwAnyGroup(item) && dwAdvanceOwned(d,item))return 'purchased';
+  if(Number(item.rank)>Number(d.vitals?.rank))return 'locked';
+  return DW_ADV_ORIG.getAdvStatus({...item,cost:dwAdvancePrice(d,item)},d);
+};
+renderAdvCatalog=function(){
+  const d=dwData();if(!d || !dwActive(d))return DW_ADV_ORIG.renderAdvCatalog();
+  if(!['general','specialization'].includes(ADV_SOURCE)){ADV_SOURCE='general';ADV_FILTER='all';}
+  const sources=ADV_SOURCE==='general' ? ['Общие улучшения'] : dwProgressionSources(d);
+  if(ADV_FILTER!=='all' && !sources.some(s=>srcEq(s,ADV_FILTER)))ADV_FILTER='all';
+  updateAdvFilter();if($('adv-filter'))$('adv-filter').value=ADV_FILTER;
+  const full=ADV_CATALOG;
+  try{
+    ADV_CATALOG=full.filter(i=>dwAdvanceAllowed(d,i) && (dwAnyGroup(i) || !dwAdvanceOwned(d,i))).map(i=>({...i,cost:dwAdvancePrice(d,i)}));
+    // Prices in this display snapshot are already final; avoid multiplying them twice.
+    const price=dwAdvancePrice;dwAdvancePrice=(d,i)=>Number(i.cost);
+    try{DW_ADV_ORIG.renderAdvCatalog();}finally{dwAdvancePrice=price;}
+  }finally{ADV_CATALOG=full;}
+  document.querySelectorAll('.adv-source-tab').forEach(el=>{el.style.display=['chapter','deathwatch'].includes(el.dataset.source)?'none':'';el.classList.toggle('active',el.dataset.source===ADV_SOURCE);});
+};
+let dwBuyContext=null;
+openBuyModal=function(item){
+  const d=dwData();if(!dwActive(d))return DW_ADV_ORIG.openBuyModal(item);
+  if(!dwAdvanceAllowed(d,item))return toast('Это улучшение недоступно выбранной специализации дредноута');
+  if(!dwAnyGroup(item) && dwAdvanceOwned(d,item))return toast('Это улучшение уже изучено');
+  dwBuyContext={d,item_id:Number(item.id),specialization_id:dwCurrentSpec(d)?.id,cost:dwAdvancePrice(d,item)};
+  DW_ADV_ORIG.openBuyModal({...item,cost:dwAdvancePrice(d,item)});
+  if(Number(item.rank)>Number(d.vitals?.rank)){
+    $('buy-modal-warnings').insertAdjacentHTML('beforeend','<div class="buy-warning">Требуется ранг '+Number(item.rank)+'</div>');$('buy-modal-confirm').textContent='Купить всё равно';
+  }
+};
+confirmBuy=function(){
+  const d=dwData();if(!dwActive(d))return DW_ADV_ORIG.confirmBuy();
+  const item=ADV_CATALOG.find(i=>Number(i.id)===Number($('buy-modal-confirm').dataset.advId));
+  if(!item || !dwAdvanceAllowed(d,item) || advRemaining(item,d)<=0)return toast('Покупка недоступна');
+  if(dwBuyContext?.d!==d || dwBuyContext.item_id!==Number(item.id) || dwBuyContext.specialization_id!==dwCurrentSpec(d)?.id || dwBuyContext.cost!==dwAdvancePrice(d,item))return toast('Лист или условия изменились. Откройте покупку заново.');
+  const subject=dwAdvanceSubject(item);let group=subject.group;
+  if(dwAnyGroup(item)){group=prompt('Укажите выбранную группу для «'+subject.name+'»:','');if(!group?.trim())return;group=group.trim();}
+  if(dwAdvanceOwned(d,item,group))return toast('Это улучшение для выбранной группы уже изучено');
+  const grant={...item,req_advanced:{...item.req_advanced,grant:{...item.req_advanced?.grant,name:subject.name,group}}};
+  if(!grantPurchasedAdvance(d,grant,group))return toast('Не удалось сопоставить улучшение со справочником. Покупка не выполнена.');
+  const cost=dwAdvancePrice(d,item);
+  (d.xp_log ||= []).push({table_id:item.id,name:item.name,cost,source:'advancement',...(group ? {group} : {}),date:new Date().toISOString().slice(0,10)});
+  dwBuyContext=null;closeSheetModal('buy-modal');renderSheet();renderAdvCatalog();debouncedSave();toast('Куплено: '+item.name+' ('+cost+' XP)');
+};
+function dwPhysicalAdvance(k){return ['sil','vyn','wyn','lov'].includes(k);}
+charAdvCost=function(k,lvl){return dwActive(dwData()) && dwPhysicalAdvance(k) ? null : DW_ADV_ORIG.charAdvCost(k,lvl);};
+tryStatAdv=function(dir,k){if(dwActive(dwData()) && dwPhysicalAdvance(k))return toast('Улучшение этой характеристики требует отдельного решения мастера');return DW_ADV_ORIG.tryStatAdv(dir,k);};
+applyStatAdv=function(k,...args){if(dwActive(dwData()) && dwPhysicalAdvance(k))return false;return DW_ADV_ORIG.applyStatAdv(k,...args);};
+revertStatAdv=function(k){if(dwActive(dwData()) && dwPhysicalAdvance(k))return false;return DW_ADV_ORIG.revertStatAdv(k);};
+renderSheet=function(){const d=dwData(),current=dwCurrentSpec(d);if(d && current && !(d.tags || []).includes(current.name))(d.tags ||= []).push(current.name);return DW_ADV_ORIG.renderSheet();};
+checkRequirement=function(req,d){if(!dwActive(d))return DW_ADV_ORIG.checkRequirement(req,d);return String(req || '').split(/[,;]/).every(part=>dwGrants(d).some(g=>g.kind==='talent' && dwNorm(g.name)===dwNorm(part)) || DW_ADV_ORIG.checkRequirement(part,d));};
 
 </script>
 </body>
