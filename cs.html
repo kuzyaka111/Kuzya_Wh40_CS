@@ -1588,6 +1588,21 @@ html,body{max-width:100%;overflow-x:hidden;}
 #sb-root .sb-entry-disclosure summary:focus-visible{outline:1px solid var(--gold);outline-offset:3px}
 #sb-root .sb-entry-disclosure .sb-description{padding:8px 0 2px}
 #sb-root .sb-disclosure-row>.sb-entry-actions{flex:none;padding-top:4px}
+
+#sb-root .sb-armour-heading{display:flex;flex:1 0 100%;align-items:center;gap:10px;flex-wrap:wrap}
+#sb-root .sb-armour-heading h3{flex:0 0 auto}
+#sb-root #sb-armour-choice{max-width:320px;min-width:0;width:auto;flex:1;padding:6px;font:inherit;font-size:11px;background:#101012;color:var(--gold);border:1px solid var(--border-dark)}
+#sb-root .sb-armour-name{font-size:11px;color:var(--gold)}
+#sb-root .sb-armour-extras{margin:8px 0 12px}
+#sb-root .sb-extra-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px;gap:8px;margin:6px 0}
+#sb-root .sb-extra-row input{width:100%;min-width:0;font:inherit;font-size:11px;padding:6px;background:#101012;color:var(--text-main);border:1px solid var(--border-dark)}
+#sb-root .sb-extra-row button{background:none;border:1px solid var(--border-dark);color:var(--gold);cursor:pointer}
+#sb-root .sb-vehicle-details{margin-top:10px;border-top:1px solid var(--border-dark)}
+#sb-root .sb-vehicle-detail{padding:10px 0;border-bottom:1px solid var(--border-dark)}
+#sb-root .sb-vehicle-detail>div{display:grid;grid-template-columns:minmax(110px,45%) minmax(0,1fr);gap:12px;align-items:center}
+#sb-root .sb-vehicle-detail label{margin:0;font-size:10px;overflow-wrap:anywhere}
+#sb-root .sb-vehicle-detail input,#sb-root .sb-vehicle-detail .sb-field-value{width:100%;min-width:0;box-sizing:border-box;font-size:12px}
+#sb-weapon-filters[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -11571,7 +11586,7 @@ dwInstallHooks();
 // Compact statblocks: manual values, no character progression or Astartes grants.
 const SB_RACES = ['Империум','Тираниды','Орки','Мутанты','Техника','Демоны','Тау','Эльдары'];
 const SB_CLASSES = ['Орда','Рядовой','Элита','Босс'];
-const SB_GROUPS = {talents:'Таланты',features:'Особенности',weapons:'Оружие',injuries:'Крит-травмы',traits:'Черты'};
+const SB_GROUPS = {talents:'Таланты',features:'Особенности',weapons:'Снаряжение',injuries:'Крит-травмы',traits:'Черты'};
 const SB = {record:null,draft:null,chronicleId:null,busy:false,error:'',dirty:false,entry:null,loadToken:0,createId:null};
 function sbClone(value){ return JSON.parse(JSON.stringify(value)); }
 function sbAllowed(){ return !!(S.user && S.chronicle && S.role === 'gm'); }
@@ -11607,6 +11622,8 @@ function normalizeStatblock(raw){
   Object.keys(SB_GROUPS).forEach(k=>{ d[k]=Array.isArray(d[k])?d[k].filter(r=>r&&typeof r==='object'):[]; });
   delete d.skills; // Obsolete free-text list removed by request; structured skills remain.
   sbNormalizeDetails(d,raw);
+  d.armour_extras=Array.isArray(raw.armour_extras)?raw.armour_extras.filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name??''),value:String(x.value??'')})):[];
+  d.armour_choice=raw.armour_choice&&typeof raw.armour_choice==='object'?{id:raw.armour_choice.id,name:String(raw.armour_choice.name||'')}:null;
   d.tags=Array.isArray(d.tags)?d.tags.map(String):[];
   if(d.type==='vehicle' && !d.type_choice_migrated){d.race='Техника';d.type_choice_migrated=true;} // Preserve immutable server type for legacy records.
   return d;
@@ -11713,12 +11730,16 @@ function sbGroup(key,title){
   const add=editing?`<button type="button" class="add-row-btn" data-sb-add="${key}" aria-label="Добавить: ${esc(title||SB_GROUPS[key])}">+ Добавить</button>`:'';
   const catalogAdd=editing&&['talents','features'].includes(key)?`<button type="button" class="add-row-btn" data-sb-catalog="${key}" aria-label="Из базы: ${esc(SB_GROUPS[key])}">+ Из базы</button>`:'';
   const entries=d[key].length?d[key].map((r,i)=>sbEntry(key,r,i)).join(''):'<div class="sb-empty">Нет записей</div>';
-  if(key==='weapons') return `<div class="panel-tabs"><div class="panel-tab active sb-weapon-tab">Оружие</div></div><div class="panel-tab-body active"><div class="gw-slot-grid">${entries}</div>${editing?'<div class="sb-weapon-add"><button type="button" class="add-row-btn" data-sb-add="weapons">+ Создать</button><button type="button" class="add-row-btn" data-sb-catalog="1">+ Из базы</button></div>':''}</div>`;
+  if(key==='weapons') return `<div class="panel-tab-body active"><div class="gw-slot-grid">${entries}</div>${editing?'<div class="sb-weapon-add"><button type="button" class="add-row-btn" data-sb-add="weapons">+ Создать</button><button type="button" class="add-row-btn" data-sb-catalog="1">+ Из базы</button></div>':''}</div>`;
   return `<div class="sb-group"><h3 class="skill-subtitle">${esc(title||SB_GROUPS[key])}</h3>${entries}<div class="sb-weapon-add">${add}${catalogAdd}</div></div>`;
 }
 function sbEntry(key,row,index){
   const actions=SB.draft?`<span class="sb-entry-actions"><button type="button" class="mods-edit" data-sb-edit="${key}:${index}" aria-label="Изменить: ${esc(row.name)}">✎</button><button type="button" class="mods-del" data-sb-remove="${key}:${index}" aria-label="Убрать: ${esc(row.name)}">×</button></span>`:'';
   const description=row.description?`<div class="sb-description">${row.source==='catalog'?sbDescriptionHtml(row.description):esc(row.description)}</div>`:'';
+  if(key==='weapons' && !['weapon','shield'].includes(sbGearKind(sbGearType(row)))){
+    const type=sbGearType(row),st=row.catalog_stats||{};
+    return `<div class="gw-slot sb-gear-item"><div class="gw-slot-head"><span class="sb-entry-name">${esc(row.name)} <span class="ammo-class">${esc(SB_GEAR_KINDS[sbGearKind(type)])}</span></span>${actions}</div>${row.quantity!=null?`<div class="sb-description">Количество: ${esc(row.quantity)}</div>`:''}${type==='field'?`<div class="sb-description">Уровень поля: ${esc(row.field_level??st.field_level??'—')} · Перегрузка: ${esc(row.overload??st.overload??'—')}</div>`:''}${description}</div>`;
+  }
   if(key==='weapons'){
     const fields=[['range','Дальн.'],['rof','Темп'],['damage','Урон'],['pen','ББ'],['magazine','Маг.'],['reload','Перез.']];
     const table=`<div class="gw-table-wrap"><table class="gw-table sb-weapon-table" aria-label="Параметры: ${esc(row.name)}"><thead><tr>${fields.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody><tr>${fields.map(([key])=>`<td><b>${esc(row[key]??'')||'—'}</b></td>`).join('')}</tr></tbody></table></div>`;
@@ -11767,6 +11788,7 @@ function renderStatblock(){
     ${sbPanel('Черты',sbGroup('traits'))}</div><div class="sb-footer">${editing?'Изменения применяются кнопкой «Сохранить»':'Статблок сохранён в Хронике'}</div>`;
   root.inert=SB.busy;
   sbRenderSkills();
+  sbLoadArmourChoice();
 }
 function sbSetPath(d,path,value){
   const parts=path.split('.');
@@ -11858,13 +11880,14 @@ function openStatblockEntry(key,index=-1){
   $('sb-entry-fields').innerHTML=fields.map(([field,label,kind])=>`<div class="${kind?'sb-wide':''}"><label for="sb-entry-${field}">${label}</label>${kind==='textarea'?`<textarea id="sb-entry-${field}" name="${field}">${esc(row[field]??'')}</textarea>`:`<input id="sb-entry-${field}" name="${field}" value="${esc(row[field]??'')}"${field==='name'?' required maxlength="200"':''}>`}</div>`).join('');
   // The Chronicle modal helper clears inputs; keep the selected entry's values.
   $('sb-entry-modal').classList.remove('hidden');
+  if(key==='weapons'){SB.entry.manualDraft=sbClone(row);$('sb-entry-fields').innerHTML=sbManualGearFields(row);}
   $('sb-entry-name').focus();
 }
 $('sb-entry-form').addEventListener('submit',e=>{
   e.preventDefault();const entry=SB.entry;
   if(entry?.kind) return sbSubmitModal(e);
   if(!sbAllowed() || SB.busy || !SB.draft || !entry || SB.record.id!==entry.recordId) return;
-  const row=Object.fromEntries(new FormData(e.target).entries());
+  const row={...(entry.manualDraft||{}),...Object.fromEntries(new FormData(e.target).entries())};
   row.name=row.name.trim();if(!row.name) return;
   if(entry.index<0) SB.draft[entry.key].push(row);
   else if(SB.draft[entry.key][entry.index]) SB.draft[entry.key][entry.index]={...SB.draft[entry.key][entry.index],...row};
@@ -12039,13 +12062,13 @@ function sbParametersHtml(d){
   const p=d.parameters;
   if(sbIsVehicle(d)){
     const row=(title,fields)=>`<div class="sb-param-row"><h3>${title}</h3><div class="sb-param-chips">${fields.map(([key,label])=>`<div class="sb-param-chip">${sbInput('parameters.'+key,label,p[key])}</div>`).join('')}</div></div>`;
-    return row('Броня',[['front','Броня — лоб'],['side','Броня — борт'],['rear','Броня — корма']])+row('Скорости',[['tactical_speed','Тактическая скорость, м'],['cruising_speed','Крейсерская скорость, км/ч'],['manoeuvrability','Манёвренность']])+row('Техника',[['vehicle_type','Тип машины'],['size','Размер'],['crew','Экипаж'],['capacity','Транспортная вместимость'],['carry','Грузоподъёмность']])+(p.armour||SB.draft?sbInput('parameters.armour','Броня — примечания',p.armour,{multiline:true}):'');
+    return row('Броня',[['front','Броня — лоб'],['side','Броня — борт'],['rear','Броня — корма']])+sbArmourExtrasHtml(d)+(p.armour||SB.draft?sbInput('parameters.armour','Броня — примечания',p.armour,{multiline:true}):'')+row('Скорости',[['tactical_speed','Тактическая скорость, м'],['cruising_speed','Крейсерская скорость, км/ч'],['manoeuvrability','Манёвренность']])+`<div class="sb-vehicle-details">${[['vehicle_type','Тип техники'],['size','Размер'],['crew','Экипаж'],['capacity','Транспортная вместимость'],['carry','Грузоподъёмность']].map(([key,label])=>`<div class="sb-vehicle-detail">${sbInput('parameters.'+key,label,p[key])}</div>`).join('')}</div>`;
   }
   const tb=sbBonus(d,'wyn'),ab=sbBonus(d,'lov');
   const armour=sbChip('bonuses.wyn','Мод. ВЫН',d.bonuses.wyn,tb,'sb-toughness')+SB_BODY_ZONES.map(([key,label])=>SB.draft
     ?sbChip('defence.zones.'+key,label,d.defence.zones[key])
     :`<div class="sb-param-chip ${d.defence.covered[key]?'sb-shield-active':''}"><span class="sb-param-label">${label}</span><button type="button" class="sb-chip-value" data-sb-shield="${key}" aria-label="Щит: ${label}" aria-pressed="${!!d.defence.covered[key]}" title="Включить или убрать модификатор щита">${sbArmourValue(d,key)??'—'}</button></div>`).join('')+sbChip('defence.shield','Мод. щита',d.defence.shield,0,'sb-shield-mod');
-  return `<div class="sb-param-row"><h3>Броня</h3><div class="sb-param-chips sb-armour-chips">${armour}</div></div><div class="sb-param-row sb-speed-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div><div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
+  return `<div class="sb-param-row"><div class="sb-armour-heading"><h3>Броня</h3>${sbArmourChoiceHtml(d)}</div><div class="sb-param-chips sb-armour-chips">${armour}</div></div>${sbArmourExtrasHtml(d)}<div class="sb-param-row sb-speed-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div><div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
 }
 function sbSkillsHtml(d){
   const panes=['basic','adv'].map(key=>`<div class="panel-tab-body skills-group-pane ${sbSkillPane===key?'active':''}"><button type="button" class="skill-filter-toggle" data-sb-expand="${key}" aria-expanded="${!!d['show_untrained_'+key]}">${d['show_untrained_'+key]?'Свернуть':'Развернуть'} ${key==='basic'?'нетренированные':'недоступные'}</button><div id="sb-skills-${key}-render"></div></div>`).join('');
@@ -12102,8 +12125,8 @@ async function sbOpenCatalog(key='weapons'){
   try {
     let rows;
     if(key==='weapons'){
-      if(!await loadGearCache())throw new Error('Не удалось загрузить оружие');
-      rows=Object.values(GEAR_MAP);
+      if(!await loadGearCache())throw new Error('Не удалось загрузить снаряжение');
+      rows=sbGearRows();
     }else{
       let query=sb.from(key==='talents'?'talents':'features').select('id, name, description'+(key==='features'?', type':''));
       if(key==='features')query=query.eq('type','creature_feature');
@@ -12113,8 +12136,8 @@ async function sbOpenCatalog(key='weapons'){
     }
     if(SB.record?.id!==owner||SB.entry!==entry||$('sb-entry-modal').classList.contains('hidden'))return;
     entry.rows=rows;
-    const searchLabel=key==='weapons'?'Поиск оружия':key==='talents'?'Поиск талантов':'Поиск особенностей';
-    $('sb-entry-fields').innerHTML=`<div class="sb-wide"><label for="sb-weapon-search">${searchLabel}</label><input id="sb-weapon-search" placeholder="Название">${key==='weapons'?`<div class="sb-catalog-filters"><div><label for="sb-weapon-type">Вид оружия</label><select id="sb-weapon-type"><option value="">Все виды</option>${Object.entries(SB_WEAPON_TYPES).map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div><div><label for="sb-weapon-class">Класс оружия</label><select id="sb-weapon-class"><option value="">Все классы</option></select></div></div>`:`<label for="sb-catalog-param">Значение или группа (если нужны)</label><input id="sb-catalog-param" maxlength="100" placeholder="Например: 2 или Орки">`}<div id="sb-catalog-results"></div></div>`;
+    const searchLabel=key==='weapons'?'Поиск снаряжения':key==='talents'?'Поиск талантов':'Поиск особенностей';
+    $('sb-entry-fields').innerHTML=`<div class="sb-wide"><label for="sb-weapon-search">${searchLabel}</label><input id="sb-weapon-search" placeholder="Название">${key==='weapons'?sbGearFiltersHtml():`<label for="sb-catalog-param">Значение или группа (если нужны)</label><input id="sb-catalog-param" maxlength="100" placeholder="Например: 2 или Орки">`}<div id="sb-catalog-results"></div></div>`;
     if(key==='weapons')sbCatalogClasses();
     sbDrawCatalog('');$('sb-weapon-search').focus();
   } catch(error){
@@ -12135,15 +12158,15 @@ function sbFilterWeapons(rows,d,query='',type='',weaponClass=''){
 function sbCatalogClasses(){
   if(SB.entry?.catalogKey!=='weapons')return;
   const select=$('sb-weapon-class'),previous=select.value,type=$('sb-weapon-type').value;
-  const values=[...new Set(sbFilterWeapons(SB.entry.rows,sbData(),'',type).map(r=>r.stats.class).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+  const values=[...new Set(sbFilterGear(SB.entry.rows,sbData(),'',$('sb-gear-kind').value,type).map(r=>r.stats.class).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
   select.innerHTML='<option value="">Все классы</option>'+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
   select.value=values.includes(previous)?previous:'';
 }
 function sbDrawCatalog(query){
   const entry=SB.entry;if(entry?.kind!=='catalog')return;
   const key=entry.catalogKey;
-  const rows=(key==='weapons'?sbFilterWeapons(entry.rows,sbData(),query,$('sb-weapon-type').value,$('sb-weapon-class').value):entry.rows.filter(r=>String(r.name).toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')))).slice().sort((a,b)=>a.name.localeCompare(b.name,'ru'));
-  $('sb-catalog-results').innerHTML=rows.length?rows.map(r=>`<button type="button" class="sb-catalog-row" data-sb-catalog-pick="${esc(r.id)}"><span class="sb-catalog-name">${esc(r.name)}</span>${key==='weapons'?`<span class="sb-catalog-type">${esc(r.stats.class||SB_WEAPON_TYPES[r.stats.type])}</span>`:''}</button>`).join(''):'<div class="sb-empty">Ничего не найдено.</div>';
+  const rows=(key==='weapons'?sbFilterGear(entry.rows,sbData(),query,$('sb-gear-kind').value,$('sb-weapon-type').value,$('sb-weapon-class').value):entry.rows.filter(r=>String(r.name).toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')))).slice().sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  $('sb-catalog-results').innerHTML=rows.length?rows.map(r=>`<button type="button" class="sb-catalog-row" data-sb-catalog-pick="${esc(r.catalog_key||r.id)}"><span class="sb-catalog-name">${esc(r.name)}</span>${key==='weapons'?`<span class="sb-catalog-type">${esc(r.stats.class||SB_WEAPON_TYPES[r.stats.type]||SB_GEAR_KINDS[sbGearKind(r.stats.type)])}</span>`:''}</button>`).join(''):'<div class="sb-empty">Ничего не найдено.</div>';
 }
 function sbCatalogEntry(item,param=''){
   const value=String(param).trim();let name=String(item.name);
@@ -12152,10 +12175,10 @@ function sbCatalogEntry(item,param=''){
 }
 function sbPickCatalog(id){
   const entry=SB.entry;if(entry?.kind!=='catalog'||!SB.draft||entry.recordId!==SB.record?.id||!sbAllowed()||SB.busy)return;
-  const item=entry.rows.find(r=>String(r.id)===String(id));if(!item)return;
+  const item=entry.rows.find(r=>String(r.catalog_key||r.id)===String(id));if(!item)return;
   if(entry.catalogKey==='weapons'){
-    if(!sbWeaponAllowed(item,SB.draft))return toast('Это оружие доступно только с тегом «Дредноут»');
-    SB.draft.weapons.push(sbWeaponFromCatalog(item));
+    if(!sbGearAllowed(item,SB.draft))return toast('Это снаряжение доступно только с тегом «Дредноут»');
+    SB.draft.weapons.push(sbGearFromCatalog(item));
   }else if(['talents','features'].includes(entry.catalogKey)){
     SB.draft[entry.catalogKey].push(sbCatalogEntry(item,$('sb-catalog-param').value));
   }else return;
@@ -12248,6 +12271,72 @@ $('sb-root').addEventListener('input',e=>{
   $('sb-root').querySelectorAll('[data-sb-number]').forEach(input=>{if(input!==e.target&&input.dataset.sbNumber===path)input.value=e.target.value;if(/^(bonuses|movement|carrying)\./.test(input.dataset.sbNumber))input.placeholder=sbDerivedFallback(SB.draft,input.dataset.sbNumber)??'—';});
   sbRenderSkills();
   $('sb-root').querySelectorAll('[data-sb-shield]').forEach(b=>{b.textContent=sbArmourValue(SB.draft,b.dataset.sbShield)??'—';});
+});
+
+const SB_GEAR_KINDS={weapon:'Оружие',shield:'Щиты',field:'Защитные поля',armour:'Броня',ammo:'Боеприпасы',combat_gear:'Боевое снаряжение',tool:'Инструменты',consumables:'Расходники',other:'Прочее'};
+function sbGearStats(item){if(typeof item?.stats==='string'){try{return JSON.parse(item.stats);}catch{return {};}}return item?.stats||{};}
+function sbGearKind(type){return ['weapon_ranged','weapon_melee','grenades','rockets','mines'].includes(type)?'weapon':Object.hasOwn(SB_GEAR_KINDS,type)?type:'other';}
+function sbGearType(row){return row.gear_type||row.catalog_stats?.type||'weapon_ranged';}
+function sbGearAllowed(item,d){const s=sbGearStats(item);return !(s.dread_compatible===true||s.dread_compatible==='true')||sbHasDreadTag(d);}
+function sbGearRows(){return [...Object.values(GEAR_MAP).map(x=>({...x,catalog_key:'equipment:'+x.id,stats:sbGearStats(x)})),...Object.values(AMMO_MAP).map(x=>({...x,catalog_key:'ammo:'+x.id,stats:{type:'ammo'}}))];}
+function sbFilterGear(rows,d,q='',kind='',type='',cls=''){
+ return rows.filter(x=>{const s=sbGearStats(x);return sbGearAllowed(x,d)&&(!kind||sbGearKind(s.type)===kind)&&(!type||s.type===type)&&(!cls||s.class===cls)&&String(x.name).toLocaleLowerCase('ru').includes(q.trim().toLocaleLowerCase('ru'));});
+}
+function sbGearFromCatalog(item){
+ const stats=sbGearStats(item),type=stats.type||'other';
+ return sbGearKind(type)==='weapon'||type==='shield'?{...sbWeaponFromCatalog({...item,stats}),gear_type:type}:{name:item.name,item_id:item.id,source:'catalog',catalog_source:type==='ammo'?'ammo':'equipment',gear_type:type,catalog_stats:sbClone(stats),description:item.description||'',quantity:'1'};
+}
+function sbGearFiltersHtml(){return `<div class="sb-catalog-filters"><div><label for="sb-gear-kind">Тип снаряжения</label><select id="sb-gear-kind"><option value="">Все снаряжение</option>${Object.entries(SB_GEAR_KINDS).map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div><div id="sb-weapon-filters" hidden><label for="sb-weapon-type">Вид оружия</label><select id="sb-weapon-type"><option value="">Все виды</option>${Object.entries(SB_WEAPON_TYPES).filter(([k])=>k!=='shield').map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select><label for="sb-weapon-class">Класс оружия</label><select id="sb-weapon-class"><option value="">Все классы</option></select></div></div>`;}
+function sbManualGearFields(row={}){
+ const type=sbGearType(row),kind=sbGearKind(type),weapon=kind==='weapon'||kind==='shield';
+ const input=(key,label)=>`<div><label for="sb-entry-${key}">${label}</label><input id="sb-entry-${key}" name="${key}" value="${esc(row[key]??'')}"></div>`;
+ return `<div class="sb-wide"><label for="sb-entry-name">Название</label><input id="sb-entry-name" name="name" required maxlength="200" value="${esc(row.name||'')}"></div><div><label for="sb-manual-kind">Тип снаряжения</label><select id="sb-manual-kind">${Object.entries(SB_GEAR_KINDS).map(([k,n])=>`<option value="${k}"${k===kind?' selected':''}>${n}</option>`).join('')}</select></div>${kind==='weapon'?`<div><label for="sb-manual-type">Вид оружия</label><select id="sb-manual-type" name="gear_type">${Object.entries(SB_WEAPON_TYPES).filter(([k])=>k!=='shield').map(([k,n])=>`<option value="${k}"${k===type?' selected':''}>${n}</option>`).join('')}</select></div>`:`<input type="hidden" name="gear_type" value="${kind}">`}${weapon?[['weapon_type','Класс оружия'],['range','Дальность'],['rof','Темп стрельбы'],['damage','Урон'],['pen','Бронебойность'],['magazine','Магазин'],['reload','Перезарядка'],['qualities','Качества'],...(sbIsVehicle(SB.draft)?[['arc','Сектор обстрела']]:[])].map(([k,n])=>input(k,n)).join(''):input('quantity','Количество')}${kind==='field'?[['field_level','Уровень поля'],['overload','Перегрузка']].map(([k,n])=>input(k,n)).join(''):''}<div class="sb-wide"><label for="sb-entry-description">Описание</label><textarea id="sb-entry-description" name="description">${esc(row.description||'')}</textarea></div>`;
+}
+function sbArmourExtrasHtml(d){
+ const rows=d.armour_extras||[];
+ return `<div class="sb-armour-extras">${rows.map((r,i)=>SB.draft?`<div class="sb-extra-row"><input aria-label="Название параметра ${i+1}" data-sb-extra-index="${i}" data-sb-extra-key="name" value="${esc(r.name)}" placeholder="Название"><input aria-label="Значение параметра ${i+1}" data-sb-extra-index="${i}" data-sb-extra-key="value" value="${esc(r.value)}" placeholder="Значение"><button type="button" data-sb-extra-remove="${i}" aria-label="Удалить параметр ${i+1}">×</button></div>`:`<div class="armour-extra"><span class="k">${esc(r.name)}</span><span class="v">${esc(r.value)||'—'}</span></div>`).join('')}${SB.draft?'<button type="button" class="add-row-btn" data-sb-extra-add="1">+ Параметр брони</button>':''}</div>`;
+}
+function sbArmourChoiceHtml(d){
+ const name=d.armour_choice?.name||'';
+ return SB.draft?`<select id="sb-armour-choice" aria-label="Выбор брони"><option value="${esc(d.armour_choice?.id||'')}">${esc(name||'— Выберите броню —')}</option></select><span id="sb-armour-load-status" role="status"></span>`:name?`<span class="sb-armour-name">${esc(name)}</span>`:'';
+}
+let sbArmourLoadToken=0;
+async function sbLoadArmourChoice(){
+ const select=$('sb-armour-choice');if(!select||!SB.draft)return;
+ const token=++sbArmourLoadToken,owner=SB.draft;
+ const loaded=await loadGearCache();
+ if(token!==sbArmourLoadToken||SB.draft!==owner||$('sb-armour-choice')!==select)return;
+ if(!loaded){$('sb-armour-load-status').innerHTML='Не удалось загрузить броню. <button type="button" data-sb-armour-retry="1">Повторить</button>';return;}
+ const rows=Object.values(GEAR_MAP).filter(x=>{const s=sbGearStats(x);return s.type==='armour'&&s.category==='primary';}).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+ const current=owner.armour_choice;
+ select.innerHTML='<option value="">— Выберите броню —</option>'+rows.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')+(current?.id&&!rows.some(x=>String(x.id)===String(current.id))?`<option value="${esc(current.id)}">${esc(current.name)}</option>`:'');select.value=String(current?.id||'');
+}
+$('sb-root').addEventListener('input',e=>{
+ if(!SB.draft||!sbAllowed()||SB.busy)return;
+ const i=Number(e.target.dataset.sbExtraIndex),key=e.target.dataset.sbExtraKey;
+ if(['name','value'].includes(key)&&SB.draft.armour_extras?.[i]){SB.draft.armour_extras[i][key]=e.target.value;sbTouch();}
+});
+$('sb-root').addEventListener('change',e=>{
+ if(e.target.id!=='sb-armour-choice'||!SB.draft||!sbAllowed()||SB.busy)return;
+ const item=GEAR_MAP[e.target.value];if(e.target.value&&(!item||sbGearStats(item).type!=='armour'||sbGearStats(item).category!=='primary'))return;
+ SB.draft.armour_choice=item?{id:item.id,name:item.name}:null;sbTouch();
+});
+$('sb-root').addEventListener('click',e=>{
+ if(!SB.draft||!sbAllowed()||SB.busy)return;const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.sbArmourRetry)return sbLoadArmourChoice();
+ if(b.dataset.sbExtraAdd){(SB.draft.armour_extras??=[]).push({name:'',value:''});sbTouch();renderStatblock();}
+ if(b.dataset.sbExtraRemove!=null){const i=Number(b.dataset.sbExtraRemove);if(Number.isInteger(i)&&SB.draft.armour_extras?.[i]){SB.draft.armour_extras.splice(i,1);sbTouch();renderStatblock();}}
+});
+$('sb-entry-fields').addEventListener('change',e=>{
+ if(!SB.draft||!sbAllowed()||SB.busy)return;
+ if(e.target.id==='sb-gear-kind'&&SB.entry?.kind==='catalog'){
+  $('sb-weapon-filters').hidden=e.target.value!=='weapon';$('sb-weapon-type').value='';$('sb-weapon-class').value='';sbCatalogClasses();sbDrawCatalog($('sb-weapon-search').value);
+ }
+ if(['sb-manual-kind','sb-manual-type'].includes(e.target.id)&&SB.entry?.key==='weapons'){
+  const row={...SB.entry.manualDraft,...Object.fromEntries(new FormData($('sb-entry-form')).entries())};
+  row.gear_type=e.target.id==='sb-manual-kind'?(e.target.value==='weapon'?'weapon_ranged':e.target.value):e.target.value;
+  SB.entry.manualDraft=row;$('sb-entry-fields').innerHTML=sbManualGearFields(row);
+ }
 });
 
 </script>
