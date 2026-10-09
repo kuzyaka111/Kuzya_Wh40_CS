@@ -3272,6 +3272,35 @@ function chapterBonusFor(ref){
   const c = chapterByIdOrName(ref);
   return (c && c.bonus) || null;
 }
+// Биологические импланты сохраняются в листе, но недействующие органы
+// исключаются из отображения и из доступного набора правил. При смене
+// ордена исходные записи снова доступны; их индексы и ручные записи сохранены.
+function chapterDisabledAugmentations(ref, seen = new Set()){
+  const c = chapterByIdOrName(ref);
+  if (!c || seen.has(String(c.id))) return new Set();
+  if (c.bonus?.augmentation_set === 'full') return new Set();
+  seen.add(String(c.id));
+  const disabled = new Set(Array.isArray(c.bonus?.disabled_augmentations)
+    ? c.bonus.disabled_augmentations : []);
+  if (c.orden_type?.kind === 'heir' && c.orden_type.founder != null){
+    chapterDisabledAugmentations(c.orden_type.founder, seen).forEach(code => disabled.add(code));
+  }
+  return disabled;
+}
+function augmentationCode(row){
+  const name = normEgg(row?.name || '').replace(/[^а-яa-z0-9]/g, '');
+  if (['железабетчера','betchersgland'].includes(name)) return 'betchers_gland';
+  if (['приакмембрана','susanmembrane','анабиознаямембрана'].includes(name)) return 'sus_an_membrane';
+  return '';
+}
+function chapterAugmentationAvailable(row, d = S.character?.character_data){
+  const code = augmentationCode(row);
+  if (!code || !d) return true;
+  return !chapterDisabledAugmentations(d.info?.chapter_id || d.info?.chapter).has(code);
+}
+function effectiveChapterAugmentations(d = S.character?.character_data){
+  return (d?.aug_chapter || []).filter(row => chapterAugmentationAvailable(row, d));
+}
 // Плоские бонусы ордена (характеристики, раны) попадают в общий список
 // модификаторов, поэтому их нельзя добавлять повторно: иначе повторный выбор
 // того же ордена удваивает бонус (было: +5 к характеристике становилось +10).
@@ -6013,7 +6042,7 @@ function renderList(key){
   if (!host) return;
   const rows = S.character.character_data[key] || [];
   const style = SECTIONS[key][2];
-  if (!rows.length){
+  if (!rows.length || (key === 'aug_chapter' && !effectiveChapterAugmentations().length)){
     host.innerHTML = '<div class="desc" style="padding:6px 4px">Записей нет.</div>';
     if (style === 'gear') renderEquipped();
     return;
@@ -6030,6 +6059,7 @@ function renderList(key){
     return;
   }
   host.innerHTML = rows.map((r, i) => {
+    if (key === 'aug_chapter' && !chapterAugmentationAvailable(r)) return '';
     if (style === 'ammo'){
       return ammoRowHtml(r, i, key, ammoLoadedByWeapon);
     }
@@ -6711,6 +6741,7 @@ async function openPicker(key){
     return;
   }
   pickRows = data || [];
+  if (key === 'aug_chapter') pickRows = pickRows.filter(r => chapterAugmentationAvailable(r));
   if (key === 'gear') pickRows = pickRows.filter(r => !r.stats?.dread_compatible);
   pickRowsAll = pickRows.slice();
   if (key === 'ammo') pickRows = pickRows.filter(r => r.used_for);
@@ -6909,6 +6940,9 @@ function autoLoadWeaponAmmo(row){
 
 function addRow(key, name, desc, isAmmo, param){
   const row = (name && typeof name === 'object') ? name : { name, desc };
+  if (key === 'aug_chapter' && !chapterAugmentationAvailable(row)){
+    return toast('Эта аугментация не действует у выбранного ордена');
+  }
   if (param) row.param = param;
   const arr = S.character.character_data[key] || (S.character.character_data[key] = []);
   arr.push(row);
