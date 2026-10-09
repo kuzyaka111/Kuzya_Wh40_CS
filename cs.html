@@ -3624,7 +3624,9 @@ function grantSpecGrant(d, g){
   }
 }
 function grantSpecAbilityGrants(d, ab){
-  specGrantsOf(ab).forEach(g => grantSpecGrant(d, g));
+  const row=(d.spec_abilities || []).find(r => toId(r.id) === toId(ab.id));
+  specGrantsOf(ab).filter(g => g.kind !== 'skill' && (g.option_id == null || (row?.options || []).some(o => o.selected && toId(o.id) === toId(g.option_id))))
+    .forEach(g => grantSpecGrant(d, g));
 }
 function grantSpecAbilities(d, specId){
   if (!specId) return;
@@ -3961,7 +3963,7 @@ const RENAMEABLE_ROWS = new Set([
 // ========== LOAD SPECIALIZATIONS FROM DB ==========
 async function loadSpecializations(){
   return cachedModalCatalog('specializations',()=>SPECIALIZATIONS.length>0,async()=>{
-    const {data,error}=await sb.from('specializations').select('id, name, is_advanced').order('name');
+    const {data,error}=await sb.from('specializations').select('id, name, is_advanced, requirements, data').order('name');
     if(error) throw error;
     SPECIALIZATIONS=data || [];
   });
@@ -4947,6 +4949,7 @@ const RANK_ICONS = {
 };
 
 const CHAPTER_ICONS = {
+  'Black Shield': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/Black%20Shield.png',
   'Ультрамарины': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/ultramarines.png',
   'Кровавые Ангелы': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/krovavie%20angeli.png',
   'Чёрные Храмовники': 'https://dqalsiuewjftxherpgoq.supabase.co/storage/v1/object/public/orders_icons/chernie%20hramovniki.png',
@@ -5012,10 +5015,11 @@ function chapterIconUrl(name){
 const ICON_SCALE = { 'Астральные Когти': 1.3 };
 
 const iconFitCache = new Map();
-function fitIconToOpaque(img, src, box, scale){
+function fitIconToOpaque(img, src, box, scale, layout){
   const size = box || 80;
   const f = scale || 1;
-  const key = f + '|' + src;
+  const key = size + '|' + f + '|' + (layout?.height || size) + '|' + src;
+  img.dataset.iconFitRequest = key;
   const cached = iconFitCache.get(key);
   if (cached !== undefined){
     if (img.src !== (cached || '')) img.src = cached || '';
@@ -5024,6 +5028,7 @@ function fitIconToOpaque(img, src, box, scale){
   const im = new Image();
   im.crossOrigin = 'anonymous';
   im.onload = () => {
+    if (img.dataset.iconFitRequest !== key) return;
     try {
       const w = im.naturalWidth, h = im.naturalHeight;
       if (!w || !h){ iconFitCache.set(src, src); img.src = src; return; }
@@ -5047,7 +5052,7 @@ function fitIconToOpaque(img, src, box, scale){
       const bw = maxX - minX + 1, bh = maxY - minY + 1;
       const m = Math.max(4, Math.round(size * 0.06));
       const inner = size - m * 2;
-      const sc = Math.min(inner / bw, inner / bh);
+      const sc = layout ? inner / bw : Math.min(inner / bw, inner / bh);
       let dw = bw * sc, dh = bh * sc;
       if (f !== 1){
         dw *= f; dh *= f;
@@ -5056,10 +5061,10 @@ function fitIconToOpaque(img, src, box, scale){
       }
       dw = Math.max(1, Math.round(dw)); dh = Math.max(1, Math.round(dh));
       const out = document.createElement('canvas');
-      out.width = size; out.height = size;
+      out.width = size; out.height = layout?.height || size;
       const octx = out.getContext('2d');
       octx.imageSmoothingQuality = 'high';
-      octx.drawImage(cv, minX, minY, bw, bh, Math.floor((size - dw) / 2), Math.floor((size - dh) / 2), dw, dh);
+      octx.drawImage(cv, minX, minY, bw, bh, Math.floor((size - dw) / 2), layout ? layout.top : Math.floor((size - dh) / 2), dw, dh);
       const url = out.toDataURL('image/png');
       iconFitCache.set(key, url);
       img.src = url;
@@ -5069,6 +5074,7 @@ function fitIconToOpaque(img, src, box, scale){
     }
   };
   im.onerror = () => {
+    if (img.dataset.iconFitRequest !== key) return;
     iconFitCache.set(key, src);
     img.src = src;
   };
@@ -6370,6 +6376,7 @@ function renderSkills(){
     });
     let html = '';
     sorted.forEach(r => {
+      if (skillSuppressed(S.character.character_data, r)) return;
       const lvl = r.level || 'untrained';
       if (hideUntrained && lvl === 'untrained' && !r.groups_enabled && !r.counts_as_basic) return;
       if (hideUntrained && r.groups_enabled && !r.counts_as_basic){
@@ -10035,7 +10042,7 @@ function dropSpecAuto(d){
     refreshSkillTraining(row);
   });
   if (Array.isArray(d.spec_abilities)){
-    d.spec_abilities = d.spec_abilities.filter(r => !(r && (r.source === SPEC_SRC || r.auto)));
+    d.spec_abilities = d.spec_abilities.filter(r => !(r && (r.source === SPEC_SRC || (r.auto && !String(r.source || '').startsWith('advanced-specialization:')))));
   }
   // Таланты и особенности, выданные умениями специализации, снимаются тем же
   // фильтром по source. Их скрытые бесплатные записи в xp_log тоже убираем,
@@ -10466,10 +10473,10 @@ function renderAdvCatalog(){
   if (ADV_SOURCE === 'general'){
     items = items.filter(i => srcEq(i.source, 'Общие улучшения'));
   } else if (ADV_SOURCE === 'specialization'){
-    const spec = d.info?.specialization;
-    items = spec ? items.filter(i => srcEq(i.source, spec)) : [];
+    const specs = specializationAdvanceSources(d);
+    items = items.filter(i => specs.some(s => srcEq(i.source, s)));
   } else if (ADV_SOURCE === 'chapter'){
-    const ch = d.info?.chapter;
+    const ch = chapterAdvanceSource(d);
     items = ch ? items.filter(i => srcEq(i.source, ch)) : [];
   } else if (ADV_SOURCE === 'deathwatch'){
     items = items.filter(i => srcEq(i.source, 'Караул Смерти'));
@@ -10519,9 +10526,10 @@ function renderAdvCatalog(){
           return `<div class="advancement-item ${status}" data-adv-id="${item.id}">
             <div class="adv-item-info">
               <div class="adv-name">${typeBadge}${esc(item.name)}</div>
+              ${ADV_SOURCE === 'specialization' ? `<div class="desc">${esc(item.source)}</div>` : ''}
               ${reqText ? `<div class="adv-req ${!reqMet ? 'not-met' : ''}">${esc(reqText)}</div>` : ''}
             </div>
-            <div class="adv-price ${priceCls}">${item.cost} XP${xBadge}</div>
+            <div class="adv-price ${priceCls}">${item.req_advanced?.variable_cost ? 'Цена выбранной психосилы' : item.cost + ' XP'}${xBadge}</div>
             <button class="adv-buy-btn">${buyLabel}</button>
             <div class="adv-purchased-badge">✓ Куплено</div>
           </div>`;
@@ -10602,10 +10610,9 @@ function updateAdvFilter(){
   if (ADV_SOURCE === 'general'){
     sources = ['Общие улучшения'];
   } else if (ADV_SOURCE === 'specialization'){
-    const spec = d.info?.specialization;
-    sources = spec ? [spec] : [];
+    sources = specializationAdvanceSources(d);
   } else if (ADV_SOURCE === 'chapter'){
-    const ch = d.info?.chapter;
+    const ch = chapterAdvanceSource(d);
     sources = ch ? [ch] : [];
   } else if (ADV_SOURCE === 'deathwatch'){
     sources = ['Караул Смерти'];
@@ -11046,7 +11053,7 @@ function dwSpecWarnings(d,spec){
   if(Number(d.vitals?.renown || 0)<r.renown_min) out.push('Требование: слава ≥ '+r.renown_min);
   if(r.deed && !dwEnsure(d).deed_confirmed) out.push('Подвиг ещё не подтверждён игроком');
   if(r.weapon_skill_min && effStat(d,'bb')<r.weapon_skill_min) out.push('Требование: ББ ≥ '+r.weapon_skill_min);
-  if(r.psy_rating_min && Number(d.psy?.base || 0)<r.psy_rating_min) out.push('Требование: Пси-рейтинг ≥ '+r.psy_rating_min);
+  if(r.psy_rating_min && permanentPsiRating(d)<r.psy_rating_min) out.push('Требование: Пси-рейтинг ≥ '+r.psy_rating_min);
   if(r.willpower_min && effStat(d,'sv')<r.willpower_min) out.push('Требование: Сила воли ≥ '+r.willpower_min);
   if(r.chapter_names?.length && !r.chapter_names.some(n=>dwNorm(n)===dwNorm(d.info?.chapter))) out.push('Требование: орден '+r.chapter_names.join(', '));
   if(r.exclude_specializations?.some(n=>dwNorm(d.info?.specialization).includes(dwNorm(n)))) out.push('Требование: другая базовая специализация ('+r.exclude_specializations.join(', ')+')');
@@ -12242,6 +12249,293 @@ $('sb-root').addEventListener('input',e=>{
   sbRenderSkills();
   $('sb-root').querySelectorAll('[data-sb-shield]').forEach(b=>{b.textContent=sbArmourValue(SB.draft,b.dataset.sbShield)??'—';});
 });
+
+</script>
+<style>.sheet .header .icon.black-shield-icon{height:108px;overflow:visible}.black-shield-icon img{object-fit:contain}</style>
+<script id="advanced-specializations-runtime">
+// Продвинутые специализации добавляются к базовой. Бесплатные дары имеют
+// отдельный источник; оплаченные улучшения не принадлежат этому источнику.
+const ADV_SPEC_PREFIX = 'advanced-specialization:';
+function advancedSpecSource(id){ return ADV_SPEC_PREFIX + Number(id); }
+function advancedSpecRows(d){
+  return SPECIALIZATIONS.filter(s => s.is_advanced && !s.data?.dread_code &&
+    (d.tags || []).some(t => normEgg(t) === normEgg(s.name)));
+}
+function hasAdvancedSpec(d,id){ return advancedSpecRows(d).some(s => Number(s.id) === Number(id)); }
+function skillSuppressed(d,row){ return hasAdvancedSpec(d,11) && normEgg(row.name || '') === 'командование'; }
+function specAbilitySuppressed(d,row){ return hasAdvancedSpec(d,11) && Number(row.specialization_id) === 4; }
+function specializationAdvanceSources(d){
+  return [...new Set([d.info?.specialization,...advancedSpecRows(d).map(s => s.name)].filter(Boolean))];
+}
+function chapterAdvanceSource(d){ return hasAdvancedSpec(d,18) ? 'Чёрный Щит' : d.info?.chapter; }
+function permanentPsiRating(d){
+  return Math.max(0,(Number(d.psy?.base)||0)+modsAdd(d,'indicator','psi_rating','pre')+modsAdd(d,'indicator','psi_rating','post'));
+}
+function advancedSkillGrants(d){
+  return advancedSpecRows(d).flatMap(s => SPEC_ABILITIES.filter(a => Number(a.specialization_id) === Number(s.id))
+    .flatMap(a => specGrantsOf(a).filter(g => g.kind === 'skill').map(g => ({...g,source:advancedSpecSource(s.id)}))));
+}
+function syncAdvancedSkillTraining(d){
+  const rows=[...(d.skills_basic || []),...(d.skills_adv || [])];
+  rows.forEach(r => { r.advanced_training=[]; refreshSkillTraining(r); });
+  advancedSkillGrants(d).forEach(g => {
+    const meta=DB_SKILLS.find(r => normEgg(r.name) === normEgg(g.name));
+    if(!meta) return;
+    let row=rows.find(r => toId(r.id) === toId(meta.id) || normEgg(r.name) === normEgg(meta.name));
+    if(!row){ row=makeSkillRow(meta); (d[meta.category === 'Базовое' ? 'skills_basic' : 'skills_adv'] ||= []).push(row); rows.push(row); }
+    if(row.independent_level == null) row.independent_level=row.level || 'untrained';
+    row.advanced_training ||= [];
+    row.advanced_training.push(g.source);
+    refreshSkillTraining(row);
+  });
+  if(hasAdvancedSpec(d,11)) rows.filter(r => skillSuppressed(d,r)).forEach(r => { r.specialization_training=false; refreshSkillTraining(r); });
+}
+function syncAdvancedSpecializations(d){
+  if(!d || !SPECIALIZATIONS.length || !SPEC_ABILITIES.length) return;
+  const active=advancedSpecRows(d), sources=new Set(active.map(s => advancedSpecSource(s.id)));
+  ['spec_abilities','talents','features','aug_personal','solo_chapter','squad_chapter'].forEach(k => {
+    d[k]=(d[k] || []).filter(r => !String(r.source || '').startsWith(ADV_SPEC_PREFIX) || sources.has(r.source));
+  });
+  d.modifiers.perm=(d.modifiers.perm || []).filter(r => !String(r.source || '').startsWith(ADV_SPEC_PREFIX) || sources.has(r.source));
+  (d.xp_log ||= []).splice(0,d.xp_log.length,...d.xp_log.filter(r => !String(r.source || '').startsWith(ADV_SPEC_PREFIX) || !r.hidden || sources.has(r.source)));
+  active.forEach(s => {
+    const source=advancedSpecSource(s.id), temp=normalize(blankSheet());
+    temp.xp_log=[];
+    SPEC_ABILITIES.filter(a => Number(a.specialization_id) === Number(s.id)).forEach(a => {
+      grantSpecAbility(temp,a);
+      const row=temp.spec_abilities.find(r => toId(r.id) === toId(a.id));
+      const saved=(d.spec_abilities || []).find(r => r.source === source && toId(r.id) === toId(a.id));
+      if(saved) row.options.forEach(o => { const old=(saved.options || []).find(v => toId(v.id) === toId(o.id)); if(old) o.selected=!!old.selected; });
+      specGrantsOf(a).filter(g => g.kind !== 'skill' && (g.option_id == null || row.options.some(o => o.selected && toId(o.id) === toId(g.option_id))))
+        .forEach(g => grantSpecGrant(temp,g));
+    });
+    ['spec_abilities','talents','features','aug_personal'].forEach(k => {
+      const old=(d[k] || []).filter(r => r.source === source);
+      d[k]=(d[k] || []).filter(r => r.source !== source);
+      temp[k].forEach(r => {
+        const saved=old.find(v => (k === 'spec_abilities' ? toId(v.id) === toId(r.id) : normEgg(v.name || '') === normEgg(r.name || '')));
+        d[k].push({...r,...(saved || {}),source,auto:true,advanced_grant:true});
+      });
+    });
+    d.modifiers.perm=d.modifiers.perm.filter(m => m.source !== source);
+    d.modifiers.perm.push(...temp.modifiers.perm.filter(m => m.source === SPEC_SRC).map(m => ({...m,source})));
+    d.xp_log=d.xp_log.filter(e => !(e.source === source && e.hidden));
+    d.xp_log.push(...temp.xp_log.filter(e => e.hidden && Number(e.cost) === 0).map(e => ({...e,source,hidden:true})));
+  });
+  syncAdvancedSkillTraining(d);
+}
+function removeAdvancedSpecialization(d,spec){
+  const source=advancedSpecSource(spec.id);
+  d.tags=(d.tags || []).filter(t => normEgg(t) !== normEgg(spec.name));
+  const refunded=(d.xp_log || []).filter(e => e.source === source && !e.hidden).reduce((n,e) => n+(Number(e.cost)||0),0);
+  d.xp_log=(d.xp_log || []).filter(e => e.source !== source);
+  syncAdvancedSpecializations(d);
+  syncSpecializationSkillTraining(d);
+  syncAdvancedSkillTraining(d);
+  return refunded;
+}
+function blackShieldAbilityChoice(kind,id){
+  const d=S.character?.character_data;
+  if(!d || !hasAdvancedSpec(d,18)) return;
+  const row=DB_SQUAD.find(a => toId(a.id) === toId(id) && (a.chapter_ids || []).length && a.category === kind);
+  d.squad_chapter=(d.squad_chapter || []).filter(a => !(a.black_shield_choice && a.choice_kind === kind));
+  if(row) d.squad_chapter.push({id:row.id,name:row.name,desc:row.description || '',source:advancedSpecSource(18),black_shield_choice:true,choice_kind:kind});
+  renderList('squad_chapter'); debouncedSave();
+}
+function purchasedAdvanceSubject(name){
+  const clean=String(name || '').replace(/[†‡]/g,'').replace(/\s*\([xх×]\d+\)/gi,'').trim();
+  const level=/\+20\s*$/.test(clean) ? '+20' : /\+10\s*$/.test(clean) ? '+10' : 'trained';
+  const withoutLevel=clean.replace(/\s*\+\d+\s*$/,'');
+  const m=withoutLevel.match(/^(.*?)\s*\((.*)\)$/);
+  return {name:m ? m[1].trim() : withoutLevel,group:m ? m[2].trim() : '',level};
+}
+function grantPurchasedAdvance(d,item,group){
+  const subject=purchasedAdvanceSubject(item.name), meta=item.req_advanced?.grant;
+  const name=meta?.name || subject.name, label=group || meta?.group || subject.group;
+  if(item.req_advanced?.grant_kind === 'skill' || /умение/i.test(item.type || '')){
+    const skill=DB_SKILLS.find(s => normEgg(s.name) === normEgg(name));
+    if(!skill) return false;
+    const rows=[...(d.skills_basic || []),...(d.skills_adv || [])];
+    let row=rows.find(r => toId(r.id) === toId(skill.id));
+    if(!row){ row=makeSkillRow(skill); (d[skill.category === 'Базовое' ? 'skills_basic' : 'skills_adv'] ||= []).push(row); }
+    const levels=SKILL_LEVELS;
+    const level=meta?.level || subject.level;
+    if(label){
+      row.groups ||= []; row.groups_enabled=true;
+      let g=row.groups.find(g => normEgg(g.name) === normEgg(label));
+      if(!g){ g={name:label,level:'untrained',characteristic:row.characteristic,skill_id:row.id}; row.groups.push(g); }
+      g.independent_level=levels[Math.max(levels.indexOf(g.independent_level || (g.specialization_training || g.chapter_granted ? 'untrained' : g.level) || 'untrained'),levels.indexOf(level))];
+      refreshSkillGroupTraining(g);
+    }else{
+      row.independent_level=levels[Math.max(levels.indexOf(row.independent_level || row.level || 'untrained'),levels.indexOf(level))];
+      refreshSkillTraining(row);
+    }
+  }else if(/талант/i.test(item.type || '')){
+    const talent=talentByName(name);
+    if(!talent) return false;
+    (d.talents ||= []).push({id:talent.id,name:talent.name,desc:talent.description || '',groups_enabled:!!talent.groups_enabled,group:label || '',source:'advancement',table_id:item.id});
+    if(normEgg(name) === 'крепкое телосложение') d.modifiers.perm.push({name:talent.name,target:'vitals',target_name:'max_wounds',mode:'add',timing:'pre',effect:1,source:'advancement'});
+    if(normEgg(name) === 'пси-рейтинг') d.modifiers.perm.push({name:talent.name,target:'indicator',target_name:'psi_rating',mode:'add',timing:'pre',effect:1,source:'advancement'});
+  }else return false;
+  return true;
+}
+function advanceBlockedReason(item,d){
+  if(item.req_advanced?.manual_review) return 'В книге противоречивое требование: '+item.requirements+'. Покупка ожидает уточнения.';
+  if(hasAdvancedSpec(d,11) && /талант/i.test(item.type || '') && /общительность|\bОб\s*\d/i.test(item.requirements || '')) return 'Волчий разведчик не может приобретать таланты с требованиями к Общительности.';
+  return '';
+}
+function buyAdvancedPower(power,table){
+  const d=S.character?.character_data;
+  if(!d || !power) return false;
+  const required=power.req_advanced?.specialization_id;
+  if(required && !hasAdvancedSpec(d,required)) return toast('Эта психосила доступна только Эпистолярию');
+  if((d.psi || []).some(r => toId(r.id) === toId(power.id))) return toast('Эта психосила уже изучена');
+  if(table && advRemaining(table,d)<=0) return toast('Все покупки по этой строке уже использованы');
+  const cost=Number(power.xp_cost);
+  if(!Number.isFinite(cost) || power.xp_cost == null) return toast('В справочнике не указана стоимость психосилы');
+  if(!confirm('Изучить «'+power.name+'» за '+cost+' XP?')) return false;
+  (d.psi ||= []).push({id:power.id,name:power.name,desc:power.description || '',src:'advancement'});
+  (d.xp_log ||= []).push({table_id:table?.id || null,name:power.name,cost,source:'advancement',psi_power_id:power.id,date:new Date().toISOString().slice(0,10)});
+  closeSheetModal('pick-modal'); renderSheet(); debouncedSave(); return true;
+}
+let advancedPowerTable=null;
+const ADV_SPEC_ORIG={normalize,refreshSkillTraining,permMods,renderSheet,renderList,renderHeaderXp,changeSpecialization,removeTag,addTag,_renderSpecializationModal,charAdvCost,rollOptions,toggleSpecOption,pickCols,openPicker,drawPickResults,addRow,advMaxPurchases,getAdvStatus,openBuyModal,confirmBuy,checkRequirement};
+normalize=function(raw){
+  const d=ADV_SPEC_ORIG.normalize(raw);
+  ['skills_basic','skills_adv'].forEach(k => d[k].forEach((r,i) => { r.advanced_training=Array.isArray(raw?.[k]?.[i]?.advanced_training) ? raw[k][i].advanced_training.slice() : []; }));
+  return d;
+};
+refreshSkillTraining=function(r){ ADV_SPEC_ORIG.refreshSkillTraining(r); if(r.advanced_training?.length && r.level === 'untrained') r.level='trained'; };
+permMods=function(d){ return ADV_SPEC_ORIG.permMods(d).filter(m => !(hasAdvancedSpec(d,11) && Number(d.info?.specialization_id) === 4 && m.source === SPEC_SRC)); };
+renderSheet=function(){ if(S.character) syncAdvancedSpecializations(S.character.character_data); return ADV_SPEC_ORIG.renderSheet(); };
+renderList=function(key){
+  const result=ADV_SPEC_ORIG.renderList(key), d=S.character?.character_data, host=document.querySelector('[data-list="'+key+'"]');
+  if(!d || !host) return result;
+  host.querySelectorAll('[data-open]').forEach(el => {
+    const i=Number(el.dataset.open.split(':')[1]), row=d[key]?.[i];
+    if(!row) return;
+    const catalog=isAbilityKey(key) ? abilityDbRow(row.name,abilityTableForKey(key)) : null;
+    if((key === 'spec_abilities' && specAbilitySuppressed(d,row)) ||
+       (hasAdvancedSpec(d,18) && isAbilityKey(key) && !row.black_shield_choice && ((catalog?.chapter_ids || []).length || key.endsWith('_chapter')))) el.remove();
+  });
+  if(hasAdvancedSpec(d,18) && ['solo_chapter','squad_chapter'].includes(key)){
+    if(!host.querySelector('[data-open]')) host.innerHTML='<div class="desc">Орденские способности скрыты Чёрным Щитом.</div>';
+    if(key === 'squad_chapter'){
+      const html=['Наступательный манёвр','Оборонительная стойка'].map(kind => {
+        const chosen=(d.squad_chapter || []).find(a => a.black_shield_choice && a.choice_kind === kind);
+        const choices=DB_SQUAD.filter(a => (a.chapter_ids || []).length && a.category === kind);
+        return '<label class="desc">'+esc(kind)+' Чёрного Щита<select data-black-shield-kind="'+esc(kind)+'"><option value="">— выбрать —</option>'+choices.map(a => '<option value="'+a.id+'"'+(toId(chosen?.id) === toId(a.id) ? ' selected' : '')+'>'+esc(a.name)+'</option>').join('')+'</select></label>';
+      }).join('');
+      host.insertAdjacentHTML('afterbegin',html);
+      host.querySelectorAll('[data-black-shield-kind]').forEach(el => el.onchange=()=>blackShieldAbilityChoice(el.dataset.blackShieldKind,el.value));
+    }
+  }
+  if(['solo_chapter','squad_chapter'].includes(key)) document.querySelectorAll('[data-add="'+key+'"]').forEach(b => b.style.display=hasAdvancedSpec(d,18) ? 'none' : '');
+  return result;
+};
+renderHeaderXp=function(){
+  ADV_SPEC_ORIG.renderHeaderXp();
+  const d=S.character?.character_data, img=$('sh-chapter-img');
+  if(!d || !img) return;
+  const active=hasAdvancedSpec(d,18);
+  img.parentElement.classList.toggle('black-shield-icon',active);
+  img.alt=active ? 'Black Shield' : 'Chapter';
+  if(active) fitIconToOpaque(img,SPECIALIZATIONS.find(s => Number(s.id) === 18)?.data?.chapter_icon_url || CHAPTER_ICONS['Black Shield'],80,1,{height:108,top:6});
+};
+changeSpecialization=async function(name){
+  const d=S.character?.character_data;
+  if(!d) return;
+  await loadSpecializations();
+  const spec=SPECIALIZATIONS.find(s => normEgg(s.name) === normEgg(name));
+  if(!spec?.is_advanced || spec.data?.dread_code){ const r=await ADV_SPEC_ORIG.changeSpecialization(name); syncAdvancedSpecializations(d); renderSheet(); return r; }
+  if(S.specializationChanging) return false;
+  if((d.tags || []).some(t => normEgg(t) === normEgg(name)) || normEgg(d.info?.specialization || '') === normEgg(name)) return toast('Эта специализация уже есть');
+  S.specializationChanging=true;
+  try{
+    const loaded=await Promise.all([loadSpecAbilities(),loadSkillsFromDB(),loadTalentsFromDB(),loadGearCache()]);
+    if(loaded.some(r => r === false) || !SPEC_ABILITIES.some(a => Number(a.specialization_id) === Number(spec.id))) return toast('Способности специализации не загружены. Покупка не выполнена.');
+    if(S.character?.character_data !== d) return false;
+    const cost=Number(spec.data?.xp_cost)||0, available=Number(d.vitals?.xp_total || 0)-calcTotalXpSpent(d);
+    const warning=available<cost ? '\nНедостаточно XP: доступно '+available+'.' : '';
+    const ok=await dwConfirm('Добавить «'+spec.name+'» за '+cost+' XP?'+warning+'\n'+(spec.requirements || ''),warning ? 'Добавить всё равно' : 'Добавить');
+    if(!ok || S.character?.character_data !== d) return false;
+    (d.tags ||= []).push(spec.name);
+    (d.xp_log ||= []).push({table_id:null,name:spec.name,cost,source:advancedSpecSource(spec.id),specialization_id:spec.id,date:new Date().toISOString().slice(0,10)});
+    syncAdvancedSpecializations(d); closeSpecializationModal(); renderSheet(); debouncedSave(); return true;
+  }finally{ S.specializationChanging=false; }
+};
+removeTag=function(name){
+  const d=S.character?.character_data, spec=SPECIALIZATIONS.find(s => s.is_advanced && !s.data?.dread_code && normEgg(s.name) === normEgg(name));
+  if(!spec) return ADV_SPEC_ORIG.removeTag(name);
+  if(!d || !(d.tags || []).includes(name) || !confirm('Удалить специализацию «'+name+'»? Стоимость её получения вернётся; купленные улучшения останутся.')) return;
+  const amount=removeAdvancedSpecialization(d,spec);
+  renderSheet(); debouncedSave(); toast('Специализация удалена. Возвращено '+amount+' XP');
+};
+addTag=async function(name){ const s=SPECIALIZATIONS.find(s => s.is_advanced && !s.data?.dread_code && normEgg(s.name) === normEgg(name)); return s ? changeSpecialization(s.name) : ADV_SPEC_ORIG.addTag(name); };
+_renderSpecializationModal=function(advanced){
+  const r=ADV_SPEC_ORIG._renderSpecializationModal(advanced), d=S.character?.character_data;
+  if(advanced && d) document.querySelectorAll('#specialization-list [data-specialization-name]').forEach(el => {
+    const s=SPECIALIZATIONS.find(s => s.name === el.dataset.specializationName);
+    if((d.tags || []).some(t => normEgg(t) === normEgg(s?.name || '')) || (s?.is_advanced && d.info.specialization === s.name)) el.remove();
+    else if(s && !s.data?.dread_code) el.insertAdjacentHTML('beforeend','<small class="desc"> · '+(Number(s.data?.xp_cost)||0)+' XP</small>');
+  });
+  return r;
+};
+charAdvCost=function(k,lvl){ const d=S.character?.character_data; return hasAdvancedSpec(d,11) ? (CHAR_ADV['Волчий разведчик']?.[k]?.[lvl] ?? null) : ADV_SPEC_ORIG.charAdvCost(k,lvl); };
+rollOptions=function(){ const d=S.character?.character_data; return ADV_SPEC_ORIG.rollOptions().filter(o => { const [k,i]=String(o.id).split(':'); return !d?.[k]?.[i] || !skillSuppressed(d,d[k][i]); }); };
+toggleSpecOption=function(row,id,on){ const r=ADV_SPEC_ORIG.toggleSpecOption(row,id,on); if(r === 'ok' && S.character) syncAdvancedSpecializations(S.character.character_data); return r; };
+pickCols=function(k,skill){ return k === 'psi' ? 'id, name, description, xp_cost, requirements, req_advanced' : ADV_SPEC_ORIG.pickCols(k,skill); };
+openPicker=async function(k){ if(k !== 'psi') advancedPowerTable=null; await ADV_SPEC_ORIG.openPicker(k); if(k === 'psi'){ const d=S.character.character_data; pickRows=pickRows.filter(p => (!p.req_advanced?.specialization_id || hasAdvancedSpec(d,p.req_advanced.specialization_id)) && !(d.psi || []).some(r => toId(r.id) === toId(p.id))); pickRowsAll=pickRows.slice(); drawPickResults(''); } };
+addRow=function(k,row,...args){
+  if(k === 'psi' && row && typeof row === 'object'){
+    const p=pickRows.find(p => toId(p.id) === toId(row.id));
+  if(p && (advancedPowerTable || p.req_advanced?.specialization_id)){
+      if(p.req_advanced?.specialization_id && !advancedPowerTable) return toast('Эти психосилы приобретаются через таблицу развития Эпистолярия');
+      return buyAdvancedPower(p,advancedPowerTable);
+    }
+  }
+  return ADV_SPEC_ORIG.addRow(k,row,...args);
+};
+advMaxPurchases=function(item,d){ return item.req_advanced?.advanced_specialization_id ? (Number(item.req_advanced.max_purchases)||1) : ADV_SPEC_ORIG.advMaxPurchases(item,d); };
+getAdvStatus=function(item,d){ return advanceBlockedReason(item,d) ? 'locked' : ADV_SPEC_ORIG.getAdvStatus(item,d); };
+openBuyModal=function(item){
+  const d=S.character.character_data, reason=advanceBlockedReason(item,d);
+  if(reason) return showInfo(item.name,esc(reason));
+  if(item.req_advanced?.variable_cost === 'psi_power'){ if(advRemaining(item,d)<=0) return toast('Все покупки по этой строке уже использованы'); advancedPowerTable=item; return openPicker('psi'); }
+  advancedPowerTable=null; return ADV_SPEC_ORIG.openBuyModal(item);
+};
+confirmBuy=function(){
+  const item=ADV_CATALOG.find(i => Number(i.id) === Number($('buy-modal-confirm').dataset.advId)), d=S.character?.character_data;
+  if(!item || !d || advRemaining(item,d)<=0) return;
+  if(!item.req_advanced?.advanced_specialization_id) return ADV_SPEC_ORIG.confirmBuy();
+  const reason=advanceBlockedReason(item,d); if(reason) return toast(reason);
+  const subject=purchasedAdvanceSubject(item.name);
+  let group=subject.group;
+  if(/любой|любая|любое|любые/i.test(group)){ group=prompt('Укажите выбранную группу для «'+subject.name+'»:',''); if(!group?.trim()) return; group=group.trim(); }
+  if(!grantPurchasedAdvance(d,item,group)) return toast('Не удалось сопоставить улучшение со справочником. Покупка не выполнена.');
+  ADV_SPEC_ORIG.confirmBuy(); renderSkills(); renderList('talents'); renderPsy(); updateDerived();
+};
+checkRequirement=function(req,d){
+  if(!req) return true;
+  return String(req).replace(/[†‡]/g,'').split(/[,;]/).every(part => {
+    const text=part.trim(); if(!text || /^[—–-]$/.test(text)) return true;
+    if(normEgg(text) === normEgg(d.info?.specialization || '') || normEgg(text) === normEgg(d.info?.race || '') || (d.tags || []).some(t => normEgg(t) === normEgg(text))) return true;
+    const psi=text.match(/^Пси[- ]рейтинг\s*(\d+)?\+?$/i);
+    if(psi) return permanentPsiRating(d)>=(Number(psi[1])||1);
+    const subj=purchasedAdvanceSubject(text), skill=DB_SKILLS.find(s => normEgg(s.name) === normEgg(subj.name));
+    if(skill){
+      const r=[...(d.skills_basic || []),...(d.skills_adv || [])].find(r => toId(r.id) === toId(skill.id));
+      const levels=SKILL_LEVELS;
+      if(!r || skillSuppressed(d,r)) return false;
+      const relevant=subj.group ? (r.groups || []).filter(g => /любой|любая|любое/i.test(subj.group) || normEgg(g.name) === normEgg(subj.group)) : [r];
+      return relevant.some(v => levels.indexOf(v.level)>=levels.indexOf(subj.level));
+    }
+    if((d.talents || []).some(r => normEgg(r.name || '') === normEgg(subj.name) && (!subj.group || /любой|любая|любое/i.test(subj.group) || normEgg(r.group || '') === normEgg(subj.group)))) return true;
+    const stat=text.match(/^(.+?)\s+(\d+)\+?$/);
+    if(stat){ const aliases={'СВ':'sv','ББ':'bb','ДБ':'db','Сила':'sil','Выносливость':'vyn','Ловкость':'lov','Интеллект':'int','Восприятие':'vos','Общительность':'obsh'}; const key=STAT_NAME_MAP[stat[1]] || aliases[stat[1]]; if(key) return effStat(d,key)>=Number(stat[2]); }
+    return ADV_SPEC_ORIG.checkRequirement(text,d);
+  });
+};
 
 </script>
 </body>
