@@ -9331,11 +9331,12 @@ function setSettingsButtons(){
 
 // ==== DISCORD — вебхук хроники (адрес живёт только на сервере) ====
 let discordCfg = { has_url:false, enabled:false, hint:null };
+let discordCfgChronicleId = null;
 
 function paintChronicleDiscord(){
   const u = $('chr-discord-url'), c = $('chr-discord-enabled'), n = $('chr-discord-note');
   if (!u || !c) return;
-  if (document.activeElement !== u) u.value = '';
+  u.placeholder = discordCfg.has_url ? 'Вебхук сохранён — введите адрес для замены' : 'https://discord.com/api/webhooks/...';
   c.disabled = !discordCfg.has_url;
   c.checked = discordCfg.enabled && discordCfg.has_url;
   if (!n) return;
@@ -9344,18 +9345,26 @@ function paintChronicleDiscord(){
   } else {
     const where = discordCfg.hint ? ' · ' + discordCfg.hint : '';
     n.textContent = discordCfg.enabled
-      ? 'Адрес сохранён' + where + '. Броски уходят в канал.'
+      ? 'Адрес сохранён' + where + '. Отправка хроники включена.'
       : 'Адрес сохранён' + where + '. Отправка выключена.';
   }
 }
 
 async function loadChronicleDiscord(){
   if (!S.chronicle) return;
+  const chronicleId = S.chronicle.id;
+  if (discordCfgChronicleId !== chronicleId){
+    discordCfgChronicleId = chronicleId;
+    discordCfg = { has_url:false, enabled:false, hint:null };
+    $('chr-discord-url').value = '';
+  }
   paintChronicleDiscord();
   try {
-    const r = await callRollApi({ action:'get-webhook', chronicle_id:S.chronicle.id });
+    const r = await callRollApi({ action:'get-webhook', chronicle_id:chronicleId });
+    if (S.chronicle?.id !== chronicleId) return;
     discordCfg = { has_url:!!r.has_url, enabled:!!r.enabled, hint:r.hint || null };
   } catch (e){
+    if (S.chronicle?.id !== chronicleId) return;
     console.warn('discord cfg:', e && e.message);
     discordCfg = { has_url:false, enabled:false, hint:null };
   }
@@ -9376,6 +9385,8 @@ async function saveChronicleDiscord(){
     toast(r.has_url ? 'Канал сохранён' : 'Канал убран');
   } catch (e){
     toast((e && e.message) || 'Не удалось сохранить канал');
+    if (btn) btn.disabled = false;
+    return; // Keep the entered URL and notification choice for retry.
   }
   if (btn) btn.disabled = false;
   paintChronicleDiscord();
@@ -9468,7 +9479,7 @@ function bindSettingsModal(){
   $('settings-close-btn').addEventListener('click', closeSettings);
   $('settings-confirm-back').addEventListener('click', () => closeSheetModal('settings-confirm-modal'));
   $('settings-confirm-leave').addEventListener('click', doCloseSettings);
-  $('discord-rolls').addEventListener('change', onDiscordRollsToggle);
+  $('discord-rolls').addEventListener('change', e => onDiscordRollsToggle(e.currentTarget));
 }
 
 function modsSave(){
