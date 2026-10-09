@@ -11813,7 +11813,7 @@ function renderStatblock(){
   root.classList.toggle('edit-mode',editing);
   root.innerHTML=`<div class="header"><div class="titles"><h1><button type="button" class="sb-name-button" data-sb-choice="name">${esc(d.name)}</button></h1><div class="sub sb-tags">${tagLine}</div></div><button type="button" class="sb-class sb-tag-button" data-sb-choice="category" aria-label="Категория">${esc(d.category)}</button></div>
     <div class="footer-actions sb-toolbar"><div class="sb-toolbar-main"><button type="button" class="btn ${editing?'save':''}" data-sb-action="${editing?'save':'edit'}">${editing?'Сохранить':'Редактировать'}</button>${editing?'<button type="button" class="btn cancel" data-sb-action="cancel">Отменить</button>':''}</div><div class="sb-toolbar-right"><button type="button" class="btn sb-back" data-sb-action="back">← Хроника</button>${editing?'<button type="button" class="btn danger" data-sb-action="delete">Удалить</button>':''}</div></div>
-    <div class="sb-status" role="status">${SB.busy?'Сохранение…':SB.dirty?'Есть несохранённые изменения':editing?'Режим редактирования':''}</div>
+    <div class="sb-status" role="status">${SB.busy?'':SB.dirty?'Есть несохранённые изменения':editing?'Режим редактирования':''}</div>
     ${SB.error?`<div class="sb-error" role="alert">${esc(SB.error)}<br><button type="button" class="btn" data-sb-action="reload">Загрузить сохранённую версию</button></div>`:''}${identity}
     <div class="stats-strip-wrap"><div class="stats-strip">${sbStatsHtml(d)}</div></div><div class="vitals-strip-wrap"><div class="vitals-strip">${sbVitalsHtml(d)}</div></div>
     <div class="sb-columns"><div class="sb-column">${sbPanel('Умения, таланты и особенности',sbSkillsHtml(d)+sbGroup('talents')+sbGroup('features'))}</div>
