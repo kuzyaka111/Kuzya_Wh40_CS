@@ -2964,7 +2964,7 @@ async function leaveChronicle(id){
 }
 
 // ==== ПАНЕЛЬ ХРОНИКИ ====
-async function enterChronicle(id, name, role){
+async function enterChronicle(id, name, role, deferScreen=false){
   S.chronicle = { id, name };
   S.role = role;
   const isGm = role === 'gm';
@@ -2980,7 +2980,7 @@ async function enterChronicle(id, name, role){
   document.querySelectorAll('#screen-chronicle [data-tl]').forEach(x =>
     x.classList.toggle('active', x.dataset.tl === 'events'));
   $('timeline-events').classList.remove('hidden');
-  showScreen('chronicle');
+  if(!deferScreen) showScreen('chronicle');
   await loadCharacters();
   await loadStatblocks();
   await loadEvents();
@@ -11624,8 +11624,14 @@ async function sbResumeTab(){
  if(!S.user||!context||String(context.userId)!==String(S.user.id)||Number(context.chronicleId)!==request.chronicle||context.recordId!==request.id){
   await showDash();toast('Откройте статблок из Хроники в режиме Мастера');return true;
  }
- await enterChronicle(request.chronicle,String(context.chronicleName||'Хроника'),'gm');
- await openStatblock(request.id);
+ const loader=$('app-loader');loader?.classList.remove('hidden');
+ try{
+  await enterChronicle(request.chronicle,String(context.chronicleName||'Хроника'),'gm',true);
+  await openStatblock(request.id);
+ }finally{
+  if(!SB.record || SB.record.id!==request.id) showScreen('chronicle');
+  loader?.classList.add('hidden');
+ }
  return true;
 }
 
@@ -11804,12 +11810,29 @@ function sbStatsHtml(d){
       :`<div class="total">${value==null?'—':esc(value)}</div>`}</div></div>`;
   }).join('');
 }
+function sbSetVital(d,key,value){
+ if(!['health','critical','fatigue','fate'].includes(key)) return false;
+ const v=d.vitals;
+ value=Math.max(0,Math.min(key==='critical'?10:1000000,Number(value)||0));
+ if(key==='critical'){
+  v.critical=value;
+  if(value===0) v.health=1;
+ }else{
+  v[key]=value;
+  if(key==='health' && value===0 && !sbIsVehicle(d)) v.critical=0;
+ }
+ return true;
+}
 function sbVitalsHtml(d){
   return [['health',sbIsVehicle(d)?'Структурная прочность':'Раны','wounds'],['fatigue','Усталость','fatigue'],['fate','Очки Судьбы','fate']].map(([key,name,cls])=>{
-    const cur=Number(d.vitals[key])||0,max=Number(d.vitals['max_'+key])||0,pct=max>0?Math.min(100,Math.max(0,cur/max*100)):0;
-    return `<div class="vit-box"><div class="vit-name">${name}</div><div class="vit-control"><button type="button" class="vit-arrow" data-sb-step="${key}:-1" aria-label="${name}: уменьшить">◀</button>
-      <div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${pct}%"></div><div class="bar-num"><input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.${key}" aria-label="${name}: текущее" value="${cur}"><span>/</span><input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.max_${key}" aria-label="${name}: максимум" value="${max}"${SB.draft?'':' readonly'}></div></div>
-      <button type="button" class="vit-arrow" data-sb-step="${key}:1" aria-label="${name}: увеличить">▶</button></div></div>`;
+    const inCrit=key==='health' && Number(d.vitals.health)===0;
+    const activeKey=inCrit?'critical':key;
+    if(inCrit){name=sbIsVehicle(d)?'Критические повреждения':'Крит. ранения';cls='crit-wounds';}
+    const cur=Number(d.vitals[activeKey])||0,max=inCrit?10:Number(d.vitals['max_'+key])||0,pct=max>0?Math.min(100,Math.max(0,cur/max*100)):0;
+    const maxControl=inCrit?'<span class="vit-static-max">10</span>':`<input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.max_${key}" aria-label="${name}: максимум" value="${max}"${SB.draft?'':' readonly'}>`;
+    return `<div class="vit-box ${inCrit?'crit':''}"><div class="vit-name">${name}</div><div class="vit-control"><button type="button" class="vit-arrow" data-sb-step="${activeKey}:-1" aria-label="${name}: уменьшить">◀</button>
+      <div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${pct}%"></div><div class="bar-num"><input class="vit-inline" type="number" min="0"${inCrit?' max="10"':''} step="1" data-sb-number="vitals.${activeKey}" aria-label="${name}: текущее" value="${cur}"><span>/</span>${maxControl}</div></div>
+      <button type="button" class="vit-arrow" data-sb-step="${activeKey}:1" aria-label="${name}: увеличить">▶</button></div></div>`;
   }).join('');
 }
 function renderStatblock(){
@@ -11827,7 +11850,7 @@ function renderStatblock(){
     <div class="stats-strip-wrap"><div class="stats-strip">${sbStatsHtml(d)}</div></div><div class="vitals-strip-wrap"><div class="vitals-strip">${sbVitalsHtml(d)}</div></div>
     <div class="sb-columns"><div class="sb-column">${sbPanel('Умения, таланты и особенности',sbSkillsHtml(d)+sbGroup('talents')+sbGroup('features'))}</div>
     <div class="sb-column">${sbPanel('Снаряжение',sbGroup('weapons'))}${sbPanel('Броня, скорости, грузоподъёмность',`${parameters}`)}</div>
-    ${sbPanel(isVehicle?'Критические повреждения':'Крит-травмы',`<div class="sb-critical"><label for="sb-critical">Критический урон</label><input id="sb-critical" type="number" min="0" step="1" data-sb-number="vitals.critical" aria-label="Критический урон" value="${Number(d.vitals.critical)||0}"></div>`+sbGroup('injuries',isVehicle?'Повреждения':'Травмы'))}
+    ${sbPanel(isVehicle?'Критические повреждения':'Крит-травмы',sbGroup('injuries',isVehicle?'Повреждения':'Травмы'))}
     ${sbPanel('Черты',sbGroup('traits'))}</div><div class="sb-footer">${editing?'Изменения применяются кнопкой «Сохранить»':'Статблок сохранён в Хронике'}</div>`;
   root.inert=SB.busy;
   if(factionIcon) fitIconToOpaque($('sb-faction-img'),factionIcon,80,1);
@@ -11848,10 +11871,10 @@ function sbNumber(path,raw){
   const value=Number(raw),limit=/^(stats|bonuses)\./.test(path)?999:1000000;
   return Number.isFinite(value)&&value>=0&&value<=limit&&(/^(movement|carrying)\./.test(path)||Number.isSafeInteger(value))?value:undefined;
 }
-function sbTouch(){
+function sbTouch(quick=false){
   SB.dirty=true;
   const status=$('sb-root').querySelector('.sb-status');
-  if(status) status.textContent='Есть несохранённые изменения';
+  if(status && !quick) status.textContent='Есть несохранённые изменения';
 }
 async function saveStatblock(readInputs=true,quick=false){
   if(!sbAllowed() || SB.busy || !SB.draft || S.chronicle.id!==SB.chronicleId) return false;
@@ -11868,7 +11891,7 @@ async function saveStatblock(readInputs=true,quick=false){
       if(sbNumber(group+'.'+key,value??'')===undefined){toast('Проверьте числовые значения');return false;}
     }
   }
-  if(quick)SB.draft=null; // Quick shield updates must render the regular sheet during the request.
+  if(quick)SB.draft=null; // Quick updates must render the regular sheet during the request.
   SB.busy=true;SB.error='';renderStatblock();
   try {
     const {data,error}=await sb.rpc('save_chronicle_statblock',{p_chronicle_id:SB.chronicleId,p_block_id:SB.record.id,p_expected_revision:SB.record.revision,p_block:payload,p_delete:false});
@@ -11882,8 +11905,8 @@ async function saveStatblock(readInputs=true,quick=false){
       :'Не удалось подтвердить сохранение. Ваши правки остались на экране. '+(error.message||'Проверьте соединение и повторите сохранение.');
     if(quick){
       SB.error=String(error.message).includes('STATBLOCK_CONFLICT')
-        ?'Запись изменилась в другой вкладке. Загрузите актуальную версию перед переключением щита.'
-        :'Не удалось сохранить переключение щита. Сохранённое состояние восстановлено. Повторите нажатие. '+(error.message||'Проверьте соединение.');
+        ?'Запись изменилась в другой вкладке. Загрузите актуальную версию перед повторным изменением.'
+        :'Не удалось сохранить изменение. Сохранённое состояние восстановлено. Повторите нажатие. '+(error.message||'Проверьте соединение.');
     }
     SB.dirty=!quick;return false;
   } finally {SB.busy=false;renderStatblock();}
@@ -11969,7 +11992,7 @@ $('sb-root').addEventListener('change',async e=>{
   const quick=!SB.draft;
   if(quick) SB.draft=sbClone(SB.record);
   // Keep the focused control in place: rebuilding on blur would swallow a Save click.
-  if(sbSetPath(SB.draft,path,value)){sbTouch();if(quick) await saveStatblock(false);}
+  if(/^vitals\.(health|critical|fatigue|fate)$/.test(path)?sbSetVital(SB.draft,path.slice(7),value):sbSetPath(SB.draft,path,value)){sbTouch(quick);if(quick) await saveStatblock(false,true);}
 });
 $('sb-root').addEventListener('click',async e=>{
   if(!sbAllowed() || SB.busy) return;
@@ -11989,11 +12012,11 @@ $('sb-root').addEventListener('click',async e=>{
   }
   if(button.dataset.sbStep){
     const [key,step]=button.dataset.sbStep.split(':');
-    if(!['health','fatigue','fate'].includes(key) || !['-1','1'].includes(step)) return;
+    if(!['health','critical','fatigue','fate'].includes(key) || !['-1','1'].includes(step)) return;
     const quick=!SB.draft;
     if(quick) SB.draft=sbClone(SB.record);
-    SB.draft.vitals[key]=Math.max(0,Math.min(1000000,(Number(SB.draft.vitals[key])||0)+Number(step)));
-    sbTouch();if(quick) await saveStatblock(false);else renderStatblock();
+    sbSetVital(SB.draft,key,(Number(SB.draft.vitals[key])||0)+Number(step));
+    sbTouch(quick);if(quick) await saveStatblock(false,true);else renderStatblock();
   }
 });
 window.addEventListener('beforeunload',e=>{if(SB.dirty||SB.busy){e.preventDefault();e.returnValue='';}});
@@ -12305,8 +12328,8 @@ $('sb-root').addEventListener('click',async e=>{
   if(t.dataset.sbPane){sbSkillPane=t.dataset.sbPane;return renderStatblock();}
   if(t.dataset.sbCatalog)return sbOpenCatalog(t.dataset.sbCatalog==='1'?'weapons':t.dataset.sbCatalog);
   if(t.dataset.sbSkillsRetry){await sbLoadSkills();sbMergeSkills(sbData());return renderStatblock();}
-  if(t.dataset.sbExpand){const key='show_untrained_'+t.dataset.sbExpand;const quick=!SB.draft;sbBeginChange();SB.draft[key]=!SB.draft[key];sbTouch();return quick?saveStatblock(false):renderStatblock();}
-  if(t.dataset.sbShield){if(SB.draft)return;const quick=!SB.draft;sbBeginChange();const z=t.dataset.sbShield;SB.draft.defence.covered[z]=!SB.draft.defence.covered[z];sbTouch();return quick?saveStatblock(false,true):renderStatblock();}
+  if(t.dataset.sbExpand){const key='show_untrained_'+t.dataset.sbExpand;const quick=!SB.draft;sbBeginChange();SB.draft[key]=!SB.draft[key];sbTouch(quick);return quick?saveStatblock(false,true):renderStatblock();}
+  if(t.dataset.sbShield){if(SB.draft)return;const quick=!SB.draft;sbBeginChange();const z=t.dataset.sbShield;SB.draft.defence.covered[z]=!SB.draft.defence.covered[z];sbTouch(quick);return quick?saveStatblock(false,true):renderStatblock();}
   const spec=t.dataset.sbSkillCycle||t.dataset.sbSkillCycleGroup;
   if(spec){
     if(!SB.draft)return sbOpenSkillRoll(spec);
