@@ -7996,7 +7996,8 @@ function showTooltip(el, actionDescription = false){
     ? Math.max(r.top - vy - gap * 2, vy + vh - r.bottom - gap * 2)
     : vh - gap * 2;
   if (!sameAction) {
-    if (actionDescription) t.innerHTML = esc(el.dataset.tooltip || '').replace(/&lt;(\/?)b&gt;/g,'<$1b>');
+    if (actionDescription && el.dataset.conditionCode) t.innerHTML = conditionDescriptionHtml(el.dataset.conditionCode);
+    else if (actionDescription) t.innerHTML = esc(el.dataset.tooltip || '').replace(/&lt;(\/?)b&gt;/g,'<$1b>');
     else t.textContent = el.dataset.tooltip;
     t.scrollTop = 0;
   }
@@ -13278,5 +13279,234 @@ renderSheet=function(){const d=dwData(),current=dwCurrentSpec(d);if(d && current
 checkRequirement=function(req,d){if(!dwActive(d))return DW_ADV_ORIG.checkRequirement(req,d);return String(req || '').split(/[,;]/).every(part=>dwGrants(d).some(g=>g.kind==='talent' && dwNorm(g.name)===dwNorm(part)) || DW_ADV_ORIG.checkRequirement(part,d));};
 
 </script>
+<style data-feature="conditions">
+.conditions-line{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;margin-top:8px;font-size:11px;color:#ed9a43;}
+.conditions-line button{font:inherit;color:inherit;cursor:pointer;background:transparent;border:0;padding:2px 3px;}
+.conditions-line .condition-tag{border:1px solid #a56527;background:#302014;border-radius:4px;padding:3px 6px;overflow-wrap:anywhere;max-width:100%;}
+.conditions-line button:hover{color:#ffd19b;}
+.conditions-line button:focus-visible{outline:2px solid #ed9a43;outline-offset:2px;}
+.conditions-tags{display:contents;}.conditions-tags[hidden]{display:none;}
+.conditions-box{max-width:740px;width:94%;box-sizing:border-box;max-height:88vh;overflow:auto;}
+.condition-choice{display:flex;gap:5px;align-items:stretch;min-width:0;}
+.condition-choice .action-chip{flex:1;}
+.condition-choice .action-chip.selected{border-color:#d78032;color:#ffac64;background:#352315;}
+.condition-info-button{font:inherit;border:1px solid var(--border-dark);background:#202023;color:#ed9a43;cursor:pointer;border-radius:4px;padding:6px 10px;}
+.conditions-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0;}
+.condition-description{white-space:normal;line-height:1.65;overflow-wrap:anywhere;}
+.condition-description p{margin:10px 0;}
+.condition-table-wrap{overflow-x:auto;max-width:100%;}
+.condition-description table{border-collapse:collapse;width:100%;font-size:11px;white-space:normal;}
+.condition-description th,.condition-description td{border:1px solid var(--border-dark);padding:6px;text-align:left;vertical-align:top;}
+.condition-description th{color:#ed9a43;}
+.condition-description th:first-child,.condition-description td:first-child{white-space:nowrap;min-width:60px;}
+.condition-effect{color:#ffac64;padding:8px;border-left:3px solid #b97430;background:#2a2019;}
+.condition-damage-row{display:grid;grid-template-columns:minmax(0,1fr) 90px auto auto;gap:6px;margin:10px 0;align-items:center;}
+.condition-damage-row select,.condition-damage-row input{margin:0;}
+.conditions-error{color:#f19084;white-space:pre-wrap;}
+#condition-detail-modal{z-index:1001;}
+@media(max-width:900px){.sheet .header > .rank-icon{display:none;}.sheet .header{grid-template-columns:80px minmax(0,1fr);grid-template-areas:"chapter identity" "progress progress";}}
+@media(max-width:600px){.conditions-choices{grid-template-columns:1fr;}.conditions-box{padding:14px;}.condition-damage-row{grid-template-columns:minmax(0,1fr) 80px;}.condition-damage-row button{font-size:11px;}}
+</style>
+<div class="modal-overlay" id="conditions-modal">
+ <div class="modal-box action-box conditions-box">
+  <h2>Состояния</h2>
+  <div class="desc">Нажмите на состояние, чтобы включить или выключить его. Описание — при наведении или по кнопке ⓘ.</div>
+  <div id="conditions-status" class="conditions-error" role="status"></div>
+  <div id="conditions-choices" class="conditions-choices"></div>
+  <div class="action-foot"><button type="button" class="btn" id="conditions-retry" hidden>Повторить загрузку</button><button type="button" class="btn" id="conditions-close">Закрыть</button></div>
+ </div>
+</div>
+<div class="modal-overlay" id="condition-detail-modal">
+ <div class="modal-box action-box conditions-box">
+  <h2 id="condition-detail-title"></h2>
+  <div id="condition-detail-body"></div>
+  <div id="condition-detail-error" class="conditions-error" role="alert"></div>
+  <div class="action-foot"><button type="button" class="btn" id="condition-detail-close">Закрыть</button></div>
+ </div>
+</div>
+<script data-feature="conditions">
+// Agreed UI automation, 2026-10-12. Reference rules remain in public.conditions.
+const CONDITION_NAMES = {fatigue:'Усталость',characteristic_damage:'Урон характеристике',unconscious:'Беспамятство',stunned:'Оглушение',blinded:'Ослепление',deafened:'Глухота',blood_loss:'Кровотечение',burning:'Горение',falling:'Падение',suffocating:'Удушье',vacuum:'Вакуум',amputated_limb:'Ампутированная конечность',lost_hand:'Потеря кисти',lost_arm:'Потеря руки',lost_eye:'Потеря глаза',lost_foot:'Потеря ступни',lost_leg:'Потеря ноги',useless_limb:'Неработоспособная конечность',prone:'Сбит с ног',helpless:'Беспомощность',unaware:'Неподготовленность',surprised:'Ошеломление',pinned:'Подавлен',fear:'Страх',grappled:'В захвате'};
+let CONDITION_CATALOG=[],CONDITION_LOADING=null;
+const CONDITION_UI={owner:null,detail:null,loading:false,error:''};
+function normalizeConditions(rows){
+ const out=[],seen=new Set();
+ for(const [i,r] of (Array.isArray(rows)?rows:[]).entries()){
+  if(!r || !Object.hasOwn(CONDITION_NAMES,r.code) || r.code==='fatigue')continue;
+  const row={code:r.code,id:r.code==='characteristic_damage'?String(r.id||('damage-'+i)):r.code};
+  if(r.code==='characteristic_damage'){
+   if(!STATS.some(s=>s[0]===r.stat) || !Number.isSafeInteger(Number(r.value)) || Number(r.value)<=0 || Number(r.value)>9999)continue;
+   row.stat=r.stat;row.value=Number(r.value);
+  }
+  if(r.code==='fear'){
+   if(!Number.isSafeInteger(Number(r.value)) || Number(r.value)<=0 || Number(r.value)>9999)continue;
+   row.value=Number(r.value);
+  }
+  if(seen.has(row.id))continue;seen.add(row.id);out.push(row);
+ }
+ return out;
+}
+function characterConditions(d=S.character?.character_data){return normalizeConditions(d?.conditions);}
+function conditionActive(code,d=S.character?.character_data){return characterConditions(d).find(r=>r.code===code);}
+function conditionName(code){return CONDITION_NAMES[code]||code;}
+function conditionLabel(row){
+ if(row.code==='fear')return 'Страх ('+row.value+')';
+ if(row.code==='characteristic_damage')return 'Урон: '+statFullName(row.stat)+' −'+row.value;
+ return conditionName(row.code);
+}
+async function loadConditionCatalog(force=false){
+ if(CONDITION_CATALOG.length&&!force)return CONDITION_CATALOG;
+ if(CONDITION_LOADING)return CONDITION_LOADING;
+ CONDITION_LOADING=(async()=>{
+  const {data,error}=await sb.from('conditions').select('code,name,description,rules,sources').order('id').limit(100);
+  if(error || !Array.isArray(data) || !data.length)throw Error(error?.message||'Справочник пуст');
+  CONDITION_CATALOG=data.filter(r=>Object.hasOwn(CONDITION_NAMES,r.code));return CONDITION_CATALOG;
+ })();
+ try{return await CONDITION_LOADING;}finally{CONDITION_LOADING=null;}
+}
+function conditionAutomationText(code){
+ if(code==='fatigue')return 'Усталость выше нуля: общий ситуативный −10. Остальные последствия — справочное описание.';
+ if(code==='characteristic_damage')return 'Каждая запись урона добавляет ситуативный штраф указанной величины к проверкам выбранной характеристики.';
+ if(code==='blinded')return 'Общий ситуативный −30. Итоговый порог всех проверок ДБ — 0, независимо от остальных модификаторов.';
+ if(code==='lost_eye')return 'ДБ −10 до расчёта, пока состояние активно. Дополнительно общий ситуативный −20.';
+ if(code==='prone')return 'Ситуативный −10 к ББ и −20 к Уклонению.';
+ if(code==='fear')return 'Ситуативный −10 × значение Страха к проверкам Силы воли.';
+ if(['lost_hand','lost_arm','lost_foot','lost_leg','pinned'].includes(code))return 'Общий ситуативный −20.';
+ return 'Нарративная отметка с описанием. Автоматических модификаторов нет.';
+}
+function conditionDescriptionHtml(code){
+ const row=CONDITION_CATALOG.find(r=>r.code===code);
+ let html='<div class="condition-description"><p class="condition-effect">В листе: '+esc(conditionAutomationText(code))+'</p>';
+ if(row){
+  html+='<p><b>Правила справочника</b></p><p>'+esc(row.description||'').replace(/\n/g,'<br>')+'</p>';
+  if(code==='fear'&&Array.isArray(row.rules?.shock_table?.results)){
+   html+='<p>Таблица шока: 1к100 + 10 за каждую степень провала.</p><div class="condition-table-wrap"><table><thead><tr><th>Бросок</th><th>Последствия</th></tr></thead><tbody>'+row.rules.shock_table.results.map(r=>'<tr><td>'+esc(r.max==null?r.min+'+':String(r.min).padStart(2,'0')+'–'+r.max)+'</td><td>'+esc(r.effect)+'</td></tr>').join('')+'</tbody></table></div>';
+  }
+  html+='<p class="desc">'+esc((row.sources||[]).map(s=>s.book+(s.pages?.length?' · стр. '+s.pages.join(', '):'')).join('; '))+'</p>';
+ }else html+='<p class="desc">'+(CONDITION_UI.loading?'Загрузка описания…':'Описание пока недоступно. Откройте список состояний для загрузки.')+'</p>';
+ return html+'</div>';
+}
+function conditionOwnerValid(){return !!S.character&&S.character===CONDITION_UI.owner&&!editMode&&!ROLL.busy;}
+function refreshConditions(){
+ hideTooltip();renderConditionsLine();renderConditionChoices();
+ if(S.character){updateStatsOnly();renderSkills();}
+ if($('roll-modal').classList.contains('active')){renderRollMods();renderRollTotal();}
+ scheduleSave();
+}
+function writeConditions(rows){
+ if(!conditionOwnerValid())return false;
+ S.character.character_data.conditions=normalizeConditions(rows);refreshConditions();return true;
+}
+function toggleCondition(code){
+ if(!conditionOwnerValid()||!Object.hasOwn(CONDITION_NAMES,code)||code==='fatigue')return;
+ if(code==='characteristic_damage'||(code==='fear'&&!conditionActive(code)))return openConditionDetail(code);
+ const rows=characterConditions(),on=!!conditionActive(code);
+ writeConditions(on?rows.filter(r=>r.code!==code):[...rows,{code,id:code}]);
+ if(CONDITION_UI.detail===code)renderConditionDetail();
+}
+function renderConditionsLine(){
+ const sub=$('tags-container')?.closest('.sub');if(!sub||!S.character)return;
+ let host=$('conditions-line');if(!host){host=document.createElement('div');host.id='conditions-line';host.className='conditions-line';sub.after(host);}
+ const d=S.character.character_data,rows=characterConditions(d),collapsed=!!d.conditions_collapsed;
+ host.innerHTML='<button type="button" id="conditions-fold" aria-expanded="'+!collapsed+'" aria-controls="conditions-tags">Состояния: '+(collapsed?'▸':'▾')+'</button><span id="conditions-tags" class="conditions-tags"'+(collapsed?' hidden':'')+'>'+rows.map(r=>'<button type="button" class="condition-tag" data-condition-open="'+escAttr(r.code)+'">'+esc(conditionLabel(r))+'</button>').join('')+'<button type="button" id="conditions-plus" aria-label="Открыть список состояний">+</button></span>';
+ $('conditions-fold').onclick=()=>{if(S.character?.character_data!==d)return;d.conditions_collapsed=!d.conditions_collapsed;renderConditionsLine();scheduleSave();};
+ $('conditions-plus').onclick=()=>openConditionsModal();
+ host.querySelectorAll('[data-condition-open]').forEach(el=>el.onclick=()=>openConditionDetail(el.dataset.conditionOpen));
+}
+function renderConditionChoices(){
+ const host=$('conditions-choices');if(!host)return;
+ $('conditions-status').textContent=CONDITION_UI.loading?'Загрузка состояний…':CONDITION_UI.error;
+ $('conditions-retry').hidden=!CONDITION_UI.error;
+ host.innerHTML=CONDITION_CATALOG.filter(r=>r.code!=='fatigue').map(r=>{
+  const on=!!conditionActive(r.code),label=r.code==='fear'&&on?conditionLabel(conditionActive('fear')):conditionName(r.code);
+  return '<div class="condition-choice"><button type="button" class="action-chip'+(on?' selected':'')+'" aria-pressed="'+on+'" data-condition-toggle="'+escAttr(r.code)+'" data-condition-code="'+escAttr(r.code)+'" data-tooltip="'+escAttr(r.description||'')+'">'+esc(label)+'</button><button type="button" class="condition-info-button" data-condition-info="'+escAttr(r.code)+'" aria-label="Описание: '+escAttr(conditionName(r.code))+'">ⓘ</button></div>';
+ }).join('');
+ host.querySelectorAll('[data-condition-toggle]').forEach(el=>el.onclick=()=>toggleCondition(el.dataset.conditionToggle));
+ host.querySelectorAll('[data-condition-info]').forEach(el=>el.onclick=()=>openConditionDetail(el.dataset.conditionInfo));
+ bindActionTooltips(host);
+}
+async function ensureConditionDescriptions(owner,force=false){
+ CONDITION_UI.loading=true;CONDITION_UI.error='';renderConditionChoices();
+ try{await loadConditionCatalog(force);}catch(e){if(S.character===owner&&CONDITION_UI.owner===owner)CONDITION_UI.error='Не удалось загрузить состояния. '+e.message;}
+ finally{if(S.character===owner&&CONDITION_UI.owner===owner){CONDITION_UI.loading=false;renderConditionChoices();if(CONDITION_UI.detail)renderConditionDetail();}}
+}
+async function openConditionsModal(force=false){
+ if(!S.character||editMode||ROLL.busy)return;
+ CONDITION_UI.owner=S.character;CONDITION_UI.detail=null;closeSheetModal('condition-detail-modal');hideTooltip();
+ renderConditionChoices();openSheetModal('conditions-modal');await ensureConditionDescriptions(S.character,force);
+}
+function closeConditionsModal(){hideTooltip();closeSheetModal('conditions-modal');if(!CONDITION_UI.detail)CONDITION_UI.owner=null;}
+async function openConditionDetail(code){
+ if(!S.character||editMode||ROLL.busy||!Object.hasOwn(CONDITION_NAMES,code)||code==='fatigue')return;
+ CONDITION_UI.owner=S.character;CONDITION_UI.detail=code;hideTooltip();renderConditionDetail();openSheetModal('condition-detail-modal');
+ if(!CONDITION_CATALOG.length)await ensureConditionDescriptions(S.character);
+}
+function closeConditionDetail(){hideTooltip();closeSheetModal('condition-detail-modal');CONDITION_UI.detail=null;if(!$('conditions-modal').classList.contains('active'))CONDITION_UI.owner=null;}
+function conditionStatOptions(selected){return STATS.map(([key])=>'<option value="'+escAttr(key)+'"'+(selected===key?' selected':'')+'>'+esc(statFullName(key))+'</option>').join('');}
+function renderConditionDetail(){
+ const code=CONDITION_UI.detail;if(!code)return;
+ $('condition-detail-title').textContent=conditionName(code);$('condition-detail-error').textContent='';
+ let controls='';
+ if(code==='characteristic_damage'){
+  controls=characterConditions().filter(r=>r.code===code).map(r=>'<div class="condition-damage-row" data-condition-damage-id="'+escAttr(r.id)+'"><select aria-label="Повреждённая характеристика">'+conditionStatOptions(r.stat)+'</select><input type="number" min="1" max="9999" step="1" value="'+r.value+'" aria-label="Величина урона"><button type="button" class="btn" data-damage-save>Изменить</button><button type="button" class="btn" data-damage-remove>Удалить</button></div>').join('');
+  controls+='<div class="condition-damage-row" id="condition-damage-new"><select aria-label="Характеристика для нового урона">'+conditionStatOptions('bb')+'</select><input type="number" min="1" max="9999" step="1" value="1" aria-label="Новый урон"><button type="button" class="btn" id="condition-damage-add">Добавить урон</button></div>';
+ }else if(code==='fear'){
+  const current=conditionActive(code);
+  controls='<label>Значение Страха<input id="condition-fear-value" type="number" min="1" max="9999" step="1" value="'+(current?.value||1)+'"></label><button type="button" class="btn" id="condition-fear-save">'+(current?'Изменить значение':'Включить')+'</button>'+(current?' <button type="button" class="btn" id="condition-detail-toggle">Выключить</button>':'');
+ }else controls='<button type="button" class="btn" id="condition-detail-toggle">'+(conditionActive(code)?'Выключить':'Включить')+'</button>';
+ $('condition-detail-body').innerHTML=controls+conditionDescriptionHtml(code);
+ $('condition-detail-toggle')?.addEventListener('click',()=>toggleCondition(code));
+ const validValue=el=>{const n=Number(el.value);if(!Number.isSafeInteger(n)||n<1||n>9999){$('condition-detail-error').textContent='Введите целое число от 1 до 9999.';return null;}return n;};
+ $('condition-fear-save')?.addEventListener('click',()=>{const n=validValue($('condition-fear-value'));if(n==null)return;if(writeConditions([...characterConditions().filter(r=>r.code!=='fear'),{code:'fear',id:'fear',value:n}]))renderConditionDetail();});
+ const saveDamage=(host,id)=>{const n=validValue(host.querySelector('input'));if(n==null)return;const stat=host.querySelector('select').value;if(!STATS.some(s=>s[0]===stat))return;
+  if(writeConditions([...characterConditions().filter(r=>r.id!==id),{code:'characteristic_damage',id:id||crypto.randomUUID(),stat,value:n}]))renderConditionDetail();};
+ $('condition-damage-add')?.addEventListener('click',()=>saveDamage($('condition-damage-new')));
+ $('condition-detail-body').querySelectorAll('[data-condition-damage-id]').forEach(el=>{
+  el.querySelector('[data-damage-save]').onclick=()=>saveDamage(el,el.dataset.conditionDamageId);
+  el.querySelector('[data-damage-remove]').onclick=()=>{if(writeConditions(characterConditions().filter(r=>r.id!==el.dataset.conditionDamageId)))renderConditionDetail();};
+ });
+}
+function conditionRollModifiers(d,k,sel){
+ const out=[],add=(id,label,value)=>out.push({id:'condition:'+id,label,value,scope:'Состояние · ситуативный'});
+ if(Number(d?.vitals?.fatigue)>0)add('fatigue','Усталость',-10);
+ for(const r of characterConditions(d)){
+  if(r.code==='characteristic_damage'&&r.stat===k)add(r.id,conditionLabel(r),-r.value);
+  if(r.code==='blinded')add(r.id,'Ослепление',-30);
+  if(['lost_hand','lost_arm','lost_eye','lost_foot','lost_leg','pinned'].includes(r.code))add(r.id,conditionName(r.code),-20);
+  if(r.code==='prone'&&k==='bb')add('prone-bb','Сбит с ног: ББ',-10);
+  if(r.code==='prone'&&sel?.kind==='skill'&&/^уклонение(?:\s|\(|$)/i.test(String(sel.name||'')))add('prone-dodge','Сбит с ног: Уклонение',-20);
+  if(r.code==='fear'&&k==='sv')add(r.id,'Страх ('+r.value+')',-10*r.value);
+ }
+ return out;
+}
+const CONDITION_ORIG={normalize,charBase,effStat,statBonus,renderTagsAfterSpec,rollModRows,rollModRowHtml,openRoll};
+normalize=function(raw){const d=CONDITION_ORIG.normalize(raw);d.conditions=normalizeConditions(raw?.conditions);d.conditions_collapsed=!!raw?.conditions_collapsed;return d;};
+charBase=function(d,k){const v=CONDITION_ORIG.charBase(d,k);return k==='db'&&conditionActive('lost_eye',d)?Math.max(0,v-10):v;};
+effStat=function(d,k){const v=CONDITION_ORIG.effStat(d,k);return k==='db'&&conditionActive('lost_eye',d)?Math.max(0,v-10):v;};
+statBonus=function(d,k){if(k==='db'&&conditionActive('lost_eye',d))return CONDITION_ORIG.statBonus({...d,stats:{...d.stats,db:Number(d.stats.db)-10}},k);return CONDITION_ORIG.statBonus(d,k);};
+renderTagsAfterSpec=function(){CONDITION_ORIG.renderTagsAfterSpec();renderConditionsLine();};
+openRoll=function(...args){ROLL.conditionOff={};return CONDITION_ORIG.openRoll(...args);};
+rollModRows=function(){
+ const rows=CONDITION_ORIG.rollModRows(),d=S.character?.character_data;if(!d)return rows;
+ conditionRollModifiers(d,rollCharKey(),ROLL.sel).forEach(m=>rows.push({...m,locked:false,on:!ROLL.conditionOff?.[m.id],conditionId:m.id}));
+ if(rollCharKey()==='db'&&conditionActive('blinded',d)){
+  const base=rollBaseTarget();if(base!=null)rows.push({label:'Ослепление: итоговый порог ДБ = 0',value:-base-rows.filter(r=>r.on).reduce((s,r)=>s+Number(r.value||0),0),locked:true,on:true,scope:'Приоритет над всеми модификаторами'});
+ }
+ return rows;
+};
+rollModRowHtml=function(r){
+ if(!r.conditionId)return CONDITION_ORIG.rollModRowHtml(r);
+ return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope)+'</span></span><span class="vl '+(r.on?'mod-neg':'mod-idle')+'">'+r.value+'</span><input type="checkbox" data-condition-roll="'+escAttr(r.conditionId)+'" aria-label="Применить: '+escAttr(r.label)+'"'+(r.on?' checked':'')+'></div>';
+};
+$('roll-modal').addEventListener('change',e=>{const cb=e.target.closest('[data-condition-roll]');if(!cb)return;(ROLL.conditionOff||={})[cb.dataset.conditionRoll]=!cb.checked;renderRollMods();renderRollTotal();rollResultReset();});
+const conditionMenuButton=document.createElement('button');conditionMenuButton.type='button';conditionMenuButton.id='conditions-top-btn';conditionMenuButton.className='btn roll-top-btn';conditionMenuButton.textContent='Состояния';$('toolbar-menu-center').append(conditionMenuButton);
+$('toolbar-toggle-center').setAttribute('aria-label','Бросок, действие и состояния');$('toolbar-toggle-center').title='Бросок, действие и состояния';$('toolbar-menu-center').setAttribute('aria-label','Бросок, действие и состояния');
+conditionMenuButton.onclick=()=>openConditionsModal();
+$('conditions-close').onclick=closeConditionsModal;$('condition-detail-close').onclick=closeConditionDetail;$('conditions-retry').onclick=()=>openConditionsModal(true);
+BACKDROP_CLOSE['conditions-modal']=closeConditionsModal;BACKDROP_CLOSE['condition-detail-modal']=closeConditionDetail;
+const fatigueVital=VITALS.find(r=>r[0]==='fatigue');
+if(fatigueVital)fatigueVital[3]='При Усталости выше нуля: ситуативный −10 к проверкам и действиям. Если Усталость превышает БВ: беспамятство на 10 − БВ минут, минимум 1. После пробуждения снимается ровно один уровень, остальные остаются. Обычный отдых снимает один уровень за 10 минут, все уровни за час; беспамятство не считается отдыхом. Эти последствия, кроме −10, применяются нарративно.';
+</script>
+
 </body>
 </html>
