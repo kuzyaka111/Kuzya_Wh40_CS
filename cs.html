@@ -883,6 +883,8 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .g-relic-badge.gw-q-chip{color:#e0b758;border-color:#c9a24b;background:rgba(201,162,75,.15);font-weight:700;}
 #armour-quality-card{padding:9px 11px;cursor:pointer;}
 .dread-mode #armour-quality-card{display:none!important;}
+#dread-armour-select{display:none;}
+.dread-mode #dread-armour-select{display:block;}
 
 /* ABILITIES */
 .abilities-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
@@ -1849,7 +1851,7 @@ body[data-sheet-art="on"] #sb-root .sb-columns{grid-template-columns:repeat(3,mi
 body[data-sheet-art="on"] #sb-root .sb-columns > .sb-column:last-child{grid-column:span 2;}
 body[data-sheet-art="on"] #sb-root :is(.sb-column,.sb-defence-layout){gap:12px;}
 body[data-sheet-art="on"] #sb-root .panel{background:rgba(42,42,46,.32);}
-body[data-sheet-art="on"] #sb-root .titles h1,body[data-sheet-art="on"] #sb-root .sb-name-button{color:#f2ead8;}
+body[data-sheet-art="on"] :is(#sheet-root,#sb-root) .titles h1,body[data-sheet-art="on"] #sb-root .sb-name-button{color:#f2ead8;}
 /* Fluid rows keep all four speeds together, and carrying shares their total width. */
 body[data-sheet-art="on"] #sb-root .sb-speed-row .sb-param-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;flex:1 0 100%;gap:5px;}
 body[data-sheet-art="on"] #sb-root .sb-speed-row + .sb-param-row > .sb-param-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;flex:1 0 100%;gap:5px;}
@@ -2306,10 +2308,10 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
         <div class="panel-body" style="padding:12px 16px 16px">
           <div class="armour-main">
             <div class="armour-main-left">
-              <select id="armour-select" style="width:100%;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit;margin-bottom:12px">
+              <select id="dread-armour-select" aria-label="Корпус дредноута" style="width:100%;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit;margin-bottom:12px">
                 <option value="">— Выберите броню —</option>
               </select>
-              <div id="armour-quality-card" style="display:none"></div>
+              <div id="armour-quality-card" role="button" tabindex="0" aria-haspopup="dialog"></div>
               <div class="armour-list">
                 <div class="armour-th"><span class="label">Зона</span><span class="cab">Щит</span><span class="cab">Броня</span><span class="cab">ВЫН</span></div>
                 <div id="armour-zone-rows"></div>
@@ -5812,6 +5814,7 @@ function gearBaseQuality(row){
 }
 function gearItemQuality(row){ return gearHasRelicProperty(row) ? 'И' : gearBaseQuality(row); }
 function gearQualityBadge(row,hideOnWeaponCard=false){
+  if(isArmourRow(row))return '';
   if(hideOnWeaponCard){
     const type=gearPrimaryProfile(row)?.type || gearRowType(row);
     if(['weapon_ranged','weapon_melee'].includes(type))return '';
@@ -6335,7 +6338,7 @@ function renderList(key){
   const style = SECTIONS[key][2];
   if (!rows.length || (key === 'aug_chapter' && !effectiveChapterAugmentations().length)){
     host.innerHTML = '<div class="desc" style="padding:6px 4px">Записей нет.</div>';
-    if (style === 'gear') renderEquipped();
+    if (style === 'gear'){renderEquipped();updateArmour();}
     return;
   }
   let ammoLoadedByWeapon = {};
@@ -6347,6 +6350,7 @@ function renderList(key){
     bindListEvents(host);
     renderEquipped();
     renderArmourAux();
+    updateArmour();
     return;
   }
   host.innerHTML = rows.map((r, i) => {
@@ -7382,22 +7386,36 @@ function renderArmour(){
   updateArmour();
 }
 
+function availableMainArmour(d=S.character?.character_data){
+  const ids=new Set((d?.gear || []).filter(r=>r.source==='catalog').map(r=>Number(r.item_id)));
+  return Object.values(GEAR_MAP).filter(g=>{
+    let st=g?.stats;if(typeof st==='string'){try{st=JSON.parse(st)}catch(e){return false}}
+    return ids.has(Number(g.id)) && st?.type==='armour' && st.category==='primary';
+  }).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+}
 function currentArmourGear(){
-  const d = (S.character || {}).character_data || {};
-  const a = d.armour || {};
-  if (a.item_id != null && a.item_id !== '' && GEAR_MAP[Number(a.item_id)]) return GEAR_MAP[Number(a.item_id)];
-  if (a.name) return Object.values(GEAR_MAP).find(x => x && x.name === a.name) || null;
-  return null;
+  const a=S.character?.character_data?.armour || {},opts=availableMainArmour();
+  return a.item_id!=null && a.item_id!=='' ? opts.find(g=>Number(g.id)===Number(a.item_id)) || null : opts.find(g=>g.name===a.name) || null;
+}
+function reconcileArmourSelection(){
+  const d=S.character?.character_data,a=d?.armour;
+  if(!a || dwActive(d) || (!a.name && a.item_id==null) || currentArmourGear())return;
+  saveArmourZoneSelection(d,null);
+  a.name='';a.item_id=null;a.base=10;a.sealed=true;a.head_worn=true;
+  debouncedSave();
 }
 function loadArmourSelect(){
-  const sel=$('armour-select'),d=S.character?.character_data;
-  if(!sel || !d) return;
+  const d=S.character?.character_data;
+  if(!d)return;
+  reconcileArmourSelection();
+  const sel=$(dwActive(d)?'dread-armour-select':'armour-select');
+  if(!sel)return;
   const stats=g=>{if(typeof g?.stats==='string'){try{return JSON.parse(g.stats)}catch(e){return {}}}return g?.stats || {}};
   if(dwActive(d)){
     sel.innerHTML='<option value="dread:sarcophagus">Саркофаг</option>'+DW_MODELS.map(m=>'<option value="dread:'+escAttr(m.code)+'">'+esc(m.name)+'</option>').join('');
     sel.value='dread:'+(d.dreadnought?.model_code || 'sarcophagus');
   } else {
-    const opts=Object.values(GEAR_MAP).filter(g=>stats(g).type==='armour' && stats(g).category==='primary').sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+    const opts=availableMainArmour(d);
     sel.innerHTML='<option value="">— Выберите броню —</option>'+opts.map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('');
     sel.value=String(d.armour.item_id ?? opts.find(g=>g.name===d.armour.name)?.id ?? '');
   }
@@ -7411,11 +7429,11 @@ function loadArmourSelect(){
     }
     if(sel.value.startsWith('dread:')) return loadArmourSelect();
     const g=GEAR_MAP[Number(sel.value)],st=stats(g);
-    if(sel.value && (st.type!=='armour' || st.category!=='primary')) return loadArmourSelect();
+    if(sel.value && !availableMainArmour(current).some(x=>Number(x.id)===Number(g?.id))) return loadArmourSelect();
     saveArmourZoneSelection(current,g ? Number(g.id) : null);
     current.armour.name=g?.name || '';current.armour.item_id=g?Number(g.id):null;current.armour.base=g?(Number(st.base)||10):10;
     current.armour.sealed=true;current.armour.head_worn=true;
-    renderArmour();debouncedSave();
+    renderArmour();debouncedSave();openArmourDesc();
   };
 }
 
@@ -7499,6 +7517,7 @@ function armourAp(zid){
   if (zid === 'head' && d.armour && d.armour.head_worn === false) return 0;
   if (zid === 'head'){ const value = equippedHelmetAp(d); if (value != null) return value; }
   let g = currentArmourGear();
+  if(!g)return 0;
   const st = (g && g.stats) || {};
   if (editableArmourZones(g)) return characterArmourZoneValue(d,g,zid);
   if (st.custom_zones){
@@ -7620,6 +7639,7 @@ function renderArmourList(){
   }
 }
 function updateArmour(){
+  reconcileArmourSelection();
   renderMainArmourQualityCard();
   renderArmourList();
   renderArmourSilhouette();
@@ -7692,17 +7712,21 @@ function storeArmourQualityRow(row){
 function renderMainArmourQualityCard(){
   const host=$('armour-quality-card');if(!host)return;
   const row=currentArmourQualityRow();
-  host.style.display=row?'':'none';
-  if(!row){host.innerHTML='';return;}
-  host.className=gearCardClasses(row);
-  host.innerHTML=`<span class="g-name">${esc(row.name)}${gearQualityBadge(row)}</span>${gearQualitiesHtml(row,0,catalogItemStats(row),false)}`;
+  host.style.display='';
+  host.className=row?gearCardClasses(row):'';
+  host.innerHTML=row?`<span class="g-name">${esc(row.name)}</span>${gearQualitiesHtml(row,0,catalogItemStats(row),false)}`:'<span class="g-name">Выбрать броню</span>';
   host.onclick=openArmourDesc;
+  host.onkeydown=e=>{if(e.key==='Enter' || e.key===' '){e.preventDefault();openArmourDesc();}};
 }
 function openArmourDesc(){
-  const row=currentArmourQualityRow();
-  if(!row){showInfo('Экипированная броня','Брат, ты не знаешь какую броню надел?');return;}
-  const g=currentArmourGear();
-  showInfo(row.name,g?.description || 'Описание отсутствует.');
+  if(dwActive(S.character?.character_data))return;
+  reconcileArmourSelection();
+  const row=currentArmourQualityRow(),g=currentArmourGear();
+  showInfo(row?.name || 'Экипированная броня',row?(g?.description || 'Описание отсутствует.'):'Добавьте основную броню в Арсенал, затем выберите её здесь.');
+  const options=$('info-options');options.style.display='block';
+  options.innerHTML='<label for="armour-select">Основная броня из Арсенала</label><select id="armour-select" style="width:100%;min-width:0;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit"></select>';
+  loadArmourSelect();
+  if(!row)return;
   const host=$('info-params');host.style.display='flex';host.innerHTML=gearQualityControlsHtml(row);
   $('info-properties').innerHTML=gearQualitiesHtml(row,0,catalogItemStats(row),false);
   $('info-edit').innerHTML=editMode?gearRelicEditorHtml(row):'';
