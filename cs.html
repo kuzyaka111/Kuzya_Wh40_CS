@@ -1809,6 +1809,7 @@ body[data-sheet-art="on"] :is(#sheet-root,#sb-root) .footer-actions{background:r
 body[data-sheet-art="on"] :is(#sheet-root,#sb-root) button{position:relative;background-image:none;border-radius:0;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px);}
 body[data-sheet-art="on"] :is(#sheet-root,#sb-root) button::before{content:"";position:absolute;inset:0;pointer-events:none;border:7px solid transparent;border-image:var(--sheet-frame) 8 / 7px stretch;opacity:.75;}
 body[data-sheet-art="on"] :is(#sheet-root,#sb-root) button:is(.gear-delete,.dw-slot-pick,.skill-group-del)::before{display:none;}
+body[data-sheet-art="on"] :is(#sheet-root,#sb-root).edit-mode .gear-delete{position:absolute;display:flex;border-radius:50%;clip-path:none;}
 body[data-sheet-art="on"] :is(#sheet-root,#sb-root) :is(.btn,.add-btn,.worn-btn){font-family:'Roboto Condensed',Arial,sans-serif;letter-spacing:.055em;}
 body[data-sheet-art="on"] :is(#sheet-root,#sb-root) .btn{font-size:14px;background:rgba(201,162,75,.08);}
 body[data-sheet-art="on"] :is(#sheet-root,#sb-root) .btn:hover{background:rgba(201,162,75,.18);}
