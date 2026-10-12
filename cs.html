@@ -14334,7 +14334,119 @@ document.addEventListener('change',e=>{
 });
 
 </script>
+<style id="requisition-availability-colors">
+#adv-requisition .rq-unmet,#rq-buy-modal .rq-unmet,#rq-buy-modal .rq-warning{color:#dc8b82!important}
+#adv-requisition .rq-buy-available,#rq-buy-modal .rq-buy-available{background:rgba(96,151,119,.16)!important;color:#94c8a5!important;border:1px solid #609777!important;border-image:none!important}
+#adv-requisition .rq-buy-available:hover,#rq-buy-modal .rq-buy-available:hover{background:rgba(96,151,119,.3)!important;color:#b0e2c1!important}
+#adv-requisition .rq-buy-locked,#rq-buy-modal .rq-buy-locked{background:rgba(151,65,58,.16)!important;color:#dc8b82!important;border:1px solid #97413a!important;border-image:none!important}
+#adv-requisition .rq-buy-locked:hover{background:rgba(151,65,58,.3)!important}
+#rq-buy-modal .rq-buy-locked:disabled{opacity:1}
+</style>
+<script id="requisition-availability-runtime">
+// Presentation uses the same quote as confirmation; purchasing rules are unchanged.
+const RQ_COLOR_ORIG={rqRenderList,rqPreview,rqBudget};
+function rqButtonColor(button,available){
+  if(!button)return;
+  button.classList.toggle('rq-buy-available',available);
+  button.classList.toggle('rq-buy-locked',!available);
+}
+function rqColorList(){
+  const d=S.character?.character_data;if(!d)return;
+  const catalog=new Map(rqCatalog().map(entry=>[entry.key,entry]));
+  document.querySelectorAll('#rq-list .rq-item').forEach(row=>{
+    const button=row.querySelector('.adv-buy-btn'),entry=catalog.get(button?.dataset.rqPreview);if(!entry)return;
+    const draft={quality:rqBaseQuality(entry),qty:1};
+    if(entry.type==='ammo')draft.weapon_id=rqWeaponRows(d,entry.item)[0]?.row.item_id ?? null;
+    const quote=rqQuote(entry,d,draft),cells=row.querySelectorAll('.rq-cell');
+    cells[0]?.classList.toggle('rq-unmet',quote.renown==null || Number(d.vitals?.renown || 0)<quote.renown);
+    cells[1]?.classList.toggle('rq-unmet',quote.cost==null || quote.cost>rqAvailable(d) || entry.type!=='ammo' && (quote.base===0 || entry.item.stats?.requisitionable===false));
+    rqButtonColor(button,quote.errors.length===0);
+  });
+}
+function rqColorPreview(){
+  const context=RQ_CONTEXT,d=S.character?.character_data;if(!context || context.d!==d)return;
+  const entry=rqEntry(context.key);if(!entry)return;const quote=rqQuote(entry,d,context);
+  document.querySelector('#rq-buy-modal .rq-purchase>div')?.classList.toggle('rq-unmet',quote.renown==null || Number(d.vitals?.renown || 0)<quote.renown);
+  document.getElementById('rq-total')?.classList.toggle('rq-unmet',quote.cost==null || quote.cost>rqAvailable(d));
+  rqButtonColor(document.querySelector('#rq-buy-modal [data-rq-confirm]'),quote.errors.length===0);
+}
+rqRenderList=function(){const result=RQ_COLOR_ORIG.rqRenderList();rqColorList();return result;};
+rqPreview=function(){const result=RQ_COLOR_ORIG.rqPreview();rqColorPreview();return result;};
+rqBudget=function(){const result=RQ_COLOR_ORIG.rqBudget();rqColorList();return result;};
+document.addEventListener('change',event=>{if(['rq-quantity','rq-limit','rq-secondary','rq-weapon'].includes(event.target.id)){rqColorList();rqColorPreview();}});
+</script>
+<style id="requisition-sort-filter-style">
+.rq-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.rq-toolbar label{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.rq-toolbar select,#rq-relic{width:100%;min-width:0;box-sizing:border-box;background:#151518;color:var(--text-main);border:1px solid var(--border-dark);padding:8px}
+#rq-filter-panel{border:1px solid var(--border-dark);padding:12px;margin:0 0 12px}#rq-filter-panel[hidden],#rq-list .rq-item[hidden],#rq-filter-empty[hidden]{display:none!important}.rq-price-range{display:flex;gap:12px;flex-wrap:wrap}.rq-price-range label{display:flex;flex-direction:column;gap:5px;flex:1;min-width:90px}.rq-price-range input{width:100%;min-width:0;box-sizing:border-box;background:#151518;color:var(--text-main);border:1px solid var(--border-dark);padding:8px}.rq-glory-options{display:flex;flex-wrap:wrap;gap:10px 14px;margin:10px 0}.rq-glory-options label{display:flex;align-items:center;gap:5px;cursor:pointer}.rq-glory-options input{accent-color:#c9a24b}.rq-filter-label{margin-top:12px;color:var(--text-dim);font-size:13px}#rq-filter-error{color:#dc8b82;margin:8px 0;font-size:13px}#rq-filter-reset{font-size:13px!important}#adv-requisition .rq-toolbar label,#rq-filter-panel label{font-size:13px!important;letter-spacing:0!important;text-transform:none!important}#adv-requisition .rq-toolbar button{font-size:13px!important}
+@media(max-width:600px){.rq-toolbar label{flex-basis:100%}.rq-toolbar select,#rq-relic{font-size:13px!important}.rq-toolbar button{width:100%}}
+</style>
+<script id="requisition-sort-filter-runtime">
+const RQ_FILTER_ORIG={rqRender,rqRenderList};
+let RQ_SORT='name:asc',RQ_PRICE_MIN='',RQ_PRICE_MAX='',RQ_FILTER_OPEN=false,RQ_RELIC='all';
+const RQ_GLORY_VISIBLE=Object.fromEntries(['0','20','40','60','80','unknown'].map(key=>[key,true]));
+function rqFilterControls(){
+  const host=$('adv-requisition');if(!host)return;
+  document.getElementById('rq-filter-controls')?.remove();
+  const box=document.createElement('div');box.id='rq-filter-controls';
+  const sorts=[['name:asc','Название: А–Я'],['name:desc','Название: Я–А'],['glory:asc','Слава: по возрастанию'],['glory:desc','Слава: по убыванию'],['price:asc','Цена: по возрастанию'],['price:desc','Цена: по убыванию']];
+  box.innerHTML='<div class="rq-toolbar"><label>Сортировка<select id="rq-sort" aria-label="Сортировка снаряжения">'+sorts.map(([key,label])=>'<option value="'+key+'"'+(RQ_SORT===key?' selected':'')+'>'+label+'</option>').join('')+'</select></label><button type="button" id="rq-filter-toggle" aria-expanded="'+RQ_FILTER_OPEN+'" aria-controls="rq-filter-panel">Фильтр</button></div><section id="rq-filter-panel"'+(RQ_FILTER_OPEN?'':' hidden')+'><div class="rq-price-range"><label>Цена от<input id="rq-price-min" type="number" min="0" step="0.5" placeholder="Без границы" value="'+escAttr(RQ_PRICE_MIN)+'"></label><label>Цена до<input id="rq-price-max" type="number" min="0" step="0.5" placeholder="Без границы" value="'+escAttr(RQ_PRICE_MAX)+'"></label></div><div class="rq-filter-label">Показывать уровни Славы</div><div class="rq-glory-options">'+[...Object.entries(RQ_GLORY).map(([label,key])=>[String(key),label]),['unknown','Не указана']].map(([key,label])=>'<label><input type="checkbox" data-rq-glory="'+key+'"'+(RQ_GLORY_VISIBLE[key]?' checked':'')+'> '+label+'</label>').join('')+'</div><p class="desc">Цена за одну единицу. Позиции без обычной цены не входят в заданный диапазон.</p><p id="rq-filter-error" role="status"></p><button type="button" id="rq-filter-reset">Сбросить фильтр</button></section>';
+  const relicLabel=document.createElement('label');relicLabel.className='rq-filter-label';
+  relicLabel.innerHTML='Реликвия <select id="rq-relic" aria-label="Фильтр реликвий"><option value="all">Все</option><option value="yes">Да</option><option value="no">Нет</option></select>';
+  const panel=box.querySelector('#rq-filter-panel');panel.insertBefore(relicLabel,panel.querySelector('#rq-filter-error'));relicLabel.querySelector('select').value=RQ_RELIC;
+  const chips=host.querySelector('.rq-chips');if(chips)chips.before(box);else host.append(box);
+}
+function rqFilterValues(entry,d){
+  const draft={quality:rqBaseQuality(entry),qty:1};
+  if(entry.type==='ammo')draft.weapon_id=rqWeaponRows(d,entry.item)[0]?.row.item_id ?? null;
+  const quote=rqQuote(entry,d,draft);
+  const special=entry.type!=='ammo' && (quote.base===0 || entry.item.stats?.requisitionable===false);
+  return {glory:quote.renown,price:special?null:quote.unit,relic:entry.type!=='ammo' && !!entry.item.stats?.properties?.includes('relic')};
+}
+function rqApplyFilters(){
+  const host=$('rq-list'),d=S.character?.character_data;if(!host || !d)return;
+  const min=RQ_PRICE_MIN===''?null:rqNumber(RQ_PRICE_MIN),max=RQ_PRICE_MAX===''?null:rqNumber(RQ_PRICE_MAX);
+  const invalid=(RQ_PRICE_MIN!=='' && (min==null || min<0)) || (RQ_PRICE_MAX!=='' && (max==null || max<0)) || (min!=null && max!=null && min>max);
+  const error=$('rq-filter-error');if(error)error.textContent=invalid?'Проверьте границы: минимальная цена не должна превышать максимальную.':'';
+  const catalog=new Map(rqCatalog().map(entry=>[entry.key,entry]));
+  const rows=[...host.querySelectorAll('.rq-item')].map(row=>{const key=row.querySelector('.adv-buy-btn')?.dataset.rqPreview,entry=catalog.get(key);return {row,entry,values:entry?rqFilterValues(entry,d):{glory:null,price:null}};});
+  const [sort,direction]=RQ_SORT.split(':'),sign=direction==='desc'?-1:1;
+  rows.sort((a,b)=>{
+    const name=()=>a.entry.item.name.localeCompare(b.entry.item.name,'ru');
+    if(sort==='name')return sign*name();
+    const av=a.values[sort],bv=b.values[sort];if(av==null || bv==null)return av==null?(bv==null?name():1):-1;
+    return (av-bv)*sign || name();
+  });
+  let shown=0;const fragment=document.createDocumentFragment();
+  rows.forEach(({row,values})=>{
+    const glory=values.glory==null?'unknown':String(values.glory);
+    const priceMatch=(min==null && max==null) || values.price!=null && (min==null || values.price>=min) && (max==null || values.price<=max);
+    const relicMatch=RQ_RELIC==='all' || (RQ_RELIC==='yes'?values.relic:!values.relic);
+    row.hidden=invalid || !RQ_GLORY_VISIBLE[glory] || !priceMatch || !relicMatch;if(!row.hidden)shown++;fragment.append(row);
+  });
+  host.append(fragment);let empty=$('rq-filter-empty');
+  if(!empty){empty=document.createElement('p');empty.id='rq-filter-empty';empty.className='desc';empty.textContent='Нет снаряжения с выбранными условиями.';host.append(empty);}
+  empty.hidden=shown>0 || !rows.length;
+}
+rqRender=function(){const result=RQ_FILTER_ORIG.rqRender();rqFilterControls();rqApplyFilters();return result;};
+rqRenderList=function(){const result=RQ_FILTER_ORIG.rqRenderList();rqApplyFilters();return result;};
+document.addEventListener('click',event=>{
+  if(event.target.closest('#rq-filter-toggle')){RQ_FILTER_OPEN=!RQ_FILTER_OPEN;$('rq-filter-panel').hidden=!RQ_FILTER_OPEN;$('rq-filter-toggle').setAttribute('aria-expanded',String(RQ_FILTER_OPEN));}
+  if(event.target.closest('#rq-filter-reset')){RQ_PRICE_MIN='';RQ_PRICE_MAX='';RQ_RELIC='all';Object.keys(RQ_GLORY_VISIBLE).forEach(key=>RQ_GLORY_VISIBLE[key]=true);rqFilterControls();rqApplyFilters();}
+});
+document.addEventListener('input',event=>{
+  if(event.target.id==='rq-price-min')RQ_PRICE_MIN=event.target.value;
+  else if(event.target.id==='rq-price-max')RQ_PRICE_MAX=event.target.value;
+  else return;
+  rqApplyFilters();
+});
+document.addEventListener('change',event=>{
+  if(event.target.id==='rq-sort'){RQ_SORT=event.target.value;rqApplyFilters();}
+  if(event.target.id==='rq-relic'){RQ_RELIC=event.target.value;rqApplyFilters();}
+  if(event.target.matches('[data-rq-glory]')){RQ_GLORY_VISIBLE[event.target.dataset.rqGlory]=event.target.checked;rqApplyFilters();}
+});
+</script>
 </body>
 </html>
+
 
 
