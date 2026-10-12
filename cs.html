@@ -2064,33 +2064,33 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
       <h1 id="sh-name" contenteditable="false" onblur="saveCharName()" style="outline:none;cursor:default;">—</h1>
       <div class="sub">
         <!-- РАСА (всегда видна) -->
-        [<span class="bracket-tag" data-selector="race" 
+        <span class="bracket-tag" data-selector="race" 
           onclick="openRaceModal()" style="cursor:pointer">
           Адептус Астартес
-        </span>]
+        </span>
         
         <!-- ОРДЕН (видна если выбран) -->
         <span id="chapter-wrapper" style="display:none">
-          [<span class="bracket-tag" data-selector="chapter" 
+          <span class="bracket-tag" data-selector="chapter" 
             onclick="openChapterModal()" style="cursor:pointer">
             Орден не определен
-          </span>]
+          </span>
         </span>
         
         <!-- СПЕЦИАЛИЗАЦИЯ (видна если выбрана) -->
         <span id="specialization-wrapper" style="display:none">
-          [<span class="bracket-tag" data-selector="specialization" 
+          <span class="bracket-tag" data-selector="specialization" 
             onclick="openSpecializationModal()" style="cursor:pointer">
             Специализация не определена
-          </span>]
+          </span>
         </span>
         
         <!-- ДИНАМИЧЕСКИЕ ТЭГИ (добавляются сюда) -->
         <span id="tags-container"></span>
         
         <!-- МЕНЮ [+] -->
-        [<span class="bracket-tag" onclick="openPlusMenu()" 
-          style="cursor:pointer">+</span>]
+        <span class="bracket-tag" onclick="openPlusMenu()" 
+          style="cursor:pointer">+</span>
       </div>
 
     </div>
@@ -5053,9 +5053,9 @@ function renderTagsAfterSpec(){
 
   const tags = d.tags || [];
   tagContainer.innerHTML = tags.map(tag => `
-    [<span class="bracket-tag" style="cursor:pointer" data-remove-tag="${esc(tag)}">
+    <span class="bracket-tag" style="cursor:pointer" data-remove-tag="${esc(tag)}">
       ${esc(tag)}
-    </span>]
+    </span>
   `).join('');
 }
 
@@ -13568,6 +13568,26 @@ body[data-sheet-art="on"] #action-modal .action-selected .desc{font-size:14px;ma
 body[data-sheet-art="on"] #action-modal .action-error{font-size:14px;color:#c9a24b;}
 @media(max-width:600px){body[data-sheet-art="on"] #action-modal .action-box{width:100%}body[data-sheet-art="on"] #action-modal .action-chip{padding:10px;font-size:14px!important;}.action-foot button{flex:1;}}
 
+</style>
+<style data-feature="header-chip-style">
+/* Consistent header chips: character tags and condition controls. */
+.sheet .titles .sub{display:flex;flex-wrap:wrap;align-items:center;gap:5px;}
+.sheet .titles .sub>span:not(#tags-container){align-items:center;}
+.sheet .titles #tags-container{display:contents;}
+.sheet .titles .sub .bracket-tag,.sheet .titles .conditions-line button{
+ display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:25px;
+ padding:3px 8px;margin:0;font-family:'Roboto Condensed',Arial,sans-serif;font-size:12px;font-weight:600;
+ line-height:1.4;letter-spacing:.045em;text-transform:uppercase;vertical-align:middle;
+ color:var(--gold);background:rgba(201,162,75,.06);border:1px solid #8f7338;border-radius:4px;
+ clip-path:none;box-shadow:none;max-width:100%;overflow-wrap:anywhere;white-space:normal;cursor:pointer;
+}
+.sheet .titles .conditions-line{align-items:center;gap:5px;margin-top:6px;}
+.sheet .titles .conditions-line button{color:#ed9a43;border-color:#a56527;background:rgba(237,154,67,.07);}
+body[data-sheet-art="on"] #sheet-root .titles .conditions-line button{border-radius:4px;clip-path:none;}
+body[data-sheet-art="on"] #sheet-root .titles .conditions-line button::before{display:none;}
+.sheet .titles .sub .bracket-tag:hover{color:#ffe0a0;background:rgba(201,162,75,.15);}
+.sheet .titles .conditions-line button:hover{color:#ffd19b;background:rgba(237,154,67,.16);}
+.sheet .titles .conditions-line #conditions-plus{min-width:25px;padding-inline:6px;}
 </style>
 </body>
 </html>
