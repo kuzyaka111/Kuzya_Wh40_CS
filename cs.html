@@ -14492,6 +14492,212 @@ document.addEventListener('change',event=>{
 <style id="requisition-acquisition-style">
 .rq-access-summary{display:block;margin-top:6px;color:var(--text-dim);font-size:12px;line-height:1.5;font-weight:normal}.rq-acquisition{border:1px solid var(--border-gold);padding:12px;margin:12px 0;font-size:14px;line-height:1.6}.rq-acquisition p{margin:6px 0 0}.rq-quality-note{line-height:1.5}
 </style>
+
+<style data-feature="npc-presets">
+.npc-preset-original{margin:12px 0;padding:10px;border:1px solid var(--border-dark,#555)}.npc-preset-original summary{cursor:pointer}.npc-preset-original pre{font:12px/1.55 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:55vh;overflow:auto}.npc-preset-source-card{padding:12px 20px;margin:16px 0}.npc-preset-source-card .npc-preset-original{margin:0}
+#sb-entry-modal.npc-preset-modal .box{width:calc(100vw / 1.3 - 28px);max-width:1120px;box-sizing:border-box}
+.npc-preset-filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:9px}.npc-preset-filters label{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.npc-preset-filters input,.npc-preset-filters select{min-width:0;width:100%;box-sizing:border-box;padding:8px;background:var(--panel-bg,#171b20);color:var(--text,#ddd);border:1px solid var(--border-dark,#555);border-radius:4px}
+.npc-preset-layout{display:grid;grid-template-columns:minmax(200px,0.8fr) minmax(0,1.2fr);gap:14px;align-items:start}.npc-preset-results{max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:5px}.npc-preset-row{display:flex;flex-direction:column;gap:5px;width:100%;text-align:left;padding:9px;border:1px solid var(--border-dark,#555);border-radius:4px;background:var(--panel-bg,#171b20);color:var(--text,#ddd)}
+.npc-preset-row[aria-pressed=true]{outline:2px solid #b78b44;outline-offset:-2px}.npc-preset-meta{font-size:12px;opacity:.8}.npc-preset-status{font-size:12px;color:#e2b86b}.npc-preset-status.ready{color:#95c88c}.npc-preset-preview{min-width:0;max-height:55vh;overflow:auto;border:1px solid var(--border-dark,#555);border-radius:4px;padding:12px;overflow-wrap:anywhere}.npc-preset-preview h3{margin:0 0 8px}.npc-preset-preview p{margin:8px 0}.npc-preset-preview ul{padding-left:20px;margin:6px 0}.npc-preset-preview details{margin:8px 0}.npc-preset-preview summary{cursor:pointer}.npc-preset-limit{border-left:3px solid #bb954e;padding:8px 10px;background:#9b6d2220}.npc-preset-preview table{width:100%;border-collapse:collapse;font-size:13px}.npc-preset-preview th,.npc-preset-preview td{padding:5px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border-dark,#555)}.npc-preset-preview th{width:38%}.npc-preset-apply{margin-top:12px;padding:9px 16px}.npc-preset-count{font-size:13px;padding:8px 0;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.npc-preset-preview button:disabled{opacity:.5;cursor:not-allowed}.npc-preset-source{font-size:13px;line-height:1.5}.npc-preset-list-empty{padding:12px}
+@media(max-width:700px){.npc-preset-filters{grid-template-columns:1fr 1fr}.npc-preset-filters label:first-child{grid-column:1/-1}.npc-preset-layout{grid-template-columns:1fr}.npc-preset-results{max-height:28vh}.npc-preset-preview{max-height:none}.npc-preset-preview table{font-size:12px}}
+</style>
+<script data-feature="npc-presets">
+// Presets are read-only templates; normal statblock saves remain owned by the sheet.
+const NPC_PRESETS={rows:null,loading:null,error:'',selected:null};
+const NPC_PRESET_STATUS={draft:'Черновик',ready:'Готов',archived:'Архив'};
+const NPC_PRESET_KINDS={vehicle:'Техника',creature:'Существо',battlesuit:'Боескафандр',conditional_variant:'Условный вариант',drone:'Дрон',npc:'Типовой НПЦ',named_npc:'Именной НПЦ',servitor:'Сервитор',horde_example:'Пример орды',animal_follower:'Животное-спутник',follower_example:'Пример спутника',vehicle_variant:'Вариант техники',relative_profile:'Профиль с относительными значениями',armament_only:'Только вооружение',generic:'Типовой',named:'Именной',horde:'Орда',generic_machine:'Типовая техника',template:'Шаблон',named_creature:'Именное существо',npc_profile:'Самостоятельный НПЦ',creature_profile:'Самостоятельное существо',construct_profile:'Конструкт / искусственное существо',horde_variant:'Вариант орды',mass_battle_example:'Пример массового боя',host_template:'Шаблон носителя',horde_template:'Шаблон орды'};
+function npcPresetLocalization(r){return r.research?.localization||{};}
+function npcPresetKind(r){return npcPresetLocalization(r).kind_label||NPC_PRESET_KINDS[r.kind]||r.kind;}
+function npcPresetFaction(r){return npcPresetLocalization(r).faction_label||r.faction;}
+function npcPresetRuleset(r){return npcPresetLocalization(r).ruleset_label||r.ruleset;}
+function npcPresetLimitText(text){return text.replace(/поля оставлены null/gi,'поля оставлены пустыми').replace(/сохранены как null/gi,'оставлены незаполненными').replace(/поле null/gi,'поле не указано').replace(/поля null/gi,'поля не указаны').replace(/оставлены null/gi,'оставлены пустыми');}
+// Preserve unknown source values only in new preset snapshots; legacy semantics stay unchanged.
+function npcPresetLayout2(d){return d?.preset_metadata?.layout_version===2;}
+const NPC_NULLABLE_VITALS=new Set(['health','max_health','max_fatigue']);
+const NPC_PRESET_ORIGINAL_NUMBER=sbNumber;
+sbNumber=function(path,raw){if(npcPresetLayout2(sbData())&&path.startsWith('vitals.')&&NPC_NULLABLE_VITALS.has(path.slice(7))&&(raw==null||String(raw).trim()===''))return null;return NPC_PRESET_ORIGINAL_NUMBER(path,raw);};
+const NPC_PRESET_ORIGINAL_NORMALIZE=normalizeStatblock;
+normalizeStatblock=function(raw){
+  const d=NPC_PRESET_ORIGINAL_NORMALIZE(raw);
+  if(npcPresetLayout2(raw)){
+    for(const key of NPC_NULLABLE_VITALS)if(raw.vitals?.[key]===null)d.vitals[key]=null;
+  }else if(Object.hasOwn(raw,'notes')&&raw.notes!==undefined){
+    d.notes=sbClone(raw.notes);
+  }else delete d.notes;
+  return d;
+};
+// Notes are normal editable rows. Legacy free-text traits remain available in old snapshots.
+SB_GROUPS.notes='Примечания';
+const NPC_PRESET_ORIGINAL_GROUP=sbGroup;
+sbGroup=function(key,title){
+  if(key!=='traits')return NPC_PRESET_ORIGINAL_GROUP(key,title);
+  const d=sbData();
+  if(d.preset_metadata?.layout_version===2)return (d.traits.length?NPC_PRESET_ORIGINAL_GROUP('traits'):'')+NPC_PRESET_ORIGINAL_GROUP('notes');
+  return NPC_PRESET_ORIGINAL_GROUP(key,title);
+};
+const NPC_PRESET_ORIGINAL_ENTRY=sbEntry;
+sbEntry=function(key,row,index){
+  const html=NPC_PRESET_ORIGINAL_ENTRY(key,row,index);
+  if(sbData()?.preset_metadata?.layout_version!==2||!row.description)return html;
+  const host=document.createElement('div');host.innerHTML=html;
+  const description=host.querySelector('.sb-description');if(description)description.innerHTML=sbDescriptionHtml(row.description);
+  return host.innerHTML;
+};
+const NPC_PRESET_ORIGINAL_TALENT_NAMES=sbTalentNames;
+sbTalentNames=function(d){const names=NPC_PRESET_ORIGINAL_TALENT_NAMES(d);return /Дисциплина\s*\(\s*Орда\s*\)/i.test(names)?names+' | Disciplined (Horde)':names;};
+const NPC_PRESET_ORIGINAL_HORDE_RULES=sbHordeRulesHtml;
+sbHordeRulesHtml=function(d){return NPC_PRESET_ORIGINAL_HORDE_RULES(d).replace('Deathwatch, «Орды»','Основная книга, «Орды»').replace('Deathwatch: «Орды»','Основная книга: «Орды»').replace('Living Errata, глава XIII и Disciplined (Horde)','Официальная эррата, глава XIII и «Дисциплина (Орда)»');};
+const NPC_PRESET_ORIGINAL_VITALS=sbVitalsHtml;
+sbVitalsHtml=function(d){
+  if(!npcPresetLayout2(d))return NPC_PRESET_ORIGINAL_VITALS(d);
+  const copy=sbClone(d);if(copy.vitals.health===null&&!sbIsHorde(copy))copy.vitals.health=1;
+  const host=document.createElement('div');host.innerHTML=NPC_PRESET_ORIGINAL_VITALS(copy);
+  for(const key of NPC_NULLABLE_VITALS){
+    if(d.vitals[key]!==null||(sbIsHorde(d)&&['health','max_health'].includes(key)))continue;
+    const input=host.querySelector('[data-sb-number="vitals.'+key+'"]');if(!input)continue;
+    input.value='';input.setAttribute('value','');input.placeholder='—';input.title='В источнике не указано';
+    if(!SB.draft&&key.startsWith('max_')){const span=document.createElement('span');span.className='vit-static-max';span.textContent='—';span.title='В источнике не указано';input.replaceWith(span);}
+  }
+  return host.innerHTML;
+};
+const NPC_PRESET_ORIGINAL_SET_VITAL=sbSetVital;
+sbSetVital=function(d,key,value){if(npcPresetLayout2(d)&&key==='health'&&value===null){d.vitals.health=null;return true;}return NPC_PRESET_ORIGINAL_SET_VITAL(d,key,value);};
+function npcPresetSources(r){return Array.isArray(r.sources)?r.sources:r.sources?[r.sources]:[];}
+const NPC_PRESET_BOOKS={core_ru:'Основная книга — русский ОКП',core_en:'Основная книга — английский оригинал',errata:'Официальная эррата, версия 1.1',motx:'Метка ксеносов',first:'Первое основание',honour:'Честь ордена',rites:'Обряды битвы',ark:'Ковчег потерянных душ',storm:'Надвигающаяся буря','final-sanction':'Последняя мера — перевод версии 1.0','setting-1':'Внешний предел','setting-2':'Грань забвения','oblivion-en':'Грань забвения — английский оригинал','setting-3':'Штурм Ахилла','setting-4':'Избранные Императором','jericho-reach':'Иерихонский предел','emperor-protects':'Император защищает','nemesis-incident':'Инцидент Немезис'};
+function npcPresetBook(s,r=null){
+  const labels=r?npcPresetLocalization(r).source_labels||[]:[];
+  const label=labels.find(x=>x.book_id===(s?.book_id||s?.source_book));
+  return label?.title||NPC_PRESET_BOOKS[s?.book_id||s?.source_book]||(typeof s==='string'?s:String(s?.title||s?.book_title||s?.book||s?.book_id||s?.source_book||'Источник не указан'));
+}
+function npcPresetSourceText(s,r=null){
+  if(typeof s==='string')return npcPresetBook(s,r);
+  const pages=s.printed_pages||s.pages||[],pdf=s.pdf_pages||[];
+  return npcPresetBook(s,r)+(pages.length?' · стр. '+pages.join(', '):s.printed_page?' · стр. '+s.printed_page:'')+(pdf.length?' · PDF '+pdf.join(', '):'');
+}
+function npcPresetCanApply(r){return r?.status==='ready'&&r.statblock&&r.statblock.schema_version===1&&['npc','vehicle'].includes(r.statblock.type);}
+function npcPresetDisplayName(r){return r.status==='ready'&&String(r.statblock?.name||'').trim()?String(r.statblock.name):npcPresetLocalization(r).name||r.name;}
+async function npcLoadPresets(force=false){
+  if(NPC_PRESETS.rows&&!force)return NPC_PRESETS.rows;
+  if(NPC_PRESETS.loading)return NPC_PRESETS.loading;
+  NPC_PRESETS.error='';
+  NPC_PRESETS.loading=(async()=>{
+    const rows=[],seen=new Set(),size=200;let offset=0,total=null;
+    for(let page=0;page<100;page++){
+      const url=new URL(SUPABASE_URL+'/rest/v1/npc_presets');
+      url.searchParams.set('select','id,name,faction,kind,ruleset,status,sources,parent_id,variant_reference,research,statblock,revision');
+      url.searchParams.set('order','id.asc');url.searchParams.set('limit',String(size));url.searchParams.set('offset',String(offset));
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let res,data;
+      try{res=await fetch(url.href,{method:'GET',headers:{apikey:SUPABASE_ANON_KEY,Prefer:'count=exact'},signal:controller.signal});data=await res.json();}finally{clearTimeout(timer);}
+      if(!res.ok)throw Error(data?.message||data?.error||'Не удалось прочитать пресеты ('+res.status+').');
+      if(!Array.isArray(data))throw Error('Список пресетов получен в неизвестном формате.');
+      const match=(res.headers.get('content-range')||'').match(/\/(\d+)$/);if(match)total=Number(match[1]);
+      for(const row of data){if(!row||typeof row.id!=='string'||seen.has(row.id))throw Error('Список пресетов изменился во время загрузки. Повторите загрузку.');seen.add(row.id);rows.push(row);}
+      offset+=data.length;
+      if((total!==null&&offset>=total)||data.length<size){if(total!==null&&offset!==total)throw Error('Получен неполный список пресетов. Повторите загрузку.');NPC_PRESETS.rows=rows;return rows;}
+    }
+    throw Error('Список пресетов слишком велик для одной загрузки.');
+  })().catch(error=>{NPC_PRESETS.error=error.name==='AbortError'?'Истекло время ожидания списка пресетов.':error.message;throw error;}).finally(()=>{NPC_PRESETS.loading=null;});
+  return NPC_PRESETS.loading;
+}
+function npcPresetFiltered(rows,q='',faction='',book='',status=''){
+  const text=q.trim().toLocaleLowerCase('ru');
+  return rows.filter(r=>(!faction||npcPresetFaction(r)===faction)&&(!status||r.status===status)&&(!book||npcPresetSources(r).some(s=>npcPresetBook(s,r)===book))&&(!text||[npcPresetDisplayName(r),r.name,npcPresetLocalization(r).original_name,npcPresetFaction(r),npcPresetKind(r),npcPresetLocalization(r).variant_reference_label,...npcPresetSources(r).map(s=>npcPresetSourceText(s,r))].filter(Boolean).join(' ').toLocaleLowerCase('ru').includes(text)));
+}
+function npcPresetDrawList(){
+  if(SB.entry?.kind!=='preset')return;
+  const rows=npcPresetFiltered(NPC_PRESETS.rows||[],$('npc-preset-search')?.value||'',$('npc-preset-faction')?.value||'',$('npc-preset-source')?.value||'',$('npc-preset-status')?.value||'');
+  $('npc-preset-count').innerHTML='<span>Показано '+rows.length+' из '+(NPC_PRESETS.rows?.length||0)+'. Все параметры и снаряжение находятся внутри пресета.</span><button type="button" data-npc-preset-retry>Обновить список</button>';
+  $('npc-preset-results').innerHTML=rows.length?rows.map(r=>'<button type="button" class="npc-preset-row" data-npc-preset-preview="'+escAttr(r.id)+'" aria-pressed="'+(NPC_PRESETS.selected===r.id)+'"><b>'+esc(npcPresetDisplayName(r))+'</b><span class="npc-preset-meta">'+esc([npcPresetFaction(r),npcPresetKind(r)].filter(Boolean).join(' · '))+'</span><span class="npc-preset-status '+(r.status==='ready'?'ready':'')+'">'+esc(NPC_PRESET_STATUS[r.status]||'Неизвестная готовность')+'</span></button>').join(''):'<div class="npc-preset-list-empty">По этим условиям ничего не найдено.</div>';
+}
+const NPC_PRESET_LABELS={name:'Название',faction:'Фракция',kind:'Вид',notes:'Примечания',limitations:'Ограничения',completeness_notes:'Полнота',conflicts:'Расхождения',finding:'Наблюдение',subject:'Параметр',status:'Состояние',weapons:'Оружие и атаки',weapon:'Оружие',profile:'Профиль',raw_weapon_block:'Исходный профиль оружия',stats:'Характеристики',vitals:'Показатели',bonuses:'Бонусы',skills:'Умения',skills_basic:'Базовые умения',skills_adv:'Продвинутые умения',talents:'Таланты',features:'Особенности',traits:'Черты',description:'Описание',parameters:'Параметры',damage:'Урон',pen:'Бронебойность',range:'Дальность',rof:'Темп',magazine:'Магазин',reload:'Перезарядка',qualities:'Свойства',printed_pages:'Страницы книги',pdf_pages:'Страницы PDF',book_id:'Книга',source:'Источник',sources:'Источники',ruleset:'Правила',variant_of:'Базовый профиль',variant_reference:'Основа варианта',errata_refs:'Эррата',damage_basis:'Основа урона',owner:'Владелец профиля',scope:'Область применения',type:'Тип',parameters_unknown:'Неуточнённые параметры',health:'Текущие раны',max_health:'Максимум ран',fatigue:'Усталость',max_fatigue:'Предел усталости',fate:'Судьба',max_fate:'Предел Судьбы',critical:'Критические ранения'};
+Object.assign(NPC_PRESET_LABELS,Object.fromEntries(STATS.map(([k,n])=>[k,n])),{
+  gear_type:'Тип снаряжения',weapon_type:'Класс оружия',quantity:'Количество',arc:'Сектор обстрела',groups:'Группы',group:'Группа',groups_enabled:'Группы включены',level:'Обучение',characteristic:'Характеристика',gifted:'Одарённый',counts_as_basic:'Считается базовым',desc:'Описание',
+  zones:'Зоны',covered:'Прикрыто щитом',shield:'Щит',head:'Голова',body:'Корпус',left_arm:'Левая рука',right_arm:'Правая рука',left_leg:'Левая нога',right_leg:'Правая нога',half:'Полудвижение',full:'Полное движение',charge:'Натиск',run:'Бег',lift:'Поднять',push:'Толкать',carry:'Грузоподъёмность',
+  front:'Лоб',side:'Борт',rear:'Корма',vehicle_type:'Тип техники',size:'Размер',tactical_speed:'Тактическая скорость',cruising_speed:'Крейсерская скорость',manoeuvrability:'Манёвренность',crew:'Экипаж',capacity:'Вместимость',speed:'Скорость',
+  range_m:'Дальность, м',rate_of_fire:'Темп стрельбы',damage_type:'Тип урона',penetration:'Бронебойность',clip:'Магазин',special:'Свойства',class:'Класс',ignores_armour:'Игнорирует броню',ignores_toughness:'Игнорирует бонус Выносливости',ignores_toughness_bonus:'Игнорирует бонус Выносливости',range_formula:'Формула дальности',damage_formula:'Формула урона',radius:'Радиус',radius_m:'Радиус, м',action:'Действие',resistance_test:'Проверка сопротивления',targets:'Цели',psy_rating:'Пси-рейтинг',weight_kg:'Масса, кг',mass_kg:'Масса, кг',requisition:'Реквизиция',renown:'Слава',targeting_rule:'Правило выбора целей',two_handed:'Двуручное',strength_bonus_added:'Бонус Силы учтён',ammunition:'Боеприпасы',damage_delta:'Изменение урона',quality_added:'Добавляемое свойство',eligible_weapons:'Подходящее оружие',operator_bs:'Дальний бой оператора',attack_skill:'Проверка атаки',throw_range_formula:'Формула дальности броска',blast_radius_formula:'Формула радиуса взрыва',magnitude:'Численность',add_talents:'Добавить таланты',add_traits:'Добавить особенности',replace_weapons:'Заменить оружие',replace_weapon:'Заменить оружие',toughness_delta:'Изменение Выносливости',melee_damage_delta:'Изменение рукопашного урона',wounds_formula:'Формула ран',wounds_rounding:'Округление ран',effect:'Значение',mode:'Способ применения',timing:'Порядок применения',target:'Область',target_name:'Параметр',cond:'Ситуативные',perm:'Постоянные'
+});
+const NPC_PRESET_ENUMS={...SKILL_LEVEL_TITLE,...Object.fromEntries(STATS.map(([k,n])=>[k,n])),...Object.fromEntries(Object.keys(SB_WEAPON_TYPES).map(k=>[k,SB_WEAPON_TYPES[k]])),...SB_GEAR_KINDS,npc:'НПЦ',vehicle:'Техника',add:'Прибавить',mul:'Умножить',pre:'До расчёта',post:'После расчёта',stat:'Характеристика',indicator:'Показатель',armor:'Броня'};
+const NPC_PRESET_HIDDEN_KEYS=new Set(['id','item_id','source','sources','description_sources','source_fields','edition','catalog_stats','catalog_source','catalog_key','schema_version','canonical_english_name','raw_weapon_block','profile','book_id','damage_as_printed']);
+function npcPresetValue(v,depth=0){
+  if(v==null)return '—';if(typeof v==='boolean')return v?'Да':'Нет';
+  if(typeof v!=='object')return esc(NPC_PRESET_ENUMS[String(v)]||String(v));
+  if(depth>7)return 'См. оригинал источника';
+  if(Array.isArray(v))return v.length?'<ul>'+v.map(x=>'<li>'+npcPresetValue(x,depth+1)+'</li>').join('')+'</ul>':'—';
+  const entries=Object.entries(v).filter(([k])=>!NPC_PRESET_HIDDEN_KEYS.has(k)&&!/^original(?:_|$)|^raw_|^canonical_/.test(k)&&(NPC_PRESET_LABELS[k]||/[А-Яа-яЁё]/.test(k)));
+  return entries.length?'<table>'+entries.map(([k,x])=>'<tr><th>'+esc(NPC_PRESET_LABELS[k]||k)+'</th><td>'+(['description','desc'].includes(k)&&typeof x==='string'?sbDescriptionHtml(x):npcPresetValue(x,depth+1))+'</td></tr>').join('')+'</table>':'—';
+}
+Object.assign(NPC_PRESET_LABELS,{horde:'Орда',defence:'Броня',movement:'Передвижение',carrying:'Грузоподъёмность',conditions:'Состояния',modifiers:'Модификаторы',talent_modifiers:'Бонусы талантов',custom_actions:'Особые действия',magnitude:'Численность',initial:'Начальная численность',turn_start:'Численность в начале хода',armour:'Броня',allow_defence:'Разрешены защитные реакции'});
+function npcPresetSourceFields(value){
+  if(!value||typeof value!=='object')return null;
+  if(Array.isArray(value)){const result=value.map(npcPresetSourceFields);return result.some(Boolean)?result:null;}
+  const result={};
+  for(const [key,item] of Object.entries(value)){
+    if(/^original(?:_|$)|^raw_|^canonical_|^source_fields$|^description_sources$|^sources$/.test(key)){result[key]=sbClone(item);continue;}
+    const nested=npcPresetSourceFields(item);if(nested)result[key]=nested;
+  }
+  return Object.keys(result).length?result:null;
+}
+function npcPresetOriginalSource(r){
+  const research=sbClone(r.research||{});delete research.localization;
+  return {name:npcPresetLocalization(r).original_name||research.original_name||r.name,sources:sbClone(npcPresetSources(r)),research,source_fields:npcPresetSourceFields(r.statblock)};
+}
+function npcPresetOriginalHtml(value){return '<details class="npc-preset-original"><summary>Оригинал источника</summary><p>Исходные названия, цитаты и данные для сверки с книгой.</p><pre>'+esc(JSON.stringify(value,null,2))+'</pre></details>';}
+function npcPresetPreview(id){
+  const r=NPC_PRESETS.rows?.find(x=>x.id===id);if(!r||SB.entry?.kind!=='preset')return;
+  NPC_PRESETS.selected=id;npcPresetDrawList();const ready=npcPresetCanApply(r);
+  const localization=npcPresetLocalization(r),stats=r.statblock?.stats,statLabels=Object.fromEntries(STATS.map(([k,n])=>[k,n]));
+  let summary=stats?'<details open><summary>Характеристики</summary><table>'+Object.entries(stats).map(([k,v])=>'<tr><th>'+esc(statLabels[k]||k)+'</th><td>'+esc(v??'—')+'</td></tr>').join('')+'</table></details>':'';
+  if(r.statblock){for(const k of ['bonuses','vitals','weapons','skills_basic','skills_adv','talents','features','traits','notes','defence','movement','carrying','parameters','horde','modifiers','talent_modifiers','custom_actions','conditions']){const v=r.statblock[k];if(v&&(Array.isArray(v)?v.length:Object.keys(v).length))summary+='<details><summary>'+esc(NPC_PRESET_LABELS[k]||k)+'</summary>'+npcPresetValue(v)+'</details>';}}
+  if(!r.statblock&&localization.weapon_labels?.length)summary+='<details><summary>Оружие и атаки</summary>'+localization.weapon_labels.map(w=>'<details><summary>'+esc(w.name)+'</summary>'+(w.scope_label?'<p>'+esc(w.scope_label)+'</p>':'')+(w.profile_label?'<p>'+esc(w.profile_label)+'</p>':'')+npcPresetValue(w.parameters||{})+npcPresetValue(w.notes||[])+'</details>').join('')+'</details>';
+  const limitation=r.status==='draft'?'Это черновик исследования. Его можно изучить, но нельзя перенести на лист: полный проверенный снимок пока не подготовлен.':r.status==='archived'?'Пресет находится в архиве и недоступен для применения.':!ready?'Полный снимок пресета отсутствует или имеет неподдерживаемый формат. Применение недоступно.':'Пресет заменит параметры, умения, таланты, особенности, оружие и прочие данные статблока. Результат появится в редактировании: его можно сохранить или отменить.';
+  const parent=r.parent_id?NPC_PRESETS.rows.find(x=>x.id===r.parent_id):null;
+  const sourceLimits=(localization.notes||[...(r.research?.snapshot_limitations||[]),...(r.research?.verification_notes||[])]).filter(x=>typeof x==='string').map(npcPresetLimitText);
+  const variant=localization.variant_reference_label||(parent?npcPresetDisplayName(parent):r.variant_reference);
+  $('npc-preset-preview').innerHTML='<h3>'+esc(npcPresetDisplayName(r))+'</h3><p>'+esc([npcPresetFaction(r),npcPresetKind(r),npcPresetRuleset(r),NPC_PRESET_STATUS[r.status]].filter(Boolean).join(' · '))+'</p><div class="npc-preset-source"><b>Источники:</b><ul>'+npcPresetSources(r).map(s=>'<li>'+esc(npcPresetSourceText(s,r))+'</li>').join('')+'</ul></div>'+(variant?'<p><b>Основа варианта:</b> '+esc(variant)+'</p>':'')+'<p class="npc-preset-limit">'+esc(limitation)+'</p>'+(sourceLimits.length?'<details open><summary>'+(ready?'Ограничения проверенного снимка':'Примечания')+'</summary>'+npcPresetValue(sourceLimits)+'</details>':'')+(localization.mechanics?.length?'<details><summary>Уточнения правил</summary>'+npcPresetValue(localization.mechanics)+'</details>':'')+(localization.completeness_label?'<p>'+esc(localization.completeness_label)+'</p>':'')+summary+npcPresetOriginalHtml(npcPresetOriginalSource(r))+'<button type="button" class="npc-preset-apply" data-npc-preset-apply="'+escAttr(r.id)+'"'+(ready?'':' disabled')+'>Применить к статблоку</button>';
+  if(matchMedia('(max-width:700px)').matches)$('npc-preset-preview').scrollIntoView({block:'start'});
+}
+async function npcOpenPresets(force=false){
+  if(!sbAllowed()||SB.busy||!SB.record||!await sbFlushQuick())return;
+  if(!sbAllowed()||SB.busy||!SB.record||S.chronicle.id!==SB.chronicleId)return;
+  const chronicle=SB.chronicleId;
+  sbModal('preset','Пресеты НПЦ','<div class="sb-wide">Загрузка пресетов…</div>');$('sb-entry-modal').classList.add('npc-preset-modal');
+  const entry=SB.entry,owner=SB.record.id;entry.chronicleId=chronicle;
+  try{
+    const rows=await npcLoadPresets(force);
+    if(!sbAllowed()||SB.busy||SB.entry!==entry||SB.record?.id!==owner||SB.chronicleId!==chronicle||S.chronicle.id!==chronicle||$('sb-entry-modal').classList.contains('hidden'))return;
+    const options=values=>values.map(v=>'<option value="'+escAttr(v)+'">'+esc(v)+'</option>').join('');
+    const factions=[...new Set(rows.map(npcPresetFaction).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+    const sources=[...new Set(rows.flatMap(r=>npcPresetSources(r).map(s=>npcPresetBook(s,r))))].sort((a,b)=>a.localeCompare(b,'ru'));
+    $('sb-entry-fields').innerHTML='<div class="sb-wide"><div class="npc-preset-filters"><label>Поиск<input id="npc-preset-search" placeholder="Название, фракция или источник"></label><label>Фракция<select id="npc-preset-faction"><option value="">Все фракции</option>'+options(factions)+'</select></label><label>Источник<select id="npc-preset-source"><option value="">Все книги</option>'+options(sources)+'</select></label><label>Готовность<select id="npc-preset-status"><option value="">Все записи</option>'+Object.entries(NPC_PRESET_STATUS).map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></label></div><div id="npc-preset-count" class="npc-preset-count" role="status"></div><div class="npc-preset-layout"><div id="npc-preset-results" class="npc-preset-results"></div><div id="npc-preset-preview" class="npc-preset-preview"><p>Выберите запись, чтобы увидеть источник, параметры и ограничения.</p></div></div></div>';
+    npcPresetDrawList();$('npc-preset-search').focus();
+  }catch(error){if(SB.entry===entry)$('sb-entry-fields').innerHTML='<div class="sb-wide sb-error">'+esc(NPC_PRESETS.error||error.message)+' <button type="button" data-npc-preset-retry>Повторить</button></div>';}
+}
+function npcPresetApply(id){
+  const r=NPC_PRESETS.rows?.find(x=>x.id===id);
+  if(!sbAllowed()||SB.busy||!SB.record||SB.entry?.kind!=='preset'||SB.entry.recordId!==SB.record.id||SB.entry.chronicleId!==SB.chronicleId||S.chronicle.id!==SB.chronicleId||!npcPresetCanApply(r))return false;
+  const raw=sbClone(r.statblock);
+  // Start from the complete template, never merge the former actor's fields.
+  raw.id=SB.record.id;raw.revision=SB.record.revision;raw.type=SB.record.type;
+  if(r.statblock.type==='vehicle')raw.race='Техника';raw.type_choice_migrated=true;
+  raw.discord_rolls=sbData().discord_rolls===true;
+  raw.preset_metadata={id:r.id,name:r.name,revision:r.revision,ruleset:r.ruleset,sources:sbClone(npcPresetSources(r)),applied_at:new Date().toISOString(),layout_version:2,original_source:npcPresetOriginalSource(r)};
+  let draft;try{draft=normalizeStatblock(raw);}catch(error){toast('Пресет не применён: '+error.message);return false;}
+  if(!draft.name.trim())return false;
+  SB.draft=draft;SB.error='';sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();toast('Пресет применён к черновику. Сохраните результат или отмените.');return true;
+}
+const NPC_PRESET_ORIGINAL_CHOICE=sbChoice;
+sbChoice=async function(kind){$('sb-entry-modal').classList.remove('npc-preset-modal');return kind==='preset'?npcOpenPresets():NPC_PRESET_ORIGINAL_CHOICE(kind);};
+const NPC_PRESET_ORIGINAL_RENDER=renderStatblock;
+renderStatblock=function(){
+  NPC_PRESET_ORIGINAL_RENDER();const d=sbData();
+  if(d?.preset_metadata?.layout_version===2){for(const title of $('sb-root').querySelectorAll('.section-title span'))if(title.textContent==='Умения, таланты, особенности и черты')title.textContent='Умения, таланты и особенности';}
+  const original=d?.preset_metadata?.original_source;if(original)$('sb-root').insertAdjacentHTML('beforeend','<section class="panel npc-preset-source-card">'+npcPresetOriginalHtml(original)+'</section>');
+};
+$('sb-entry-fields').addEventListener('input',e=>{if(e.target.id==='npc-preset-search')npcPresetDrawList();});
+$('sb-entry-fields').addEventListener('change',e=>{if(['npc-preset-faction','npc-preset-source','npc-preset-status'].includes(e.target.id))npcPresetDrawList();});
+$('sb-entry-fields').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-npc-preset-retry'))return npcOpenPresets(true);if(b.dataset.npcPresetPreview)return npcPresetPreview(b.dataset.npcPresetPreview);if(b.dataset.npcPresetApply)return npcPresetApply(b.dataset.npcPresetApply);});
+</script>
 </body>
 </html>
 
