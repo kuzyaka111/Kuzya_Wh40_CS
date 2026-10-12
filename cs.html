@@ -7065,6 +7065,7 @@ async function openPicker(key){
   }
   pickRows = data || [];
   if (key === 'aug_chapter') pickRows = pickRows.filter(r => chapterAugmentationAvailable(r));
+  if (['gear','armour_aux','aug_personal','aug_chapter'].includes(key)) pickRows = pickRows.filter(r => !r.stats?.hidden_from_issue);
   if (key === 'gear') pickRows = pickRows.filter(r => !r.stats?.dread_compatible);
   pickRowsAll = pickRows.slice();
   if (key === 'ammo') pickRows = pickRows.filter(r => r.used_for);
@@ -10808,7 +10809,7 @@ async function loadGearCache(){
       const [gRes, qRes, aRes] = await Promise.all([
         sb.from('equipment').select('id, name, description, stats').limit(1000),
         sb.from('weapon_qualities').select('id, name, description, param').order('name').limit(100),
-        sb.from('ammo').select('id, name, description, used_for').order('name').limit(100)
+        sb.from('ammo').select('id, name, description, used_for, requisition, renown').order('name').limit(100)
       ]);
       const error = gRes.error || qRes.error || aRes.error;
       if (error) throw error;
@@ -12814,7 +12815,7 @@ function sbGearStats(item){if(typeof item?.stats==='string'){try{return JSON.par
 function sbGearKind(type){return ['weapon_ranged','weapon_melee','grenades','rockets','mines'].includes(type)?'weapon':Object.hasOwn(SB_GEAR_KINDS,type)?type:'other';}
 function sbGearType(row){return row.gear_type||row.catalog_stats?.type||'weapon_ranged';}
 function sbGearAllowed(item,d){const s=sbGearStats(item);return !(s.dread_compatible===true||s.dread_compatible==='true')||sbHasDreadTag(d);}
-function sbGearRows(){return [...Object.values(GEAR_MAP).map(x=>({...x,catalog_key:'equipment:'+x.id,stats:sbGearStats(x)})),...Object.values(AMMO_MAP).map(x=>({...x,catalog_key:'ammo:'+x.id,stats:{type:'ammo'}}))];}
+function sbGearRows(){return [...Object.values(GEAR_MAP).filter(x=>!sbGearStats(x).hidden_from_issue).map(x=>({...x,catalog_key:'equipment:'+x.id,stats:sbGearStats(x)})),...Object.values(AMMO_MAP).map(x=>({...x,catalog_key:'ammo:'+x.id,stats:{type:'ammo'}}))];}
 function sbFilterGear(rows,d,q='',kind='',type='',cls=''){
  return rows.filter(x=>{const s=sbGearStats(x);return sbGearAllowed(x,d)&&(!kind||sbGearKind(s.type)===kind)&&(!type||s.type===type)&&(!cls||s.class===cls)&&String(x.name).toLocaleLowerCase('ru').includes(q.trim().toLocaleLowerCase('ru'));});
 }
@@ -13902,5 +13903,277 @@ document.addEventListener('click',e=>{const host=$('sb-root')?.querySelector('.n
 document.addEventListener('keydown',e=>{const host=$('sb-root')?.querySelector('.npc-roll-tools');if(!host)return;const menu=host.querySelector('.toolbar-menu'),toggle=host.querySelector('.toolbar-toggle');if(e.key==='Escape'&&!menu.hidden){menu.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.focus();}if(e.key==='ArrowDown'&&e.target===toggle){e.preventDefault();menu.hidden=false;toggle.setAttribute('aria-expanded','true');menu.querySelector('button').focus();}});
 
 </script>
+<style id="starting-equipment-style">
+.sg-panel{border:1px solid var(--border-dark);border-radius:6px;padding:12px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px}.sg-panel[hidden]{display:none}.sg-title{font-weight:bold}.sg-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sg-row label{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}.sg-row select,.sg-row input,#starting-ammo-modal select{width:100%;min-width:0;max-width:100%;padding:7px;background:var(--panel-bg,#171b20);color:var(--text,#ddd);border:1px solid var(--border-dark);border-radius:4px}.sg-panel button{align-self:flex-start;white-space:normal}.sg-panel details p{margin:8px 0}#starting-ammo-modal label{display:flex;flex-direction:column;gap:5px;margin:12px 0}#starting-ammo-modal .modal-box{max-width:540px;width:calc(100vw - 32px);box-sizing:border-box}#starting-ammo-modal button{margin:8px 8px 0 0}#starting-ammo-modal select{white-space:normal}@media(max-width:480px){.sg-row{align-items:stretch;flex-direction:column}.sg-panel{padding:9px}}
+</style>
+<script id="starting-equipment-runtime">
+// Starting wargear comes from a read-only DB catalog. Character receipts are local
+// to the sheet: rendering never replenishes consumables or reissues deleted rows.
+let STARTING_EQUIPMENT_RULES = [], startingEquipmentPromise = null, startingEquipmentLoaded = false;
+const SG_ORIG = {normalize,renderSheet,renderList,changeSpecialization,removeTag,confirmHonourPurchase};
+const sgClone = x => JSON.parse(JSON.stringify(x));
+function sgState(d,create=false){
+  if(!d.starting_equipment && create) d.starting_equipment={version:1,enrolled:{},receipts:{},detached:[],armour_stack:[],cycle:0};
+  return d.starting_equipment || {version:1,enrolled:{},receipts:{},detached:[],armour_stack:[],cycle:0};
+}
+normalize=function(raw){
+  const d=SG_ORIG.normalize(raw), st=raw?.starting_equipment;
+  if(st && typeof st==='object' && !Array.isArray(st)){
+    d.starting_equipment={version:1,enrolled:sgClone(st.enrolled || {}),receipts:sgClone(st.receipts || {}),detached:sgClone(Array.isArray(st.detached)?st.detached:[]),armour_stack:sgClone(Array.isArray(st.armour_stack)?st.armour_stack:[]),cycle:Math.max(0,Number(st.cycle)||0)};
+  }
+  d.ammo.forEach((r,i)=>{if(raw?.ammo?.[i]?.starting_grant) r.starting_grant=sgClone(raw.ammo[i].starting_grant);});
+  return d;
+};
+async function loadStartingEquipment(){
+  if(startingEquipmentLoaded) return true;
+  if(startingEquipmentPromise) return startingEquipmentPromise;
+  startingEquipmentPromise=(async()=>{
+    try{
+      const [res,gear]=await Promise.all([sb.from('specialization_starting_equipment').select('*').order('rule_key').limit(1000),loadGearCache()]);
+      if(res.error || !gear || !res.data?.length) throw new Error(res.error?.message || 'Каталог выдачи недоступен');
+      const rows=res.data;
+      if(rows.some(r=>!r.rule_key || (r.equipment_id!=null && !GEAR_MAP[r.equipment_id]) || (r.ammo_id!=null && !AMMO_MAP[r.ammo_id]) || (r.options || []).some(id=>!GEAR_MAP[id]))) throw new Error('В каталоге выдачи не найдены связанные предметы');
+      STARTING_EQUIPMENT_RULES=rows;startingEquipmentLoaded=true;return true;
+    }catch(e){console.warn('Стартовое снаряжение:',e.message);return false;}
+    finally{startingEquipmentPromise=null;}
+  })();return startingEquipmentPromise;
+}
+function sgSpecs(d){
+  if(dwActive(d)) return [];
+  const base=SPECIALIZATIONS.find(s=>Number(s.id)===Number(d.info?.specialization_id)) || SPECIALIZATIONS.find(s=>normEgg(s.name)===normEgg(d.info?.specialization || ''));
+  return [...new Map([...(base?[base]:[]),...advancedSpecRows(d)].filter(s=>!s.data?.dread_code).map(s=>[s.id,s])).values()];
+}
+function sgCondition(r,d){
+  const c=r.conditions || {};
+  const baseId=d.info?.specialization_id ?? sgSpecs(d).find(s=>!s.is_advanced)?.id;
+  if(c.base_specialization_ids && !c.base_specialization_ids.includes(Number(baseId)))return false;
+  if(c.honour_name && !(d.honors || []).some(h=>normEgg(h.catalog_name || h.name)===normEgg(c.honour_name)))return false;
+  return true;
+}
+function sgRules(d){
+  const st=sgState(d),specs=sgSpecs(d),ids=new Set(specs.filter(s=>st.enrolled[s.id]).map(s=>Number(s.id))),hasBase=specs.some(s=>!s.is_advanced && ids.has(Number(s.id)));
+  const rules=STARTING_EQUIPMENT_RULES.filter(r=>(r.specialization_id==null?hasBase:ids.has(Number(r.specialization_id))) && sgCondition(r,d));
+  const suppress=new Set(rules.filter(r=>r.action!=='choice' || st.receipts[r.rule_key]?.choice!=null).flatMap(r=>r.replaces || []));
+  return rules.filter(r=>!suppress.has(r.rule_key));
+}
+function sgReceipt(d,r){return sgState(d,true).receipts[r.rule_key] ||= {};}
+function sgRows(d){return ['gear','aug_personal','ammo'].flatMap(k=>(d[k] || []).map(row=>({k,row})));}
+function sgMark(row,key,kind='item'){
+  row.starting_grant ||= {uid:crypto.randomUUID(),claims:[],kind};
+  if(!row.starting_grant.claims.includes(key))row.starting_grant.claims.push(key);
+}
+function sgArmour(d,r,item){
+  if(item.stats?.type!=='armour' || item.stats?.category!=='primary')return;
+  if(!(r.replaces || []).includes('common.armour') && (d.armour.item_id!=null || d.armour.name))return;
+  const st=sgState(d,true);
+  st.armour_stack.push({rule:r.rule_key,item_id:item.id,previous:sgClone(d.armour)});
+  saveArmourZoneSelection(d,item.id);Object.assign(d.armour,{item_id:item.id,name:item.name,base:Number(item.stats.base)||10,sealed:true,head_worn:true});
+}
+function sgQuality(row,rule,quality){
+  row.starting_quality ||= [];
+  if(row.starting_quality.some(e=>e.rule===rule))return;
+  row.starting_quality.push({rule,previous:row.quality || 'С',applied:quality});row.quality=quality;
+}
+function sgReconcile(d){
+  if(!startingEquipmentLoaded || dwActive(d))return false;
+  const st=sgState(d,true),rules=sgRules(d),wanted=new Set(rules.map(r=>r.rule_key));let changed=false;
+  // Restore the exact suspended object, including remaining ammunition, never a fresh copy.
+  for(const k of ['gear','aug_personal','ammo']){
+    d[k] ||= [];
+    d[k]=d[k].filter(row=>{
+      const g=row.starting_grant;if(!g || g.claims.some(key=>wanted.has(key)))return true;
+      st.detached.push({k,row});changed=true;return false;
+    });
+  }
+  st.detached=st.detached.filter(entry=>{
+    if(!entry.row?.starting_grant?.claims?.some(key=>wanted.has(key)))return true;
+    if(!d[entry.k].some(row=>row.starting_grant?.uid===entry.row.starting_grant.uid))d[entry.k].push(entry.row);
+    changed=true;return false;
+  });
+  // Unwind only our own armour selections. A later player selection takes precedence.
+  const armourWanted=new Set(wanted);
+  if(rules.some(r=>(r.replaces || []).includes('common.armour')))armourWanted.add('common.armour');
+  while(st.armour_stack.length && !armourWanted.has(st.armour_stack.at(-1).rule)){
+    const entry=st.armour_stack.pop();
+    if(Number(d.armour.item_id)===Number(entry.item_id)){d.armour=sgClone(entry.previous);changed=true;}
+    else{st.armour_stack=[];break;}
+  }
+  sgRows(d).forEach(({row})=>{
+    while(row.starting_quality?.length && !wanted.has(row.starting_quality.at(-1).rule)){
+      const effect=row.starting_quality.pop();if(row.quality===effect.applied)row.quality=effect.previous;changed=true;
+    }
+  });
+  for(const r of rules){
+    const receipt=sgReceipt(d,r);
+    if(receipt.done){
+      if(receipt.active===false && r.equipment_id && (r.replaces || []).includes('common.armour') && d.gear.some(row=>Number(row.item_id)===Number(r.equipment_id)))sgArmour(d,r,GEAR_MAP[r.equipment_id]);
+      continue;
+    }
+    if(['upgrade'].includes(r.action))continue;
+    if(['native','none'].includes(r.action)){receipt.done=true;continue;}
+    if(r.action==='choice' && receipt.choice==null)continue;
+    const id=r.action==='choice'?Number(receipt.choice):Number(r.equipment_id);
+    if(r.action==='ammo'){
+      const a=AMMO_MAP[r.ammo_id];
+      const existing=(d.ammo || []).find(x=>Number(x.ammo_id)===Number(a.id));
+      if(existing){if(existing.starting_grant)sgMark(existing,r.rule_key,'ammo');receipt.done=true;receipt.existing=true;continue;}
+      const weapons=ammoWeaponOptions(a.used_for,a.id),w=weapons.find(w=>w.id===31) || weapons.find(w=>w.id===98) || weapons[0];
+      const row={source:'catalog',ammo_id:a.id,name:a.name,class:a.used_for,weapon:w?.name || '',weapon_id:w?.id || null,mags:[{cur:w?.mag || 0}],max:w?.mag || 0,activeMag:0,loaded:false};
+      sgMark(row,r.rule_key,'ammo');d.ammo.push(row);receipt.done=true;changed=true;continue;
+    }
+    const item=GEAR_MAP[id];if(!item)throw new Error('Не найден предмет выдачи: '+r.label);
+    const section=item.stats?.type==='cybernetics'?'aug_personal':'gear';
+    const existing=d[section].find(x=>Number(x.item_id)===id && !(r.conditions?.additional));
+    if(existing){
+      if(existing.starting_grant)sgMark(existing,r.rule_key);
+      if(r.conditions?.upgrade_if_standard_owned && existing.starting_grant)sgQuality(existing,r.rule_key,'И');
+      if(existing.starting_grant && (r.replaces || []).includes('common.armour'))sgArmour(d,r,item);
+      receipt.done=true;receipt.existing=true;changed=true;continue;
+    }
+    const row={source:'catalog',item_id:id,name:item.name,qty:r.quantity,quality:r.quality || 'С'};
+    if(section==='aug_personal')Object.assign(row,{desc:item.description || '',stats:sgClone(item.stats)});
+    if(ORDNANCE_GROUPS.has(item.stats?.type))Object.assign(row,{equipped:true,cur:r.quantity,max:r.quantity});
+    sgMark(row,r.rule_key,item.stats?.starting_item_key==='special_ammo_clip'?'voucher':'item');
+    d[section].push(row);receipt.done=true;sgArmour(d,r,item);changed=true;
+  }
+  Object.entries(st.receipts).forEach(([key,receipt])=>{receipt.active=wanted.has(key);});
+  return changed;
+}
+function sgEnroll(d,specs){
+  const st=sgState(d,true);specs.forEach(s=>st.enrolled[s.id]=true);sgReconcile(d);
+}
+function sgRefresh(){renderSheet();debouncedSave();}
+async function sgAcceptExisting(){
+  const d=S.character?.character_data;if(!d)return;
+  if(!await loadStartingEquipment() || S.character?.character_data!==d)return toast('Не удалось загрузить стартовое снаряжение');
+  if(!await dwConfirm('Получить стартовый комплект для текущих специализаций? Уже записанные предметы будут засчитаны; их количество и остаток боеприпасов не увеличатся. Предметы на выбор можно выбрать позже.','Получить') || S.character?.character_data!==d)return;
+  sgEnroll(d,sgSpecs(d));sgRefresh();
+}
+changeSpecialization=async function(name){
+  const d=S.character?.character_data;if(!d)return false;
+  await loadSpecializations();if(S.character?.character_data!==d)return false;
+  const spec=SPECIALIZATIONS.find(s=>normEgg(s.name)===normEgg(name));
+  if(spec && !spec.data?.dread_code && !dwActive(d)){
+    if(!await loadStartingEquipment())return toast('Каталог стартового снаряжения недоступен. Специализация не изменена.');
+    if(S.character?.character_data!==d)return false;
+  }
+  const before=sgSpecs(d).map(s=>Number(s.id)),r=await SG_ORIG.changeSpecialization(name);
+  if(S.character?.character_data!==d || r===false)return r;
+  if(spec && !spec.data?.dread_code && sgSpecs(d).some(s=>Number(s.id)===Number(spec.id)) && (!before.includes(Number(spec.id)) || !spec.is_advanced)){
+    sgEnroll(d,[spec]);sgRefresh();
+  }
+  return r;
+};
+removeTag=function(name){
+  const d=S.character?.character_data,r=SG_ORIG.removeTag(name);
+  if(d && S.character?.character_data===d && startingEquipmentLoaded && d.starting_equipment){sgReconcile(d);sgRefresh();}return r;
+};
+confirmHonourPurchase=function(){
+  const r=SG_ORIG.confirmHonourPurchase(),d=S.character?.character_data;
+  if(d?.starting_equipment && startingEquipmentLoaded){sgReconcile(d);sgRefresh();}return r;
+};
+function sgRuleLabel(r){const s=SPECIALIZATIONS.find(s=>Number(s.id)===Number(r.specialization_id));return (s?s.name:'Общий комплект')+' · '+r.label;}
+function sgPendingHtml(d,r){
+  const receipt=sgState(d).receipts[r.rule_key] || {};
+  if(r.action==='choice' && receipt.choice==null){
+    return '<div class="sg-row"><label>'+esc(sgRuleLabel(r))+'<select data-sg-choice="'+escAttr(r.rule_key)+'"><option value="">— выбрать позже —</option>'+(r.options || []).map(id=>'<option value="'+id+'">'+esc(GEAR_MAP[id]?.name || '')+'</option>').join('')+'</select></label>'+(r.conditions?.optional?'<span class="desc">Необязательно</span>':'')+'</div>';
+  }
+  if(r.action==='upgrade'){
+    const candidates=(d.gear || []).map((row,i)=>({row,i})).filter(({row})=>['weapon_melee','weapon_ranged'].includes(gearRowType(row)) && gearItemQuality(row)!=='И');
+    return candidates.length?'<div class="sg-row"><label>'+esc(r.label)+'<select data-sg-upgrade="'+escAttr(r.rule_key)+'"><option value="">— выбрать оружие —</option>'+candidates.map(({row,i})=>'<option value="'+i+'">'+esc(row.name)+'</option>').join('')+'</select></label><span class="desc">Только стандартное или Знаковое снаряжение.</span></div>':'';
+  }
+  if(r.conditions?.per_mission){
+    return '<div class="sg-row"><span>'+esc(sgRuleLabel(r))+'</span><button type="button" data-sg-ammo="'+escAttr(r.rule_key)+'"'+(receipt.mission_used?' disabled':'')+'>'+(receipt.mission_used?'Магазин получен':'Выбрать патроны')+'</button></div>';
+  }
+  return '';
+}
+function sgRenderPanel(){
+  const host=document.querySelector('[data-list="gear"]'),d=S.character?.character_data;if(!host || !d)return;
+  let panel=$('starting-equipment-panel');if(!panel){panel=document.createElement('section');panel.id='starting-equipment-panel';panel.className='sg-panel';const tabs=host.closest('.panel')?.querySelector('.panel-tabs');(tabs || host).before(panel);}
+  if(dwActive(d)){panel.hidden=true;return;}panel.hidden=false;
+  if(!startingEquipmentLoaded){panel.innerHTML='<div class="desc">Стартовое снаряжение: каталог не загружен.</div><button type="button" data-sg-retry>Загрузить</button>';return;}
+  const specs=sgSpecs(d),st=sgState(d),missing=specs.filter(s=>!st.enrolled[s.id]),rules=sgRules(d),pending=rules.map(r=>sgPendingHtml(d,r)).join('');
+  if(!specs.length){panel.hidden=true;return;}
+  const notes=[...new Set(rules.map(r=>r.note).filter(Boolean))];
+  const symbols=(d.gear || []).filter(row=>GEAR_MAP[row.item_id]?.stats?.starting_item_key==='chapter_trapping');
+  panel.innerHTML='<div class="sg-title">Стартовое снаряжение</div>'+(missing.length?'<div class="desc">Не получен комплект: '+esc(missing.map(s=>s.name).join(', '))+'</div><button type="button" data-sg-accept>Получить стартовый комплект</button>':'')+pending+symbols.map(row=>'<div class="sg-row"><label>Символ ордена<input data-sg-symbol="'+escAttr(row.starting_grant?.uid || '')+'" value="'+escAttr(row.name)+'" maxlength="150"></label></div>').join('')+(rules.some(r=>r.conditions?.per_mission)?'<button type="button" data-sg-new-mission>Получить право на магазин для новой миссии</button>':'')+(notes.length?'<details class="desc"><summary>Условия выдачи</summary>'+notes.map(n=>'<p>'+esc(n)+'</p>').join('')+'</details>':'')+(!missing.length&&!pending?'<div class="desc">Комплект учтён. Открытие листа не пополняет расходники.</div>':'');
+}
+renderList=function(key){const r=SG_ORIG.renderList(key);if(key==='gear')sgRenderPanel();return r;};
+renderSheet=function(){
+  const r=SG_ORIG.renderSheet(),d=S.character?.character_data;sgRenderPanel();
+  if(d && !startingEquipmentLoaded && !startingEquipmentPromise)loadStartingEquipment().then(()=>{if(S.character?.character_data===d)sgRenderPanel();});return r;
+};
+async function sgSelectChoice(key,id){
+  const d=S.character?.character_data,r=sgRules(d).find(r=>r.rule_key===key && r.action==='choice');
+  if(!r || !r.options.includes(Number(id)) || sgState(d).receipts[key]?.choice!=null)return;
+  const item=GEAR_MAP[id];
+  if(!await dwConfirm('Получить «'+item.name+'»?'+(r.replaces?.length?' Стартовый предмет, который он заменяет, будет сохранён отдельно до снятия специализации.':''),'Получить') || S.character?.character_data!==d)return;
+  const live=sgRules(d).find(x=>x.rule_key===key);if(!live || sgState(d).receipts[key]?.choice!=null)return;
+  sgReceipt(d,r).choice=Number(id);sgReconcile(d);sgRefresh();
+}
+async function sgUpgrade(key,index){
+  const d=S.character?.character_data,r=sgRules(d).find(r=>r.rule_key===key && r.action==='upgrade'),row=d?.gear?.[Number(index)];
+  if(!r || !row || !['weapon_melee','weapon_ranged'].includes(gearRowType(row)))return;
+  if(!await dwConfirm('«'+row.name+'» относится к стандартному или Знаковому снаряжению? Заменить на такой же предмет Исключительного качества?','Подтвердить и заменить') || S.character?.character_data!==d || !d.gear.includes(row) || !sgRules(d).some(x=>x.rule_key===key))return;
+  sgQuality(row,key,'И');sgRefresh();
+}
+function sgAmmoCost(a,w){
+  const backpack=w?.backpack_ammo_supply || (w?.source_qualities || []).includes('Backpack Ammo Supply');
+  return Number(a.requisition)+(w?.weight_class==='Тяжёлое'?(backpack?15:5):0);
+}
+function sgAmmoChoices(d,r,weaponId){
+  const row=(d.gear || []).find(row=>Number(row.item_id)===Number(weaponId)),w=row && gearResolve(row);
+  if(!w || !Number.isFinite(Number(w.mag)) || Number(w.mag)<=0)return [];
+  return Object.values(AMMO_MAP).filter(a=>(r.conditions.special_ammo_ids || []).includes(Number(a.id)) && a.requisition!=null && a.renown!=null && Number.isFinite(Number(a.requisition)) && sgAmmoCost(a,w)<=Number(r.conditions.max_requisition) && Number(a.renown)<=Number(d.vitals?.renown || 0) && ammoMatchesWeapon(a.used_for,a.id,row,w));
+}
+let SG_AMMO_CONTEXT=null;
+function sgOpenAmmo(key){
+  const d=S.character?.character_data,r=sgRules(d).find(r=>r.rule_key===key && r.conditions?.per_mission);
+  if(!r || sgReceipt(d,r).mission_used)return;
+  let modal=$('starting-ammo-modal');if(!modal){modal=document.createElement('div');modal.id='starting-ammo-modal';modal.className='modal-overlay';document.body.append(modal);}
+  const weapons=(d.gear || []).filter(row=>sgAmmoChoices(d,r,row.item_id).length);
+  SG_AMMO_CONTEXT={d,key,cycle:sgState(d).cycle};
+  modal.innerHTML='<div class="modal-box"><h3>Магазин специальных боеприпасов</h3><p class="desc">Один магазин на миссию, не более 25 Реквизиции. Доступные патроны учитывают Славу и выбранное оружие.</p><label>Оружие<select id="sg-ammo-weapon">'+weapons.map(row=>'<option value="'+row.item_id+'">'+esc(row.name)+'</option>').join('')+'</select></label><label>Боеприпасы<select id="sg-ammo-type"></select></label><p id="sg-ammo-error" class="desc" role="status"></p><button type="button" data-sg-ammo-confirm>Получить магазин</button><button type="button" data-sg-ammo-close>Выбрать позже</button></div>';
+  const draw=()=>{const opts=sgAmmoChoices(d,r,$('sg-ammo-weapon').value);$('sg-ammo-type').innerHTML=opts.map(a=>'<option value="'+a.id+'">'+esc(a.name)+'</option>').join('');$('sg-ammo-error').textContent=opts.length?'':'Нет подходящих боеприпасов для имеющегося оружия и текущей Славы.';modal.querySelector('[data-sg-ammo-confirm]').disabled=!opts.length;};
+  $('sg-ammo-weapon').onchange=draw;draw();openSheetModal('starting-ammo-modal');
+}
+function sgRedeemAmmo(){
+  const context=SG_AMMO_CONTEXT,d=S.character?.character_data;
+  if(!context || context.d!==d || context.cycle!==sgState(d).cycle)return false;
+  const r=sgRules(d).find(r=>r.rule_key===context.key && r.conditions?.per_mission);if(!r || sgReceipt(d,r).mission_used)return false;
+  const weaponId=Number($('sg-ammo-weapon').value),a=sgAmmoChoices(d,r,weaponId).find(a=>Number(a.id)===Number($('sg-ammo-type').value));if(!a)return false;
+  const weapon=d.gear.find(row=>Number(row.item_id)===weaponId),w=gearResolve(weapon);
+  const row={source:'catalog',ammo_id:a.id,name:a.name,class:a.used_for,weapon:weapon.name,weapon_id:weaponId,mags:[{cur:Number(w.mag)}],max:Number(w.mag),activeMag:0,loaded:false};
+  sgMark(row,r.rule_key,'ammo');row.starting_grant.cycle=sgState(d).cycle;d.ammo.push(row);sgReceipt(d,r).mission_used=true;
+  SG_AMMO_CONTEXT=null;closeSheetModal('starting-ammo-modal');sgRefresh();return true;
+}
+async function sgNewMission(){
+  const d=S.character?.character_data;if(!d || !sgRules(d).some(r=>r.conditions?.per_mission))return;
+  if(!await dwConfirm('Начинается новая миссия? Будет доступен один новый бесплатный магазин. Остатки предыдущих магазинов сохранятся.','Новая миссия') || S.character?.character_data!==d)return;
+  const st=sgState(d,true);st.cycle++;sgRules(d).filter(r=>r.conditions?.per_mission).forEach(r=>sgReceipt(d,r).mission_used=false);SG_AMMO_CONTEXT=null;sgRefresh();
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-sg-accept],[data-sg-retry],[data-sg-ammo],[data-sg-ammo-confirm],[data-sg-ammo-close],[data-sg-new-mission]');if(!b)return;
+  e.preventDefault();if(b.disabled || b.dataset.sgBusy)return;b.dataset.sgBusy='1';
+  try{
+    if(b.hasAttribute('data-sg-accept'))await sgAcceptExisting();
+    else if(b.hasAttribute('data-sg-retry')){await loadStartingEquipment();sgRenderPanel();}
+    else if(b.hasAttribute('data-sg-ammo'))sgOpenAmmo(b.dataset.sgAmmo);
+    else if(b.hasAttribute('data-sg-ammo-confirm'))sgRedeemAmmo();
+    else if(b.hasAttribute('data-sg-ammo-close')){SG_AMMO_CONTEXT=null;closeSheetModal('starting-ammo-modal');}
+    else await sgNewMission();
+  }finally{delete b.dataset.sgBusy;}
+});
+document.addEventListener('change',e=>{
+  if(e.target.matches('[data-sg-choice]'))sgSelectChoice(e.target.dataset.sgChoice,e.target.value);
+  if(e.target.matches('[data-sg-upgrade]') && e.target.value!=='')sgUpgrade(e.target.dataset.sgUpgrade,e.target.value);
+  if(e.target.matches('[data-sg-symbol]')){
+    const d=S.character?.character_data,row=d?.gear?.find(row=>row.starting_grant?.uid===e.target.dataset.sgSymbol),name=e.target.value.trim();
+    if(row && name){row.name=name;renderList('gear');debouncedSave();}
+  }
+});
+
+</script>
 </body>
 </html>
+
