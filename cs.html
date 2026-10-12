@@ -1927,6 +1927,21 @@ body[data-vox-art="on"] .modal .box::before{inset:0;}
 body[data-vox-art="on"] .modal .box::before{content:none;}
 body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300' preserveAspectRatio='none'%3E%3Cpath d='M18 1H778L799 20V278L780 299H20L1 280V18Z' fill='none' stroke='%23d5a52a' stroke-width='1.3' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M28 5H770L793 25V273L776 293H25L7 275V26Z' fill='none' stroke='%236e6024' stroke-width='.7' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M2 40V18L18 2H52M748 2H778L798 22V45M798 257V278L779 298H750M48 298H20L2 280V255' fill='none' stroke='%23ffca43' stroke-width='2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") ;border-image-slice:24;border-image-width:18px;border-image-repeat:stretch;}
 </style>
+<style data-feature="statblock-play">
+#sb-root .sb-play-menu{position:relative}
+#sb-root .sb-play-menu .toolbar-toggle{display:inline-flex}
+#sb-root .sb-play-dropdown{position:absolute;left:0;top:100%;z-index:20;min-width:180px;padding:8px;background:#161618;border:1px solid var(--border-gold);display:grid;gap:6px}
+#sb-root .sb-play-dropdown button,.sb-settings-extra button,.sb-play-buttons button{background:#1c1c1f;border:1px solid #a8862f;color:#c9a24b;font:inherit;font-size:11px;padding:8px;cursor:pointer}
+#sb-root .sb-horde-rules{margin:14px 22px;padding:12px 16px;border:1px solid var(--border-dark);font-size:11px;line-height:1.6;color:var(--text-dim)}
+#sb-root .sb-horde-rules b{color:var(--gold)}
+#sb-root .sb-play-buttons{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.sb-settings-extra{margin-top:14px;display:grid;gap:12px;font-size:11px;line-height:1.6}
+#sb-root [data-sb-roll-stat]{cursor:pointer}
+#sb-root .sb-toolbar-right{flex-wrap:wrap}
+#sb-entry-modal:has([data-sb-play="damage-roll"]),#sb-entry-modal:has([data-sb-play="horde-apply"]){z-index:1200}
+@media(max-width:600px){#sb-root .sb-horde-rules{margin:12px;font-size:10px}}
+
+</style>
 </head>
 <body data-vox-art="on" data-sheet-art="off">
 <div class="vox-art-decor" aria-hidden="true"><div class="vox-art-scale left"></div><div class="vox-art-scale right"></div><div class="vox-art-corner bl">|||||||||||| ▪ 01</div><div class="vox-art-corner br">SANCTUS ▪ ▪ |||||||</div><div class="vox-art-scan"></div></div>
@@ -9739,6 +9754,7 @@ async function saveSheet(commitDraft = false){
   return operation;
 }
 function scheduleSave(){
+  if(typeof sbActorActive==='function' && sbActorActive()){sbCommitActor();return;}
   if (!S.character) return;
   saveRevision++;
   if (editMode){ draftDirty = true; updateSaveStatus(); return; }
@@ -12410,7 +12426,7 @@ $('sb-root').addEventListener('input',e=>{
 $('sb-root').addEventListener('change',async e=>{
   const el=e.target,path=el.dataset.sbNumber;
   if(!sbAllowed() || SB.busy || !path || !SB.record) return;
-  if(!SB.draft && (!path.startsWith('vitals.') || path.startsWith('vitals.max_'))) return;
+  if(!SB.draft && path!=='horde.magnitude' && (!path.startsWith('vitals.') || path.startsWith('vitals.max_'))) return;
   const value=sbNumber(path,el.value);
   if(value===undefined){toast('Введите целое неотрицательное число');el.value=path.split('.').reduce((value,key)=>value?.[key],sbData())??'';return;}
   const quick=!SB.draft;
@@ -12444,10 +12460,10 @@ $('sb-root').addEventListener('click',async e=>{
   }
   if(button.dataset.sbStep){
     const [key,step]=button.dataset.sbStep.split(':');
-    if(!['health','critical','fatigue','fate'].includes(key) || !['-1','1'].includes(step)) return;
+    if(!['health','critical','fatigue','fate','magnitude'].includes(key) || !['-1','1'].includes(step)) return;
     const quick=!SB.draft;
     if(quick) SB.draft=sbClone(sbData());
-    sbSetVital(SB.draft,key,(Number(SB.draft.vitals[key])||0)+Number(step));
+    sbSetVital(SB.draft,key,(Number(key==='magnitude'?SB.draft.horde.magnitude:SB.draft.vitals[key])||0)+Number(step));
     sbTouch(quick);if(quick) await saveStatblock(false,true);else renderStatblock();
   }
 });
@@ -13589,5 +13605,217 @@ body[data-sheet-art="on"] #sheet-root .titles .conditions-line button::before{di
 .sheet .titles .conditions-line button:hover{color:#ffd19b;background:rgba(237,154,67,.16);}
 .sheet .titles .conditions-line #conditions-plus{min-width:25px;padding-inline:6px;}
 </style>
+<script data-feature="statblock-play">
+// NPCs use the existing action, modifier and roll UI through an isolated actor.
+const SB_PLAY={actor:null,menu:false,lastRoll:null};
+function sbIsHorde(d){return d?.category==='Орда';}
+function sbPlayNumber(v,fallback=0){const n=Number(v);return Number.isSafeInteger(n)&&n>=0&&n<=1000000?n:fallback;}
+function sbNormalizePlay(d,raw=d){
+ d.horde={magnitude:sbPlayNumber(raw.horde?.magnitude,30),initial:sbPlayNumber(raw.horde?.initial,30),turn_start:sbPlayNumber(raw.horde?.turn_start,raw.horde?.magnitude??30),armour:sbPlayNumber(raw.horde?.armour,raw.defence?.zones?.body??0),allow_defence:!!raw.horde?.allow_defence};
+ d.modifiers=normalizeModifiers(raw.modifiers);d.custom_actions=normalizeCustomActions(raw.custom_actions);d.active_actions=normalizeActiveActions(raw.active_actions);
+ d.talent_modifiers=Array.isArray(raw.talent_modifiers)?raw.talent_modifiers.filter(x=>x&&typeof x==='object').map(x=>({talent:String(x.talent||''),section:x.section==='perm'?'perm':'cond',modifier:normalizeModifier(x.modifier)})):[];
+ return d;
+}
+const sbNormalizeBeforePlay=normalizeStatblock;
+normalizeStatblock=function(raw){return sbNormalizePlay(sbNormalizeBeforePlay(raw),raw);};
+function sbTalentNames(d){return [...(d.talents||[]),...(d.features||[]),...(d.traits||[])].map(r=>String(r.name||r)).join(' | ');}
+function sbHasTrait(d,re){return re.test(sbTalentNames(d));}
+function sbHordeMorale(d){
+ const h=d.horde,fearless=sbHasTrait(d,/Бесстраш|Fearless/i),disciplined=sbHasTrait(d,/Дисциплинирован|Disciplined/i);
+ const loss=Math.max(0,h.turn_start-h.magnitude),quarter=h.magnitude<h.initial*.25,half=h.magnitude<h.initial*.5;
+ return {loss,destroyed:h.magnitude===0,required:h.magnitude>0&&!fearless&&(loss>=h.turn_start*.25&&loss>0||quarter),automatic:h.magnitude>0&&!fearless&&quarter&&!disciplined,modifier:quarter&&disciplined||half&&!disciplined?-10:0,fearless,disciplined};
+}
+function sbHordeDamageDice(d){return sbIsHorde(d)?Math.min(2,Math.floor(d.horde.magnitude/10)):0;}
+function sbHordeRulesHtml(d){
+ const h=d.horde,m=sbHordeMorale(d);
+ return `<div class="sb-horde-rules"><b>Правила орды</b><p>Стрелковых атак: ${Math.floor(h.magnitude/10)} · Урон атак: +${sbHordeDamageDice(d)}к10.</p><p>Единая броня для всех попаданий. Орда не прицеливается, не страдает от осечек и не расходует боеприпасы. По умолчанию не уклоняется и не парирует; её массовые атаки нельзя парировать или уклонять. Исключения определяет ведущий.</p><p>${m.destroyed?'Орда уничтожена.':m.fearless?'Бесстрашие: паника не применяется.':m.automatic?'Численность ниже 25%: автоматическое бегство.':m.required?'Нужна проверка паники'+(m.modifier?' (−10).':'.'):'Потери за ход: '+m.loss+'.'}</p><div class="sb-play-buttons"><button type="button" data-sb-play="morale">Паника</button><button type="button" data-sb-play="fear">Страх</button><button type="button" data-sb-play="suppression">Подавление</button><button type="button" data-sb-play="horde-damage">Урон по орде</button><button type="button" data-sb-play="turn">Новый ход</button></div><details><summary>Правила попаданий по орде</summary><p>Каждое попадание, пробившее броню и бонус Выносливости, снимает 1 численность. Взрывной тип добавляет одно попадание за атаку; Взрыв (X) даёт X попаданий. Огнемёт: 1к5 + дальность / 4 вверх. Психосила: пси-рейтинг попаданий, по области ещё 1к10. В ближнем бою астартес: ещё попадание за каждые две степени успеха; Силовое поле — ещё одно.</p><p>Примеры размера из книги: численность 30 — +30 к попаданию, 60 — +40, 90 — +50, 120+ — +60. Размер конкретной орды определяет ведущий. Нет бонуса за численное превосходство. Орда не горит; урон отражён в потере численности.</p><p>Основа: Deathwatch, «Орды», стр. 413–414 русского издания; Living Errata, глава XIII и Disciplined (Horde).</p></details></div>`;
+}
+function sbActorActive(){return !!SB_PLAY.actor&&S.character===SB_PLAY.actor&&SB.record?.id===SB_PLAY.actor._statblock&& !$('screen-statblock').classList.contains('hidden');}
+function sbActorData(d){
+ const a=blankSheet();a._statblock=d.id;a.stats=sbClone(d.stats);a.stat_adv={};a.modifiers=normalizeModifiers(d.modifiers);
+ for(const link of d.talent_modifiers||[]){if((d.talents||[]).some(t=>String(t.id??t.name)===link.talent))a.modifiers[link.section].push({...normalizeModifier(link.modifier),source:'npc-talent:'+link.talent});}
+ for(const k of ['skills_basic','skills_adv','talents','features','traits','custom_actions','active_actions'])a[k]=sbClone(d[k]||[]);
+ a.vitals={...a.vitals,wounds:d.vitals.health,max_wounds:d.vitals.max_health,fatigue:d.vitals.fatigue,max_fatigue:d.vitals.max_fatigue,fate:d.vitals.fate,max_fate:d.vitals.max_fate};
+ a.info={...a.info,name:d.name};a.tags=sbClone(d.tags);a.discord_rolls=false;a.gear=[];a.slots=[];a.armour={...a.armour,item_id:null,name:'',zones:sbClone(d.defence.zones)};
+ return a;
+}
+function sbSyncActor(){
+ const d=sbData();if(!d)return;
+ if(!SB_PLAY.actor||SB_PLAY.actor._statblock!==d.id)SB_PLAY.actor={id:d.id,_statblock:d.id,name:d.name,chronicle_id:SB.chronicleId,character_data:null};
+ SB_PLAY.actor.character_data=sbActorData(d);SB_PLAY.actor.name=d.name;S.character=SB_PLAY.actor;
+}
+function sbCommitActor(){
+ if(!sbActorActive()||SB.draft)return false;
+ const a=S.character.character_data,d=sbClone(sbData());
+ d.modifiers=normalizeModifiers(a.modifiers);for(const k of ['cond','perm'])d.modifiers[k]=d.modifiers[k].filter(m=>!String(m.source).startsWith('npc-talent:'));
+ d.custom_actions=normalizeCustomActions(a.custom_actions);d.active_actions=normalizeActiveActions(a.active_actions);
+ SB.draft=d;return sbQueueQuick();
+}
+const sbOriginalRuntime={render:renderStatblock,renderSheet,flushSave,scheduleSave,actionWeapons,actionRows,actionWeaponError,callRollApi,showRollResult,sbSetPath,sbSetVital,sbVitalsHtml,sbParametersHtml,statBonus,effStat,rollMods,preparedRollModifiers};
+renderStatblock=function(){
+ if(sbData())sbNormalizePlay(sbData());sbOriginalRuntime.render();if(!sbData())return;
+ sbSyncActor();const root=$('sb-root'),editing=!!SB.draft;
+ const toolbar=root.querySelector('.sb-toolbar-main'),right=root.querySelector('.sb-toolbar-right');
+ if(toolbar){toolbar.innerHTML=editing?'<button class="btn save" data-sb-action="save">Сохранить</button><button class="btn cancel" data-sb-action="cancel">Отменить</button>':`<div class="sb-play-menu"><button type="button" class="btn toolbar-toggle" data-sb-play="menu" aria-label="Редактирование и настройки" aria-expanded="${SB_PLAY.menu}">✎ ▾</button>${SB_PLAY.menu?'<div class="sb-play-dropdown"><button type="button" data-sb-action="edit">Редактировать</button><button type="button" data-sb-play="settings">Настройки</button></div>':''}</div>`;}
+ if(right)right.innerHTML=(editing?'<button class="btn danger" data-sb-action="delete">Удалить</button>':'<button type="button" class="btn" data-sb-play="actions">Действия и броски</button><button type="button" class="btn" data-sb-play="check">Проверка</button>');
+ if(sbIsHorde(sbData()))root.querySelector('.vitals-strip-wrap')?.insertAdjacentHTML('afterend',sbHordeRulesHtml(sbData()));
+ root.querySelectorAll('.stat-box .total').forEach((el,i)=>{const key=STATS[i][0];if(sbData().stats[key]==null)return;el.dataset.sbRollStat=key;el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','Проверка: '+STATS[i][1]);if(!editing)el.textContent=effStat(S.character.character_data,key);});
+};
+renderSheet=function(){if(sbActorActive()){sbCommitActor();return;}return sbOriginalRuntime.renderSheet();};
+flushSave=function(...args){if(sbActorActive()){sbCommitActor();return sbFlushQuick();}return sbOriginalRuntime.flushSave(...args);};
+scheduleSave=function(...args){if(sbActorActive()){sbCommitActor();return;}return sbOriginalRuntime.scheduleSave(...args);};
+statBonus=function(d,k){if(d?._statblock){const b=sbData()?.bonuses?.[k];if(b!=null)return Number(b);}return sbOriginalRuntime.statBonus(d,k);};
+sbSetPath=function(d,path,value){
+ const m=/^horde\.(magnitude|initial|turn_start|armour)$/.exec(path);if(m){d.horde[m[1]]=sbPlayNumber(value);return true;}
+ return sbOriginalRuntime.sbSetPath(d,path,value);
+};
+sbSetVital=function(d,key,value){if(key==='magnitude'){d.horde.magnitude=sbPlayNumber(Math.max(0,Number(value)));return true;}return sbOriginalRuntime.sbSetVital(d,key,value);};
+sbVitalsHtml=function(d){
+ if(!sbIsHorde(d))return sbOriginalRuntime.sbVitalsHtml(d);
+ const copy=sbClone(d);copy.vitals.health=Math.max(1,d.horde.magnitude);copy.vitals.max_health=d.horde.initial;
+ let html=sbOriginalRuntime.sbVitalsHtml(copy);const first=html.indexOf('</div></div>')+12;
+ html=html.replaceAll('Раны','Численность').replaceAll('Структурная прочность','Численность').replaceAll('vitals.health','horde.magnitude').replaceAll('vitals.max_health','horde.initial').replaceAll('health:-1','magnitude:-1').replaceAll('health:1','magnitude:1');
+ return html.replace(/(data-sb-number="horde.magnitude"[^>]*value=")\d+/, '$1'+d.horde.magnitude).replace(/style="width:[^%]+%"/,`style="width:${d.horde.initial?Math.min(100,d.horde.magnitude/d.horde.initial*100):0}%"`);
+};
+sbParametersHtml=function(d){
+ if(!sbIsHorde(d))return sbOriginalRuntime.sbParametersHtml(d);
+ const normal=sbOriginalRuntime.sbParametersHtml(d),end=normal.indexOf(sbArmourExtrasHtml(d));
+ return `<div class="sb-param-row"><div class="sb-armour-heading"><h3>Броня орды</h3>${sbArmourChoiceHtml(d)}</div><div class="sb-param-chips">${sbChip('horde.armour','Единая броня',d.horde.armour)}${sbChip('bonuses.wyn','Мод. ВЫН',d.bonuses.wyn,sbBonus(d,'wyn'),'sb-toughness')}</div></div>`+normal.slice(end);
+};
+actionWeapons=function(d){
+ if(!d?._statblock)return sbOriginalRuntime.actionWeapons(d);
+ return (sbData().weapons||[]).map((r,i)=>{
+  const type=sbGearType(r),profile={...(r.catalog_stats||{}),type,class:r.weapon_type||r.catalog_stats?.class,dmg:r.damage||r.catalog_stats?.dmg,pen:r.pen??r.catalog_stats?.pen,range:r.range??r.catalog_stats?.range};
+  const rof=String(r.rof||'').split(/[\/／]/);if(rof.length===3){profile.rof_short=Number(rof[1])||0;profile.rof_long=Number(rof[2])||0;}
+  return {id:'npc:'+i,name:r.name,label:r.name,type,profile};
+ }).filter(w=>['weapon_ranged','weapon_melee','shield','grenades'].includes(w.type));
+};
+actionRows=function(){const rows=sbOriginalRuntime.actionRows();return sbActorActive()&&sbIsHorde(sbData())?rows.filter(a=>a.code!=='aim'):rows;};
+actionWeaponError=function(a,w){
+ if(sbActorActive()&&sbIsHorde(sbData())&&['parry','dodge'].includes(a.code)&&!sbData().horde.allow_defence)return 'Орда не уклоняется и не парирует. Исключение можно включить в настройках орды.';
+ return sbOriginalRuntime.actionWeaponError(a,w);
+};
+preparedRollModifiers=function(){return sbOriginalRuntime.preparedRollModifiers().filter(m=>!(sbActorActive()&&sbIsHorde(sbData())&&m.id==='aim'));};
+function sbRandomDie(sides){const limit=Math.floor(4294967296/sides)*sides,b=new Uint32Array(1);do{crypto.getRandomValues(b);}while(b[0]>=limit);return b[0]%sides+1;}
+callRollApi=async function(body){
+ if(!sbActorActive()||body.action!=='roll')return sbOriginalRuntime.callRollApi(body);
+ const target=Number(body.target),mod=Number(body.mod)||0,threshold=target+mod,d100=sbRandomDie(100);
+ const r={...body,target,mod,threshold,d100,success:d100<=threshold,degrees:Math.floor(Math.abs(threshold-d100)/10),delivered:false,skip:'npc_local'};
+ SB_PLAY.lastRoll=r;return r;
+};
+showRollResult=function(r){
+ sbOriginalRuntime.showRollResult(r);if(!sbActorActive())return;
+ const note=$('roll-result').querySelector('.desc');if(note)note.textContent='Бросок НПЦ · '+S.character.name;
+ if(ROLL.action?.row.requires_weapon&&r.success){$('roll-result').insertAdjacentHTML('beforeend','<button type="button" class="modal-confirm" data-sb-play="damage">Урон оружия</button>');}
+};
+function sbRollWill(name,modifier=0){openRoll({kind:'stat',sel:{kind:'stat',id:'stat:sv',statKey:'sv',name,characteristic:'Сила Воли'}});if(modifier){ROLL.temp.push({label:name,value:modifier});renderRoll();}}
+function sbDamageExpression(expr,extraDice=0){
+ const normalized=String(expr||'').split('·')[0].toLowerCase().replaceAll('к','d').replace(/\s+/g,'');
+ if(!/^\d{1,2}d(?:5|10|100)(?:[+-]\d{1,4})?$/.test(normalized))throw Error('Укажите урон в формате 1к10+5.');
+ const m=normalized.match(/^(\d+)d(\d+)([+-]\d+)?$/),count=Number(m[1]),sides=Number(m[2]);if(count>20)throw Error('Слишком много кубиков.');
+ const dice=Array.from({length:count},()=>sbRandomDie(sides)),bonus=Array.from({length:extraDice},()=>sbRandomDie(10));return {dice,bonus,total:dice.reduce((a,b)=>a+b,Number(m[3])||0)+bonus.reduce((a,b)=>a+b,0)};
+}
+function sbDamageModal(){
+ const a=ROLL.action,w=a?.row.requires_weapon?actionWeaponOptions(a.row).find(w=>w.id===a.weapon_id):null;
+ if(!w)return toast('Сначала выберите оружие в действии.');
+ SB_PLAY.damageWeapon=w;
+ sbModal('npc-damage','Урон оружия',`<div class="sb-wide"><b>${esc(w.name)}</b></div><div class="sb-wide"><label for="sb-damage-expression">Урон</label><input id="sb-damage-expression" value="${esc(w.profile.dmg||'1к10')}"></div><p class="sb-wide">Бонус орды: +${sbHordeDamageDice(sbData())}к10. Профиль ближнего оружия НПЦ уже включает бонус Силы. Модификаторы урона применяются по выбранному оружию.</p>${sbIsHorde(sbData())?'<label class="sb-wide"><input id="sb-single-weapon" type="checkbox"> Одиночное оружие: без бонуса орды (решение ведущего)</label>':''}<button type="button" class="sb-wide" data-sb-play="damage-roll">Бросить урон</button><div class="sb-wide" id="sb-damage-result" role="status"></div>`);
+}
+function sbHordeDamageModal(){
+ sbModal('horde-damage','Урон по орде',`<div class="sb-wide"><label for="sb-hit-kind">Источник</label><select id="sb-hit-kind"><option value="normal">Обычные попадания / очередь</option><option value="melee">Ближний бой астартес</option><option value="blast">Взрыв (X)</option><option value="flame">Огнемёт</option><option value="psy">Психосила</option></select></div><div><label for="sb-hits">Попаданий</label><input id="sb-hits" type="number" min="0" value="1"></div><div><label for="sb-hit-damage">Урон одного попадания</label><input id="sb-hit-damage" type="number" min="0" value="0"></div><div><label for="sb-penetration">Бронебойность</label><input id="sb-penetration" type="number" min="0" value="0"></div><div><label for="sb-hit-rating">X взрыва / пси-рейтинг</label><input id="sb-hit-rating" type="number" min="0" value="1"></div><div><label for="sb-hit-range">Дальность огнемёта, м</label><input id="sb-hit-range" type="number" min="0" value="10"></div><div><label for="sb-hit-degrees">Степени успеха ближнего боя</label><input id="sb-hit-degrees" type="number" min="0" value="0"></div><div><label for="sb-horde-bonus">Доп. потеря численности от талантов</label><input id="sb-horde-bonus" type="number" min="0" value="0"></div><label class="sb-wide"><input id="sb-explosive" type="checkbox"> Взрывной тип: +1 попадание за атаку</label><label class="sb-wide"><input id="sb-hit-force" type="checkbox"> Силовое поле холодного оружия: +1 попадание</label><label class="sb-wide"><input id="sb-hit-area" type="checkbox"> Психосила по области: ещё 1к10 попаданий</label><label class="sb-wide"><input id="sb-hit-double" type="checkbox"> Удвоить потерю численности (талант «Стальная буря» / «Вихрь смерти»)</label><p class="sb-wide">Для попаданий с разным уроном применяйте расчёт отдельно. Кубики огнемёта и психосилы бросаются при применении.</p><button type="button" class="sb-wide" data-sb-play="horde-apply">Применить</button><div class="sb-wide" id="sb-horde-result" role="status"></div>`);
+}
+function sbTalentLinksModal(){
+ const d=sbData(),options=(d.talents||[]).map(t=>`<option value="${esc(t.id??t.name)}">${esc(t.name)}</option>`).join('');
+ sbModal('talent-links','Модификаторы талантов',`<div class="sb-wide"><label for="sb-link-talent">Талант</label><select id="sb-link-talent">${options}</select></div><div><label for="sb-link-stat">Проверка характеристики</label><select id="sb-link-stat">${STATS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div><div><label for="sb-link-value">Модификатор</label><input id="sb-link-value" type="number" min="-999" max="999" value="10"></div><label class="sb-wide"><input id="sb-link-permanent" type="checkbox"> Постоянный (иначе включается в броске)</label><button type="button" class="sb-wide" data-sb-play="link-add">Привязать</button><div class="sb-wide">${(d.talent_modifiers||[]).map((x,i)=>`<div>${esc(x.modifier.name)} (${Number(x.modifier.effect)}) <button type="button" data-sb-link-remove="${i}">Убрать</button></div>`).join('')||'Нет привязок'}</div>`);
+}
+async function sbOpenPlaySettings(){
+ if(!await sbFlushQuick())return;sbSyncActor();openSettings();
+ const host=$('settings-modal').querySelector('.modal-box');host?.querySelector('.sb-settings-extra')?.remove();
+ host?.insertAdjacentHTML('beforeend',`<div class="sb-settings-extra"><button type="button" data-sb-play="talent-links">Модификаторы талантов</button>${sbIsHorde(sbData())?`<label><input type="checkbox" data-sb-horde-defence ${sbData().horde.allow_defence?'checked':''}> Разрешить орде уклонение и парирование (решение ведущего)</label>`:''}<p>Броски НПЦ выполняются в этом листе. Отправка в Discord для статблоков не подключена.</p></div>`);
+ const discord=$('discord-rolls');if(discord){discord.disabled=true;discord.checked=false;}
+}
+document.addEventListener('click',async e=>{
+ const button=e.target.closest('[data-sb-play],[data-sb-link-remove],[data-sb-roll-stat]');if(!button||!sbAllowed()||!SB.record)return;
+ if(!sbActorActive())return;
+ const action=button.dataset.sbPlay;
+ if(button.dataset.sbRollStat){if(!SB.draft)openRoll({kind:'stat',sel:{kind:'stat',id:'stat:'+button.dataset.sbRollStat,statKey:button.dataset.sbRollStat,name:statFullName(button.dataset.sbRollStat)}});return;}
+ if(action==='menu'){SB_PLAY.menu=!SB_PLAY.menu;renderStatblock();return;}
+ if(action==='settings')return sbOpenPlaySettings();
+ if(action==='actions'||action==='check'){if(!await sbFlushQuick())return;sbSyncActor();return action==='actions'?openActionModal():openRoll({kind:'stat'});}
+ if(action==='talent-links')return sbTalentLinksModal();
+ if(action==='link-add'){
+  const talent=$('sb-link-talent').value,value=Number($('sb-link-value').value);if(!talent||!Number.isInteger(value)||Math.abs(value)>999)return toast('Выберите талант и целое значение от −999 до 999.');
+  const d=sbClone(sbData()),row=d.talents.find(t=>String(t.id??t.name)===talent);d.talent_modifiers.push({talent,section:$('sb-link-permanent').checked?'perm':'cond',modifier:normalizeModifier({name:row.name,target:'stat',target_name:$('sb-link-stat').value,effect:value,source:'npc-talent:'+talent})});SB.draft=d;sbQueueQuick();return sbTalentLinksModal();
+ }
+ if(button.dataset.sbLinkRemove!=null){const d=sbClone(sbData());d.talent_modifiers.splice(Number(button.dataset.sbLinkRemove),1);SB.draft=d;sbQueueQuick();return sbTalentLinksModal();}
+ if(action==='damage')return sbDamageModal();
+ if(action==='damage-roll'){
+  try{const w=SB_PLAY.damageWeapon,roll=sbDamageExpression($('sb-damage-expression').value,$('sb-single-weapon')?.checked?0:sbHordeDamageDice(sbData()));const bonus=sbWeaponModifier(S.character.character_data,w,'weapon_damage'),pen=(Number(w.profile.pen)||0)+sbWeaponModifier(S.character.character_data,w,'armor_penetration');$('sb-damage-result').textContent='Урон: '+(roll.total+bonus)+' · ББ: '+pen+' · Кубики: '+[...roll.dice,...roll.bonus].join(', ');}catch(err){$('sb-damage-result').textContent=err.message;}return;
+ }
+ if(action==='horde-damage')return sbHordeDamageModal();
+ if(action==='horde-apply'){
+  const read=id=>{const el=$(id),n=Number(el.value);if(!Number.isSafeInteger(n)||n<0||n>1000000)throw Error('Укажите целые неотрицательные значения.');return n;};
+  try{const d=sbClone(sbData()),hits=sbHordeHitCount({kind:$('sb-hit-kind').value,hits:read('sb-hits'),rating:read('sb-hit-rating'),range:read('sb-hit-range'),degrees:read('sb-hit-degrees'),force:$('sb-hit-force').checked,area:$('sb-hit-area').checked,explosive:$('sb-explosive').checked}),damage=read('sb-hit-damage'),pen=read('sb-penetration'),extra=read('sb-horde-bonus'),data=sbEffectiveData(d),armour=d.horde.armour+modsAdd(data,'armor','all','pre')+modsAdd(data,'armor','all','post'),soak=Math.max(0,armour-pen)+(sbBonus(d,'wyn')||0),loss=damage>soak&&hits>0?(hits+extra)*($('sb-hit-double').checked?2:1):0;d.horde.magnitude=Math.max(0,d.horde.magnitude-loss);SB.draft=d;sbQueueQuick();$('sb-horde-result').textContent='Попаданий: '+hits+' · Потеря численности: '+loss+' · Осталось: '+d.horde.magnitude;}catch(err){$('sb-horde-result').textContent=err.message;}return;
+ }
+ if(!sbIsHorde(sbData()))return;
+ if(action==='morale'){const m=sbHordeMorale(sbData());if(m.destroyed)return toast('Орда уничтожена.');if(m.fearless||m.automatic)return toast(m.fearless?'Бесстрашие: паника не применяется.':'Автоматическая паника: численность ниже 25%.');return sbRollWill('Паника орды',m.modifier);}
+ if(action==='fear'){if(sbHasTrait(sbData(),/Бесстраш|Fearless|Кровожадная толпа|Blood.soaked.tide|(?:^|\|)\s*Страх|Тиранид|Tyranid/i))return toast('Орда невосприимчива к страху.');return sbRollWill('Страх орды (добавьте сложность страха)',sbData().horde.magnitude);}
+ if(action==='suppression')return sbRollWill('Сопротивление подавлению',sbData().horde.magnitude);
+ if(action==='turn'){const d=sbClone(sbData()),m=sbHordeMorale(d);if(m.required&&!confirm('Перед новым ходом нужно разрешить панику. Начать новый ход?'))return;d.horde.turn_start=d.horde.magnitude;SB.draft=d;return sbQueueQuick();}
+});
+document.addEventListener('change',e=>{if(!e.target.matches('[data-sb-horde-defence]')||!sbActorActive())return;const d=sbClone(sbData());d.horde.allow_defence=e.target.checked;SB.draft=d;sbQueueQuick();});
+document.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.matches('[data-sb-roll-stat]')){e.preventDefault();e.target.click();}});
+const sbOpenRollBeforePlay=openRoll;
+openRoll=function(opts){
+ if(sbActorActive()&&SB.draft)return toast('Завершите редактирование перед броском.');
+ if(sbActorActive()&&sbIsHorde(sbData())&&!sbData().horde.allow_defence&&(/Уклонение|Dodge/i.test(opts?.sel?.name||'')||['parry','dodge'].includes(opts?.action?.row?.code)))return toast('Защита орды требует разрешения ведущего в настройках.');
+ return sbOpenRollBeforePlay(opts);
+};
+$('sb-root').addEventListener('click',e=>{const badge=e.target.closest('[data-sb-skill-roll]');if(!badge||SB.draft||!sbActorActive())return;e.preventDefault();e.stopImmediatePropagation();openRollFromBadge(badge.dataset.sbSkillRoll);},true);
+function sbEffectiveData(d){
+ const mods=normalizeModifiers(d.modifiers);
+ for(const link of d.talent_modifiers||[])if((d.talents||[]).some(t=>String(t.id??t.name)===link.talent))mods[link.section].push({...normalizeModifier(link.modifier),source:'npc-talent:'+link.talent});
+ return {...d,_statblock:d.id,stat_adv:{},modifiers:mods};
+}
+const sbPermBeforePlay=permMods;
+permMods=function(d){if(d?.schema_version===1&&['npc','vehicle'].includes(d.type))return sbEffectiveData(d).modifiers.perm;return sbPermBeforePlay(d);};
+const sbBonusBeforePlay=sbBonus;
+sbBonus=function(d,key){return d.bonuses?.[key]??(d.stats?.[key]==null?null:statBonus(sbEffectiveData(d),key));};
+const sbArmourBeforePlay=sbArmourValue;
+sbArmourValue=function(d,key){const base=sbArmourBeforePlay(d,key);return base==null?null:Math.max(0,base+modsAdd(sbEffectiveData(d),'armor',key,'pre')+modsAdd(sbEffectiveData(d),'armor',key,'post'));};
+const sbChipBeforePlay=sbChip;
+sbChip=function(path,label,value,fallback=null,tone=''){
+ if(!SB.draft&&path.startsWith('movement.')){
+  const d=sbData(),data=sbEffectiveData(d),m=SB_SPEEDS.find(([k])=>k===path.slice(9))?.[2]||1;
+  if(value==null)fallback=effSpeed(data,m);
+  else value=(Number(value)+modsAdd(data,'indicator','speed','pre')*m)*modsMul(data,'indicator','speed')+modsAdd(data,'indicator','speed','post')*m;
+ }
+ if(!SB.draft&&path==='horde.armour')value=Math.max(0,Number(value)+modsAdd(sbEffectiveData(sbData()),'armor','all','pre')+modsAdd(sbEffectiveData(sbData()),'armor','all','post'));
+ return sbChipBeforePlay(path,label,value,fallback,tone);
+};
+const sbModTargetsBeforePlay=modTargetOptions;
+modTargetOptions=function(target){if(sbActorActive()&&target==='armor')return [{value:'all',label:'Вся броня'},...(sbIsHorde(sbData())?[]:sbIsVehicle(sbData())?[['front','Лоб'],['side','Борт'],['rear','Корма']]:SB_BODY_ZONES).map(([value,label])=>({value,label}))];return sbModTargetsBeforePlay(target);};
+const sbModalBeforePlay=sbModal;
+sbModal=function(kind,...args){sbModalBeforePlay(kind,...args);if(['npc-damage','horde-damage','talent-links'].includes(kind))$('sb-entry-modal').querySelector('[type="submit"]')?.setAttribute('hidden','');};
+function sbWeaponModifier(d,w,target){return permMods(d).filter(m=>m.target===target&&['all',w.type,w.profile.class].includes(m.target_name)&&m.mode==='add').reduce((sum,m)=>sum+(Number(m.effect)||0),0);}
+$('sb-root').addEventListener('click',e=>{if(e.target.closest('[data-sb-action="edit"],[data-sb-action="save"],[data-sb-action="cancel"]'))SB_PLAY.menu=false;},true);
+function sbHordeHitCount(o){
+ let hits=o.hits;
+ if(o.kind==='melee'&&hits>0)hits+=Math.floor(o.degrees/2)+(o.force?1:0);
+ if(o.kind==='blast')hits*=o.rating;
+ if(o.kind==='flame')hits=sbRandomDie(5)+Math.ceil(o.range/4);
+ if(o.kind==='psy')hits=o.rating+(o.area?sbRandomDie(10):0);
+ return hits>0?hits+(o.explosive?1:0):0;
+}
+const sbCloseSettingsBeforePlay=doCloseSettings;
+doCloseSettings=function(){const active=sbActorActive();sbCloseSettingsBeforePlay();if(active){$('discord-rolls').disabled=false;$('settings-modal').querySelector('.sb-settings-extra')?.remove();}};
+$('sb-root').addEventListener('input',e=>{
+ if(e.target.dataset.sbNumber!=='horde.magnitude'||SB.draft||!sbActorActive()||SB.busy)return;
+ const value=sbNumber('horde.magnitude',e.target.value);if(value===undefined)return;
+ const d=sbClone(sbData());d.horde.magnitude=value;SB.quick=d;SB.quickVersion++;SB.dirty=true;
+ clearTimeout(SB.quickTimer);if(!SB.quickConflict){SB.error='';SB.quickTimer=setTimeout(()=>{SB.quickTimer=null;sbFlushQuick();},800);}
+},true);
+
+</script>
 </body>
 </html>
