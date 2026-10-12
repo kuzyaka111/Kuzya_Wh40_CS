@@ -1943,6 +1943,15 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 
 </style>
 <style data-feature="horde-reference">.sb-horde-reference{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin:12px 0}.sb-horde-reference>button,.sb-horde-reference summary{border:1px solid #c9a24b80;background:#c9a24b12;color:#c9a24b;padding:7px 12px;font:inherit;cursor:pointer;list-style:none}.sb-horde-reference details{max-width:100%}.sb-horde-reference details[open]{flex-basis:100%;border:1px solid #c9a24b50;padding:8px}.sb-horde-reference details p{line-height:1.5}.sb-horde-reference summary::-webkit-details-marker{display:none}</style>
+<style data-feature="npc-roll-menu">#sb-root .npc-roll-tools{position:relative;display:flex;align-items:center}
+#sb-root .npc-roll-tools .toolbar-toggle{display:inline-flex;align-items:center;justify-content:center;gap:4px;width:44px;height:36px;padding:8px;line-height:1}
+#sb-root .npc-roll-tools .roll-top-btn{background:rgba(80,180,80,.2);color:#8fd19e}
+#sb-root .npc-roll-tools .roll-top-btn:hover{background:rgba(80,180,80,.35)}
+#sb-root .npc-roll-tools .toolbar-menu{position:absolute;z-index:20;top:calc(100% + 16px);right:0;display:flex;flex-direction:column;gap:6px;width:max-content;max-width:calc(100vw - 16px);max-height:calc(100vh - 90px);overflow:auto;box-sizing:border-box;padding:8px;border:1px solid var(--border-gold);background:#101013;box-shadow:0 8px 24px rgba(0,0,0,.65)}
+#sb-root .npc-roll-tools .toolbar-menu[hidden]{display:none!important}
+#sb-root .npc-roll-tools .toolbar-menu{left:auto;transform:none}
+#sb-root .npc-roll-tools .toolbar-menu .btn{width:100%;text-align:left;white-space:normal}
+</style>
 </head>
 <body data-vox-art="on" data-sheet-art="off">
 <div class="vox-art-decor" aria-hidden="true"><div class="vox-art-scale left"></div><div class="vox-art-scale right"></div><div class="vox-art-corner bl">|||||||||||| ▪ 01</div><div class="vox-art-corner br">SANCTUS ▪ ▪ |||||||</div><div class="vox-art-scan"></div></div>
@@ -13871,6 +13880,24 @@ callRollApi=async function(body){
  const r=await sbOriginalRuntime.callRollApi(request);SB_PLAY.lastRoll=r;return r;
 };
 showRollResult=function(r){NPC_CONDITION_ORIG.result(r);if(!sbActorActive()||r.skip==='npc_local')return;const note=$('roll-result').querySelector('.desc');if(note)note.textContent=r.delivered?'НПЦ · Отправлено в Discord':'НПЦ · '+({char_off:'Отправка выключена',no_url:'Discord хроники не настроен',chronicle_off:'Отправка хроники выключена',dead:'Вебхук Discord недоступен',discord_busy:'Discord временно ограничил отправку',discord_fail:'Не удалось отправить в Discord'}[r.skip]||'Результат только на листе');};
+
+</script>
+<script data-feature="npc-roll-menu">
+// Share the primary sheet's dice icon and menu markup without duplicate IDs.
+const NPC_MENU_RENDER=renderStatblock;
+renderStatblock=function(){
+ NPC_MENU_RENDER();if(!sbActorActive()||SB.draft)return;
+ const right=$('sb-root').querySelector('.sb-toolbar-right'),source=$('toolbar-toggle-center');if(!right||!source)return;
+ const group=document.createElement('div');group.className='npc-roll-tools toolbar-group is-compact';
+ const toggle=source.cloneNode(true);toggle.id='npc-toolbar-toggle-center';toggle.setAttribute('aria-controls','npc-toolbar-menu-center');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Бросок, действие и состояния');toggle.hidden=false;
+ const menu=document.createElement('div');menu.id='npc-toolbar-menu-center';menu.className='toolbar-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Бросок, действие и состояния');menu.hidden=true;
+ menu.innerHTML='<button type="button" class="btn roll-top-btn" data-sb-play="check">Совершить бросок</button><button type="button" class="btn roll-top-btn" data-sb-play="actions">Совершить действие</button><button type="button" class="btn roll-top-btn" data-npc-menu-conditions>Состояния</button>';
+ group.append(toggle,menu);right.replaceChildren(group);
+ toggle.onclick=()=>{menu.hidden=!menu.hidden;toggle.setAttribute('aria-expanded',String(!menu.hidden));};
+ menu.addEventListener('click',async e=>{if(!e.target.closest('button'))return;menu.hidden=true;toggle.setAttribute('aria-expanded','false');if(e.target.closest('[data-npc-menu-conditions]')&&await sbFlushQuick()){sbSyncActor();openConditionsModal();}});
+};
+document.addEventListener('click',e=>{const host=$('sb-root')?.querySelector('.npc-roll-tools');if(host&&!host.contains(e.target)){host.querySelector('.toolbar-menu').hidden=true;host.querySelector('.toolbar-toggle').setAttribute('aria-expanded','false');}});
+document.addEventListener('keydown',e=>{const host=$('sb-root')?.querySelector('.npc-roll-tools');if(!host)return;const menu=host.querySelector('.toolbar-menu'),toggle=host.querySelector('.toolbar-toggle');if(e.key==='Escape'&&!menu.hidden){menu.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.focus();}if(e.key==='ArrowDown'&&e.target===toggle){e.preventDefault();menu.hidden=false;toggle.setAttribute('aria-expanded','true');menu.querySelector('button').focus();}});
 
 </script>
 </body>
