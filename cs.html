@@ -1942,6 +1942,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 @media(max-width:600px){#sb-root .sb-horde-rules{margin:12px;font-size:10px}}
 
 </style>
+<style data-feature="horde-reference">.sb-horde-reference{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin:12px 0}.sb-horde-reference>button,.sb-horde-reference summary{border:1px solid #c9a24b80;background:#c9a24b12;color:#c9a24b;padding:7px 12px;font:inherit;cursor:pointer;list-style:none}.sb-horde-reference details{max-width:100%}.sb-horde-reference details[open]{flex-basis:100%;border:1px solid #c9a24b50;padding:8px}.sb-horde-reference details p{line-height:1.5}.sb-horde-reference summary::-webkit-details-marker{display:none}</style>
 </head>
 <body data-vox-art="on" data-sheet-art="off">
 <div class="vox-art-decor" aria-hidden="true"><div class="vox-art-scale left"></div><div class="vox-art-scale right"></div><div class="vox-art-corner bl">|||||||||||| ▪ 01</div><div class="vox-art-corner br">SANCTUS ▪ ▪ |||||||</div><div class="vox-art-scan"></div></div>
@@ -13815,6 +13816,29 @@ $('sb-root').addEventListener('input',e=>{
  const d=sbClone(sbData());d.horde.magnitude=value;SB.quick=d;SB.quickVersion++;SB.dirty=true;
  clearTimeout(SB.quickTimer);if(!SB.quickConflict){SB.error='';SB.quickTimer=setTimeout(()=>{SB.quickTimer=null;sbFlushQuick();},800);}
 },true);
+
+</script>
+<script data-feature="horde-reference">
+// Horde reference chips do not roll dice or track turns.
+const SB_HORDE_HELP=[
+ ['Попадание','Размер орды даёт бонус к попаданию: примеры из книги — численность 30: +30, 60: +40, 90: +50, 120 и более: +60. Размер определяет ведущий. Единую броню используют для всех попаданий; зоны попадания не определяются. Орда обычно не уклоняется и не парирует.'],
+ ['Урон','Каждое попадание, нанёсшее урон после брони и бонуса Выносливости, уменьшает численность на 1 независимо от количества прошедшего урона. Взрывной тип добавляет одно попадание за атаку. Взрыв (X) даёт X попаданий за каждое попадание. Огнемёт: 1к5 + четверть дальности, округлённая вверх. Психосила: попаданий по пси-рейтингу, по области ещё 1к10. В ближнем бою астартес добавляет попадание за каждые две степени успеха; Силовое поле — ещё одно. Учитывайте дополнительные эффекты талантов. Орда не горит: эффект отражается потерей численности.'],
+ ['Паника','Потеря 25% или более численности за ход требует проверки Силы воли. Ниже половины начальной численности — штраф −10. Ниже четверти — автоматическое бегство. Бесстрашие отменяет панику. Дисциплинированная орда игнорирует штраф за половину, а ниже четверти проходит проверку с −10 вместо автоматического бегства. Потери за ход отслеживает ведущий.'],
+ ['Страх','Проверка Силы воли против Страха получает бонус, равный текущей численности орды; учитывается сложность источника Страха. Орды с Бесстрашием, Кровожадной толпой, собственной особенностью Страх, а также орды тиранидов невосприимчивы к Страху.'],
+ ['Подавление','При проверке сопротивления подавлению орда получает бонус, равный текущей численности. Применяются обычные правила подавления и исключения её талантов и особенностей.']
+];
+sbHordeRulesHtml=function(d){return `<div class="sb-horde-rules"><b>Правила орды</b><p>Стрелковых атак: ${Math.floor(d.horde.magnitude/10)} · Урон атак: +${sbHordeDamageDice(d)}к10.</p><p>Орда не прицеливается, не страдает от осечек и не расходует боеприпасы. Её массовые атаки обычно нельзя парировать или уклонять; исключения определяет ведущий.</p><div class="sb-horde-reference"><button type="button" data-sb-magnitude-open>Задать численность</button>${SB_HORDE_HELP.map(([name,text])=>`<details><summary>${name}</summary><p>${text}</p></details>`).join('')}</div><small>Deathwatch: «Орды», стр. 413–414 русского издания; Living Errata, глава XIII и Disciplined (Horde).</small></div>`;};
+function sbMagnitudeValues(current,maximum){const c=Number(current),m=Number(maximum);if(String(current).trim()===''||String(maximum).trim()===''||!Number.isSafeInteger(c)||!Number.isSafeInteger(m)||m<1||m>1000000||c<0||c>m)throw Error('Укажите целые значения: максимум от 1 до 1000000, текущая численность — от 0 до максимума.');return {magnitude:c,initial:m};}
+document.addEventListener('click',async e=>{
+ const button=e.target.closest('[data-sb-magnitude-open],[data-sb-magnitude-save]');if(!button||!sbAllowed()||!SB.record||!sbIsHorde(sbData()))return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(button.hasAttribute('data-sb-magnitude-open')){
+  if(!await sbFlushQuick())return;
+  const h=sbData().horde;sbModal('horde-magnitude','Задать численность',`<div><label for="sb-mag-current">Текущая численность</label><input id="sb-mag-current" type="number" min="0" value="${h.magnitude}"></div><div><label for="sb-mag-max">Начальная / максимальная численность</label><input id="sb-mag-max" type="number" min="1" value="${h.initial}"></div><p class="sb-wide">Начальная численность служит основой для порогов паники.</p><button type="button" class="sb-wide" data-sb-magnitude-save>Применить</button><p class="sb-wide" id="sb-mag-error" role="alert"></p>`);$('sb-entry-form').querySelector('[type="submit"]').hidden=true;return;
+ }
+ try{const values=sbMagnitudeValues($('sb-mag-current').value,$('sb-mag-max').value),d=sbClone(sbData());Object.assign(d.horde,values);SB.draft=d;sbQueueQuick();$('sb-entry-modal').classList.add('hidden');}catch(err){$('sb-mag-error').textContent=err.message;}
+},true);
+document.addEventListener('submit',e=>{if(e.target.id==='sb-entry-form'&&SB.entry?.kind==='horde-magnitude'){e.preventDefault();e.stopImmediatePropagation();e.target.querySelector('[data-sb-magnitude-save]')?.click();}},true);
 
 </script>
 </body>
