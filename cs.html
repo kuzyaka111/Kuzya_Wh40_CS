@@ -14209,14 +14209,58 @@ function rqAvailable(d){return rqState(d).limit-rqSpent(d);}
 function rqGearVisible(e){const s=e.stats || {};return !s.hidden_from_issue && !s.grant_only && !s.dread_compatible && !s.included_in_equipment_id && !s.vehicle_reference;}
 function rqCatalog(){return [...Object.values(GEAR_MAP).filter(rqGearVisible).map(e=>({key:'e:'+e.id,item:e,type:e.stats?.type || 'combat_gear'})),...Object.values(AMMO_MAP).filter(a=>a.id!==1).map(a=>({key:'a:'+a.id,item:a,type:'ammo'}))].sort((a,b)=>a.item.name.localeCompare(b.item.name,'ru'));}
 function rqEntry(key){return rqCatalog().find(e=>e.key===key);}
-function rqBaseQuality(e){return e.type!=='ammo' && e.item.stats?.properties?.includes('relic')?'И':'С';}
+// Fixed craftsmanship is already included in these published item profiles.
+// Core: Craftsmanship table, Omnissian Axe, Artificer Armour, Iron Halo;
+// Rites of Battle/First Founding: Crozius and Hesh; Armory: Artifex.
+const RQ_FIXED_MASTER_IDS=new Set([4,122,164,171,187,327]);
+function rqFixedQuality(e){return e.type!=='ammo' && (e.item.stats?.properties?.includes('relic') || RQ_FIXED_MASTER_IDS.has(Number(e.item.id)))?'И':null;}
+function rqAcquisition(e){
+  const s=e.item.stats || {},cost=e.type==='ammo'?rqNumber(e.item.requisition):rqNumber(s.cost);
+  if(s.combi)return null;
+  const unknownRenown=e.type==='ammo'?rqNumber(e.item.renown)==null:!Object.hasOwn(RQ_GLORY,s.glory);
+  if(e.type==='ammo' && cost===0 && e.item.id>=16 && e.item.id<=24)return null;
+  const special=e.type!=='ammo' && (cost===0 || s.requisitionable===false || s.requisition_access==='talent_only' || [165,171,347].includes(Number(e.item.id)));
+  if(!special && cost!=null && cost>=0 && !unknownRenown)return null;
+  if(e.type==='ammo')return {summary:'Условия покупки не установлены',detail:'В справочнике не указаны '+(cost==null?'цена магазина':'требование по Славе')+(cost==null && unknownRenown?' и требование по Славе':'')+'. Обычная покупка недоступна; условия получения определяет ведущий.'};
+  if(s.requisition_access==='talent_only')return {summary:'Получение через таланты',detail:'Эта модификация не выдаётся за Реквизицию. Указанная стоимость используется при получении через таланты; это не цена покупки в магазине.'};
+  const explicit={
+    1:['Снаряжение разведчика','Броня разведчика Караула Смерти. Цена обычной покупки не установлена; выдачу для службы или миссии согласует ведущий.'],
+    7:['Импровизированное оружие','Подручный предмет, используемый как оружие. Покупка отдельного предмета по этому обобщённому профилю не предусмотрена; наличие подходящего предмета определяется ситуацией и ведущим.'],
+    91:['Изготовление под конкретную цель','Генофаг нельзя просто реквизировать: его необходимо изготовить специально против конкретного существа. Цена обычной покупки не установлена; изготовление и выдачу согласует ведущий.'],
+    165:['Улучшение через развитие','Искусная бионика — улучшение кибернетики выдающегося или исключительного качества. Оно приобретается через развитие персонажа и не реквизируется обычным образом; указанная стоимость не является ценой покупки перед миссией.'],
+    171:['Только знаковое снаряжение','Ремесленный доспех невозможно реквизировать перед миссией: его необходимо получить как «Знаковое снаряжение». Справочная стоимость — 60 Реквизиции, качество уже исключительное. Обычно требуется Слава «Герой»; для технодесантника — «Заслуженный».'],
+    182:['Снаряжение капеллана','Череполикий шлем — часть облачения капеллана. Отдельная цена покупки не установлена; выдача согласуется с ведущим.'],
+    186:['Награда за выдающуюся доблесть','Болт-пистолет «Страж» вручают за выдающуюся доблесть и поступки сверх долга. Он остаётся у награждённого после возвращения в родной орден; обычная покупка не предусмотрена.'],
+    187:['Награда: ранг 4 и почесть стрелка','Болтер «Хеш» может быть вручён вместо болтера Artifex брату не ниже 4-го ранга с почестью Marksman’s Honour. Соблюдение требований допускает награждение, но не заменяет решение о вручении.'],
+    198:['Выдача Магистру Кузни; нужен талант','Сервосбруя входит в стартовое снаряжение Магистра Кузни. Для использования требуется талант «Интеграция сервосбруи». Отдельная покупка за Реквизицию не предусмотрена.'],
+    239:['Входит в копьё стража Эриоха','Встроенный болтер — второй профиль копья стража Эриоха. Цена 75 Реквизиции и Слава «Герой» относятся ко всему копью, которое представлено записью клинка; отдельная покупка болтера не предусмотрена.'],
+    301:['Недоступна для обычной реквизиции','Перчатка Сабатины уже покинула планету и находится не в руках Империума. В источнике она недоступна для обычной реквизиции; 65 Реквизиции и Слава «Герой» — только справочные значения. Условия доступности определяет ведущий.'],
+    327:['Награда: ранг 4 и почесть стрелка','Болтер «Антифекс» может быть вручён вместо «Хеша» брату с почестью Marksman и рангом не ниже 4. Цена обычной покупки не установлена; награждение определяет ведущий.'],
+    329:['Испытание кандидата в технодесантники','Незавершённый болт-пистолет «Автомата» дают кандидатам в технодесантники как испытание: оружие нужно закончить при помощи логики и прорицания. Готовое оружие не выдаётся даже технодесантникам; обычная покупка не предусмотрена.'],
+    347:['Только знаковое снаряжение','Цепь рвения — реликвия Чёрных Храмовников. Приобретается только талантом «Фирменное снаряжение», а не обычной реквизицией. Прикрепляется к принадлежащему воину оружию стоимостью не выше 20 Реквизиции.']
+  }[e.item.id];
+  if(explicit)return {summary:explicit[0],detail:explicit[1]};
+  if(e.item.id>=190 && e.item.id<=196)return {summary:'Бионическая замена / снаряжение технодесантника',detail:'Бионические замены обычно получают после боевых ранений; качество зависит от Славы, а установка требует апотекария. Технодесантник выбирает один имплантат среднего качества при создании персонажа. При Славе «Уважаемый» он может получить новый имплантат выдающегося качества или повысить качество имеющегося; при Славе «Прославленный» — ещё один, исключительного качества. Обычная покупка за Реквизицию не предусмотрена.'};
+  const grants=STARTING_EQUIPMENT_RULES.filter(r=>['grant','choice','native'].includes(r.action) && (Number(r.equipment_id)===Number(e.item.id) || (r.options || []).some(id=>Number(id)===Number(e.item.id))));
+  if(grants.length){
+    const names=[...new Set(grants.map(r=>SPECIALIZATIONS.find(x=>Number(x.id)===Number(r.specialization_id))?.name).filter(Boolean))];
+    const conditional=grants.some(r=>Object.keys(r.conditions || {}).length);
+    const chosen=grants.some(r=>r.action==='choice');
+    return {summary:(chosen?'Выбор стартового снаряжения':'Стартовое снаряжение')+(names.length?': '+names.join(', '):''),detail:(chosen?'Можно выбрать при получении стартового снаряжения':'Выдаётся в составе стартового снаряжения')+(names.length?' специализации «'+names.join('», «')+'»':'')+'.'+(conditional?' Действуют дополнительные условия соответствующей специализации.':'')+' Получение оформляется через стартовый комплект; обычная покупка за Реквизицию недоступна.'};
+  }
+  return {summary:'Условия получения не установлены',detail:'В справочнике '+(cost==null || cost===0?'не указана цена обычной покупки':'не установлены полные требования покупки')+'. Отдельный способ получения не установлен; требуется решение ведущего. Отсутствие цены не означает бесплатную выдачу.'};
+}
+function rqAcquisitionHtml(e){const a=rqAcquisition(e);return a?'<section class="rq-acquisition"><b>Условия получения</b><p>'+esc(a.detail)+'</p></section>':'';}
+function rqQualityNote(e,q){return rqFixedQuality(e)?'Исключительное качество уже учтено в стоимости предмета; дополнительной наценки нет.':rqAcquisition(e)?'Обычная покупка за Реквизицию недоступна.':e.type==='ammo'?'Цена указана за один полный магазин.':'Цена за единицу: '+rqFormat(q.base)+' × '+rqFormat(q.quality==='В'?1.5:q.quality==='И'?2:1)+' = '+rqFormat(q.unit)+'.';}
+
+function rqBaseQuality(e){return rqFixedQuality(e) || 'С';}
 function rqWeaponRows(d,a){return (d.gear || []).map(row=>({row,w:gearResolve(row)})).filter(({row,w})=>w && rqNumber(w.mag)>0 && ammoMatchesWeapon(a.used_for,a.id,row,w));}
 function rqQuote(e,d,draft={}){
   const a=e.item,s=a.stats || {},quality=e.type==='ammo'?'С':draft.quality || rqBaseQuality(e),qty=Number(draft.qty ?? 1),errors=[];
   let base=e.type==='ammo'?rqNumber(a.requisition):rqNumber(s.combi?gearRequisition({source:'catalog',item_id:a.id,combi:draft.combi}):s.cost);
   let renown=e.type==='ammo'?rqNumber(a.renown):Object.hasOwn(RQ_GLORY,s.glory)?RQ_GLORY[s.glory]:null;
   if(e.type==='ammo' && base===0 && a.id>=16 && a.id<=24 && renown==null)renown=0;
-  if(e.type!=='ammo' && (s.requisitionable===false || s.requisition_access==='talent_only' || base===0))errors.push('Особая выдача: обычная покупка не предусмотрена.');
+  if(rqAcquisition(e))errors.push('Покупка недоступна. См. условия получения.');
   if(base==null || base<0)errors.push(s.combi?'Выберите дополнительное оружие.':'Цена в справочнике не определена.');
   if(renown==null)errors.push('Требование по Славе не определено; требуется решение ведущего.');
   if(e.type==='ammo'){
@@ -14228,11 +14272,11 @@ function rqQuote(e,d,draft={}){
     const second=gearCombiSecondary({source:'catalog',item_id:a.id,combi:draft.combi});
     if(second){const min=RQ_GLORY[second.item.stats?.glory];if(min==null)errors.push('Слава дополнительного оружия не определена.');else renown=Math.max(renown ?? 0,min);}
   }
-  const relic=s.properties?.includes('relic');
-  if(!['С','В','И'].includes(quality) || relic && quality!=='И')errors.push('Недопустимое качество.');
-  // Relics have their own catalog price and fixed quality; no second surcharge.
-  const factor=e.type==='ammo' || relic?1:quality==='В'?1.5:quality==='И'?2:1;
-  if(e.type!=='ammo' && !relic)renown=renown==null?null:Math.max(renown,quality==='В'?20:quality==='И'?40:0);
+  const relic=s.properties?.includes('relic'),fixed=rqFixedQuality(e);
+  if(!['С','В','И'].includes(quality) || fixed && quality!==fixed)errors.push('Недопустимое качество.');
+  // Catalog prices of fixed-craftsmanship items already include that quality.
+  const factor=e.type==='ammo' || fixed?1:quality==='В'?1.5:quality==='И'?2:1;
+  if(e.type!=='ammo' && !fixed)renown=renown==null?null:Math.max(renown,quality==='В'?20:quality==='И'?40:0);
   const unit=base==null?null:base*factor,cost=unit==null?null:unit*qty;
   if(!Number.isInteger(qty)||qty<1||qty>1000)errors.push('Количество должно быть от 1 до 1000.');
   if(renown!=null && Number(d.vitals?.renown || 0)<renown)errors.push('Недостаточно Славы: требуется '+renown+'.');
@@ -14251,8 +14295,8 @@ function rqRenderList(){
   if(!gearCacheLoaded){host.innerHTML='<p class="desc">Каталог не загружен. Закройте панель и попробуйте снова.</p>';return;}
   const items=rqCatalog().filter(e=>(RQ_FILTER==='all'||e.type===RQ_FILTER)&&honourNorm(e.item.name).includes(honourNorm(RQ_SEARCH)));
   host.innerHTML='<div class="rq-head"><span>Название</span><span>Слава</span><span>Реквизиция</span><span>Цена</span></div>'+items.map(e=>{
-    const draft={quality:rqBaseQuality(e),qty:1},q=rqQuote(e,d,draft),special=e.type!=='ammo' && (q.base===0 || e.item.stats?.requisitionable===false);
-    return '<div class="rq-item"><button type="button" class="rq-name" data-rq-preview="'+e.key+'">'+esc(e.item.name)+'</button><span class="rq-cell" data-label="Слава">'+(q.renown==null?'—':q.renown===0?'Новичок':esc(Object.keys(RQ_GLORY).find(k=>RQ_GLORY[k]===q.renown) || q.renown))+'</span><span class="rq-cell" data-label="Реквизиция">'+(special?'Особая':rqFormat(q.base))+'</span><button type="button" class="adv-buy-btn" data-rq-preview="'+e.key+'">'+(special?'Описание':q.unit==null?'Выбрать':rqFormat(q.unit)+' · Купить')+'</button></div>';
+    const draft={quality:rqBaseQuality(e),qty:1},q=rqQuote(e,d,draft),special=e.type!=='ammo' && (q.base===0 || e.item.stats?.requisitionable===false),acquisition=rqAcquisition(e);
+    return '<div class="rq-item"><button type="button" class="rq-name" data-rq-preview="'+e.key+'">'+esc(e.item.name)+(acquisition?'<small class="rq-access-summary">Условия получения: '+esc(acquisition.summary)+'</small>':'')+'</button><span class="rq-cell" data-label="Слава">'+(q.renown==null?'—':q.renown===0?'Новичок':esc(Object.keys(RQ_GLORY).find(k=>RQ_GLORY[k]===q.renown) || q.renown))+'</span><span class="rq-cell" data-label="Реквизиция">'+(special?'Особая':rqFormat(q.base))+'</span><button type="button" class="adv-buy-btn" data-rq-preview="'+e.key+'">'+(acquisition?'Условия':q.unit==null?'Выбрать':rqFormat(q.unit)+' · Купить')+'</button></div>';
   }).join('')+(!items.length?'<p class="desc">Ничего не найдено.</p>':'');
 }
 openAdvancement=function(sub){
@@ -14274,13 +14318,13 @@ function rqOpen(key){
 function rqPreview(){
   const c=RQ_CONTEXT,d=S.character?.character_data;if(!c || c.d!==d)return;
   const e=rqEntry(c.key);if(!e)return;const q=rqQuote(e,d,c),a=e.item,s=a.stats || {},row={source:'catalog',item_id:a.id,name:a.name,quality:c.quality,combi:c.combi};
-  const w=e.type==='ammo'?{}:gearResolve(row) || s,locked=e.type==='ammo'||s.properties?.includes('relic');
+  const w=e.type==='ammo'?{}:gearResolve(row) || s,locked=e.type==='ammo'||!!rqFixedQuality(e);
   const fields=['dmg','pen','range','mag','weight','field_level','overload'];
   const params=fields.filter(k=>w[k]!=null).map(k=>'<div class="ip-row"><span class="ip-label">'+esc(GEAR_FIELD_LABELS[k] || (k==='weight'?'Вес':k))+'</span><span>'+esc(String(w[k]))+'</span></div>').join('');
   const qualities=e.type==='ammo'?'':gearQualitiesHtml(row,-1,w,false);
   const choices=s.combi?'<label>Дополнительное оружие<select id="rq-secondary"><option value="">— выбрать —</option>'+s.combi.secondary_options.filter(o=>GEAR_MAP[o.equipment_id]).map(o=>'<option value="'+o.equipment_id+'"'+(Number(c.combi.secondary_item_id)===Number(o.equipment_id)?' selected':'')+'>'+esc(o.name)+'</option>').join('')+'</select></label>':'';
   const weapons=e.type==='ammo'?'<label>Оружие<select id="rq-weapon"><option value="">— выбрать —</option>'+rqWeaponRows(d,a).map(x=>'<option value="'+x.row.item_id+'"'+(Number(c.weapon_id)===Number(x.row.item_id)?' selected':'')+'>'+esc(x.row.name)+' · '+esc(String(x.w.mag))+' патронов</option>').join('')+'</select></label><p class="desc">Одна покупка — один полный магазин для выбранного оружия.</p>':'';
-  $('rq-buy-modal').innerHTML='<div class="modal-box modal-wide"><h3>'+esc(a.name)+'</h3><div class="ip-row gear-quality-row"><span class="ip-label">Качество:</span><div class="gear-quality-chips">'+GEAR_QUALITIES.map(v=>'<button type="button" class="g-quality-badge gear-quality-chip q-'+v.tone+(q.quality===v.code?' active':'')+'" data-rq-quality="'+v.code+'" aria-pressed="'+(q.quality===v.code)+'"'+(locked?' disabled':'')+'>'+v.name+'</button>').join('')+'</div></div>'+choices+weapons+'<div class="info-params rq-params">'+params+'</div>'+qualities+'<div class="desc rq-description">'+descBody(a.description || 'Описание отсутствует.')+'</div><div class="rq-purchase"><label>Количество'+(e.type==='ammo'?' магазинов':'')+'<input id="rq-quantity" type="number" min="1" max="1000" step="1" value="'+c.qty+'"></label><div>Требуется Слава: <b>'+rqFormat(q.renown)+'</b></div><div>За единицу: <b>'+rqFormat(q.unit)+'</b></div><div>Всего: <b id="rq-total">'+rqFormat(q.cost)+'</b></div><div>Доступно: <b>'+rqFormat(rqAvailable(d))+'</b></div></div><div id="rq-errors" class="rq-warning" role="status">'+q.errors.map(esc).join('<br>')+'</div><div class="rq-footer"><button type="button" class="modal-confirm" data-rq-confirm'+(q.errors.length?' disabled':'')+'>Купить за '+rqFormat(q.cost)+'</button><button type="button" class="modal-close" data-rq-close>Отмена</button></div></div>';
+  $('rq-buy-modal').innerHTML='<div class="modal-box modal-wide"><h3>'+esc(a.name)+'</h3><div class="ip-row gear-quality-row"><span class="ip-label">Качество:</span><div class="gear-quality-chips">'+GEAR_QUALITIES.map(v=>'<button type="button" class="g-quality-badge gear-quality-chip q-'+v.tone+(q.quality===v.code?' active':'')+'" data-rq-quality="'+v.code+'" aria-pressed="'+(q.quality===v.code)+'"'+(locked?' disabled':'')+'>'+v.name+'</button>').join('')+'</div></div><p class="desc rq-quality-note">'+esc(rqQualityNote(e,q))+'</p>'+rqAcquisitionHtml(e)+choices+weapons+'<div class="info-params rq-params">'+params+'</div>'+qualities+'<div class="desc rq-description">'+descBody(a.description || 'Описание отсутствует.')+'</div><div class="rq-purchase"><label>Количество'+(e.type==='ammo'?' магазинов':'')+'<input id="rq-quantity" type="number" min="1" max="1000" step="1" value="'+c.qty+'"></label><div>Требуется Слава: <b>'+rqFormat(q.renown)+'</b></div><div>За единицу: <b>'+(rqAcquisition(e)?'—':rqFormat(q.unit))+'</b></div><div>Всего: <b id="rq-total">'+(rqAcquisition(e)?'—':rqFormat(q.cost))+'</b></div><div>Доступно: <b>'+rqFormat(rqAvailable(d))+'</b></div></div><div id="rq-errors" class="rq-warning" role="status">'+q.errors.map(esc).join('<br>')+'</div><div class="rq-footer"><button type="button" class="modal-confirm" data-rq-confirm'+(q.errors.length?' disabled':'')+'>'+(rqAcquisition(e)?'Покупка недоступна':'Купить за '+rqFormat(q.cost))+'</button><button type="button" class="modal-close" data-rq-close>Отмена</button></div></div>';
 }
 function rqConfirm(){
   const c=RQ_CONTEXT,d=S.character?.character_data;
@@ -14445,6 +14489,9 @@ document.addEventListener('change',event=>{
   if(event.target.matches('[data-rq-glory]')){RQ_GLORY_VISIBLE[event.target.dataset.rqGlory]=event.target.checked;rqApplyFilters();}
 });
 </script>
+<style id="requisition-acquisition-style">
+.rq-access-summary{display:block;margin-top:6px;color:var(--text-dim);font-size:12px;line-height:1.5;font-weight:normal}.rq-acquisition{border:1px solid var(--border-gold);padding:12px;margin:12px 0;font-size:14px;line-height:1.6}.rq-acquisition p{margin:6px 0 0}.rq-quality-note{line-height:1.5}
+</style>
 </body>
 </html>
 
