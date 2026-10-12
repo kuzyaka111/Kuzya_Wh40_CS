@@ -14250,44 +14250,53 @@ function rqAcquisition(e){
   }
   return {summary:'Условия получения не установлены',detail:'В справочнике '+(cost==null || cost===0?'не указана цена обычной покупки':'не установлены полные требования покупки')+'. Отдельный способ получения не установлен; требуется решение ведущего. Отсутствие цены не означает бесплатную выдачу.'};
 }
-function rqAcquisitionHtml(e){const a=rqAcquisition(e);return a?'<section class="rq-acquisition"><b>Условия получения</b><p>'+esc(a.detail)+'</p></section>':'';}
-function rqQualityNote(e,q){return rqFixedQuality(e)?'Исключительное качество уже учтено в стоимости предмета; дополнительной наценки нет.':rqAcquisition(e)?'Обычная покупка за Реквизицию недоступна.':e.type==='ammo'?'Цена указана за один полный магазин.':'Цена за единицу: '+rqFormat(q.base)+' × '+rqFormat(q.quality==='В'?1.5:q.quality==='И'?2:1)+' = '+rqFormat(q.unit)+'.';}
+function rqAcquisitionHtml(e){const a=rqAcquisition(e);return a?'<section class="rq-acquisition"><b>Условия получения</b><p>'+esc(a.detail)+'</p><p>Это условия книг. При покупке сумму Реквизиции можно указать вручную.</p></section>':'';}
+function rqQualityNote(e,q){return rqFixedQuality(e)?'Исключительное качество уже учтено в стоимости предмета; дополнительной наценки нет.':rqAcquisition(e)?'По правилам действует особая выдача. При покупке укажите сумму вручную.':e.type==='ammo'?'Цена указана за один полный магазин.':'Цена за единицу: '+rqFormat(q.base)+' × '+rqFormat(q.quality==='В'?1.5:q.quality==='И'?2:1)+' = '+rqFormat(q.unit)+'.';}
 
 function rqBaseQuality(e){return rqFixedQuality(e) || 'С';}
-function rqWeaponRows(d,a){return (d.gear || []).map(row=>({row,w:gearResolve(row)})).filter(({row,w})=>w && rqNumber(w.mag)>0 && ammoMatchesWeapon(a.used_for,a.id,row,w));}
+function rqWeaponRows(d,a){
+  const owned=(d.gear || []).filter(row=>row.source==='catalog' && row.item_id!=null).map(row=>({row,w:gearResolve(row),owned:true}));
+  const catalog=Object.values(GEAR_MAP).filter(rqGearVisible).filter(item=>item.stats?.type==='weapon_ranged').map(item=>{const row={source:'catalog',item_id:item.id,name:item.name};return {row,w:gearResolve(row),owned:false};});
+  const result=new Map();
+  [...owned,...catalog].filter(({row,w})=>w && Number.isInteger(Number(w.mag)) && Number(w.mag)>0 && ammoMatchesWeapon(a.used_for,a.id,row,w)).forEach(x=>{if(!result.has(Number(x.row.item_id)))result.set(Number(x.row.item_id),x);});
+  return [...result.values()];
+}
 function rqQuote(e,d,draft={}){
-  const a=e.item,s=a.stats || {},quality=e.type==='ammo'?'С':draft.quality || rqBaseQuality(e),qty=Number(draft.qty ?? 1),errors=[];
+  const a=e.item,s=a.stats || {},quality=e.type==='ammo'?'С':draft.quality || rqBaseQuality(e),qty=Number(draft.qty ?? 1),warnings=[],validationErrors=[];
   let base=e.type==='ammo'?rqNumber(a.requisition):rqNumber(s.combi?gearRequisition({source:'catalog',item_id:a.id,combi:draft.combi}):s.cost);
   let renown=e.type==='ammo'?rqNumber(a.renown):Object.hasOwn(RQ_GLORY,s.glory)?RQ_GLORY[s.glory]:null;
   if(e.type==='ammo' && base===0 && a.id>=16 && a.id<=24 && renown==null)renown=0;
-  if(rqAcquisition(e))errors.push('Покупка недоступна. См. условия получения.');
-  if(base==null || base<0)errors.push(s.combi?'Выберите дополнительное оружие.':'Цена в справочнике не определена.');
-  if(renown==null)errors.push('Требование по Славе не определено; требуется решение ведущего.');
+  if(rqAcquisition(e))warnings.push('По правилам действуют особые условия получения.');
+  if(base==null || base<0)warnings.push(s.combi?'Дополнительное оружие ещё не выбрано.':'Цена в справочнике не определена.');
+  if(renown==null)warnings.push('Требование по Славе не определено.');
   if(e.type==='ammo'){
-    const weapon=rqWeaponRows(d,a).find(x=>Number(x.row.item_id)===Number(draft.weapon_id));
-    if(!weapon)errors.push('Выберите совместимое оружие из своего арсенала.');
+    const models=rqWeaponRows(d,a),weapon=models.find(x=>Number(x.row.item_id)===Number(draft.weapon_id)),manualCapacity=Number(draft.magazine_size);
+    if(!weapon && (models.length || !Number.isSafeInteger(manualCapacity) || manualCapacity<1))validationErrors.push(models.length?'Выберите совместимую модель оружия: она определяет вместимость магазина.':'Укажите вместимость магазина целым положительным числом.');
+    if(!models.length)warnings.push('В каталоге нет совместимой модели оружия; вместимость магазина задаётся вручную.');
+    if(weapon && !weapon.owned)warnings.push('Выбранной модели оружия пока нет в арсенале.');
     if(weapon && base>0 && weapon.w.weight_class==='Тяжёлое')base+=weapon.w.backpack_ammo_supply || (weapon.w.source_qualities || []).includes('Backpack Ammo Supply')?15:5;
   }
   if(s.combi){
-    const second=gearCombiSecondary({source:'catalog',item_id:a.id,combi:draft.combi});
-    if(second){const min=RQ_GLORY[second.item.stats?.glory];if(min==null)errors.push('Слава дополнительного оружия не определена.');else renown=Math.max(renown ?? 0,min);}
+    const row={source:'catalog',item_id:a.id,combi:draft.combi},second=gearCombiSecondary(row);
+    if(draft.combi?.secondary_item_id!=null && !second)validationErrors.push('Выберите допустимый дополнительный профиль оружия.');
+    if(second){const min=RQ_GLORY[second.item.stats?.glory];if(min==null)warnings.push('Слава дополнительного оружия не определена.');else renown=Math.max(renown ?? 0,min);}
   }
-  const relic=s.properties?.includes('relic'),fixed=rqFixedQuality(e);
-  if(!['С','В','И'].includes(quality) || fixed && quality!==fixed)errors.push('Недопустимое качество.');
-  // Catalog prices of fixed-craftsmanship items already include that quality.
+  const fixed=rqFixedQuality(e);
+  if(!['С','В','И'].includes(quality) || fixed && quality!==fixed)validationErrors.push('Недопустимое качество.');
   const factor=e.type==='ammo' || fixed?1:quality==='В'?1.5:quality==='И'?2:1;
   if(e.type!=='ammo' && !fixed)renown=renown==null?null:Math.max(renown,quality==='В'?20:quality==='И'?40:0);
   const unit=base==null?null:base*factor,cost=unit==null?null:unit*qty;
-  if(!Number.isInteger(qty)||qty<1||qty>1000)errors.push('Количество должно быть от 1 до 1000.');
-  if(renown!=null && Number(d.vitals?.renown || 0)<renown)errors.push('Недостаточно Славы: требуется '+renown+'.');
-  if(cost!=null && rqAvailable(d)<cost)errors.push('Недостаточно Реквизиции.');
-  return {base,unit,cost,renown,quality,qty,errors:[...new Set(errors)]};
+  if(!Number.isInteger(qty)||qty<1||qty>1000)validationErrors.push('Количество должно быть от 1 до 1000.');
+  if(renown!=null && Number(d.vitals?.renown || 0)<renown)warnings.push('Недостаточно Славы: требуется '+renown+'.');
+  if(cost!=null && rqAvailable(d)<cost)warnings.push('Недостаточно Реквизиции.');
+  const uniqueWarnings=[...new Set(warnings)];
+  return {base,unit,cost,renown,quality,qty,warnings:uniqueWarnings,validationErrors,errors:[...uniqueWarnings,...validationErrors]};
 }
 function rqFormat(v){return v==null?'—':Number(v).toLocaleString('ru-RU',{maximumFractionDigits:2});}
 function rqBudget(){const d=S.character?.character_data;if(!d)return;const box=$('rq-budget');if(box)box.innerHTML='<label>Выделено<input id="rq-limit" type="number" min="0" step="0.5" inputmode="decimal" value="'+rqState(d).limit+'" aria-label="Выделенная Реквизиция"></label><div>Потрачено<strong>'+rqFormat(rqSpent(d))+'</strong></div><div>Доступно<strong class="'+(rqAvailable(d)<0?'rq-warning':'')+'">'+rqFormat(rqAvailable(d))+'</strong></div>';}
 function rqRender(){
   const host=$('adv-requisition'),d=S.character?.character_data;if(!host || !d)return;
-  host.innerHTML='<div id="rq-budget" class="adv-xp-bar rq-budget"></div><div class="rq-chips" role="group" aria-label="Тип снаряжения">'+Object.entries(RQ_TYPES).map(([k,label])=>'<button type="button" class="rq-chip'+(RQ_FILTER===k?' active':'')+'" data-rq-filter="'+k+'" aria-pressed="'+(RQ_FILTER===k)+'">'+esc(label)+'</button>').join('')+'</div><input id="rq-search" class="chapter-search-input" type="search" placeholder="Поиск снаряжения…" aria-label="Поиск снаряжения" value="'+escAttr(RQ_SEARCH)+'"><div id="rq-list"></div><p class="desc">Цена на кнопке учитывает выбранное качество. Реквизиция списывается только после подтверждения. Предметы особой выдачи нельзя купить за ноль.</p>';
+  host.innerHTML='<div id="rq-budget" class="adv-xp-bar rq-budget"></div><div class="rq-chips" role="group" aria-label="Тип снаряжения">'+Object.entries(RQ_TYPES).map(([k,label])=>'<button type="button" class="rq-chip'+(RQ_FILTER===k?' active':'')+'" data-rq-filter="'+k+'" aria-pressed="'+(RQ_FILTER===k)+'">'+esc(label)+'</button>').join('')+'</div><input id="rq-search" class="chapter-search-input" type="search" placeholder="Поиск снаряжения…" aria-label="Поиск снаряжения" value="'+escAttr(RQ_SEARCH)+'"><div id="rq-list"></div><p class="desc">Цена на кнопке учитывает выбранное качество. Реквизиция списывается только после подтверждения. Если требования не выполнены или цена не указана, сумму покупки можно ввести вручную.</p>';
   rqBudget();rqRenderList();
 }
 function rqRenderList(){
@@ -14296,11 +14305,11 @@ function rqRenderList(){
   const items=rqCatalog().filter(e=>(RQ_FILTER==='all'||e.type===RQ_FILTER)&&honourNorm(e.item.name).includes(honourNorm(RQ_SEARCH)));
   host.innerHTML='<div class="rq-head"><button type="button" class="rq-sort-heading" data-rq-sort-heading="name" aria-pressed="false"><span>Название</span><span class="rq-sort-arrow" aria-hidden="true"></span></button><button type="button" class="rq-sort-heading" data-rq-sort-heading="glory" aria-pressed="false"><span>Слава</span><span class="rq-sort-arrow" aria-hidden="true"></span></button><span>Реквизиция</span><button type="button" class="rq-sort-heading" data-rq-sort-heading="price" aria-pressed="false"><span>Цена</span><span class="rq-sort-arrow" aria-hidden="true"></span></button></div>'+items.map(e=>{
     const draft={quality:rqBaseQuality(e),qty:1},q=rqQuote(e,d,draft),special=e.type!=='ammo' && (q.base===0 || e.item.stats?.requisitionable===false),acquisition=rqAcquisition(e);
-    return '<div class="rq-item"><button type="button" class="rq-name" data-rq-preview="'+e.key+'">'+esc(e.item.name)+(acquisition?'<small class="rq-access-summary">Условия получения: '+esc(acquisition.summary)+'</small>':'')+'</button><span class="rq-cell" data-label="Слава">'+(q.renown==null?'—':q.renown===0?'Новичок':esc(Object.keys(RQ_GLORY).find(k=>RQ_GLORY[k]===q.renown) || q.renown))+'</span><span class="rq-cell" data-label="Реквизиция">'+(special?'Особая':rqFormat(q.base))+'</span><button type="button" class="adv-buy-btn" data-rq-preview="'+e.key+'">'+(acquisition?'Условия':q.unit==null?'Выбрать':rqFormat(q.unit)+' · Купить')+'</button></div>';
+    return '<div class="rq-item"><button type="button" class="rq-name" data-rq-preview="'+e.key+'">'+esc(e.item.name)+(acquisition?'<small class="rq-access-summary">Условия получения: '+esc(acquisition.summary)+'</small>':'')+'</button><span class="rq-cell" data-label="Слава">'+(q.renown==null?'—':q.renown===0?'Новичок':esc(Object.keys(RQ_GLORY).find(k=>RQ_GLORY[k]===q.renown) || q.renown))+'</span><span class="rq-cell" data-label="Реквизиция">'+(special?'Особая':rqFormat(q.base))+'</span><button type="button" class="adv-buy-btn" data-rq-preview="'+e.key+'">'+(acquisition || q.unit==null?'Купить':rqFormat(q.unit)+' · Купить')+'</button></div>';
   }).join('')+(!items.length?'<p class="desc">Ничего не найдено.</p>':'');
 }
 openAdvancement=function(sub){
-  RQ_CONTEXT=null;RQ_OPEN_TOKEN++;const token=RQ_OPEN_TOKEN,d=S.character?.character_data;
+  rqCancelManual(false);RQ_CONTEXT=null;RQ_OPEN_TOKEN++;const token=RQ_OPEN_TOKEN,d=S.character?.character_data;
   const r=RQ_ORIG.openAdvancement(sub);
   const bar=document.querySelector('#advancement-modal .adv-xp-bar');if(bar)bar.style.display=sub==='requisition'?'none':'';
   if(sub==='requisition' && d && !dwActive(d)){
@@ -14309,8 +14318,9 @@ openAdvancement=function(sub){
   return r;
 };
 function rqOpen(key){
+  rqCancelManual(false);
   const d=S.character?.character_data,e=rqEntry(key);if(!d || !e || dwActive(d))return;
-  RQ_CONTEXT={d,charId:S.character.id,key,quality:rqBaseQuality(e),qty:1,combi:{},weapon_id:null};
+  RQ_CONTEXT={d,charId:S.character.id,key,quality:rqBaseQuality(e),qty:1,combi:{},weapon_id:null,magazine_size:null};
   if(e.type==='ammo')RQ_CONTEXT.weapon_id=rqWeaponRows(d,e.item)[0]?.row.item_id ?? null;
   let modal=$('rq-buy-modal');if(!modal){modal=document.createElement('div');modal.id='rq-buy-modal';modal.className='modal-overlay';document.body.append(modal);}
   rqPreview();openSheetModal('rq-buy-modal');
@@ -14323,19 +14333,73 @@ function rqPreview(){
   const params=fields.filter(k=>w[k]!=null).map(k=>'<div class="ip-row"><span class="ip-label">'+esc(GEAR_FIELD_LABELS[k] || (k==='weight'?'Вес':k))+'</span><span>'+esc(String(w[k]))+'</span></div>').join('');
   const qualities=e.type==='ammo'?'':gearQualitiesHtml(row,-1,w,false);
   const choices=s.combi?'<label>Дополнительное оружие<select id="rq-secondary"><option value="">— выбрать —</option>'+s.combi.secondary_options.filter(o=>GEAR_MAP[o.equipment_id]).map(o=>'<option value="'+o.equipment_id+'"'+(Number(c.combi.secondary_item_id)===Number(o.equipment_id)?' selected':'')+'>'+esc(o.name)+'</option>').join('')+'</select></label>':'';
-  const weapons=e.type==='ammo'?'<label>Оружие<select id="rq-weapon"><option value="">— выбрать —</option>'+rqWeaponRows(d,a).map(x=>'<option value="'+x.row.item_id+'"'+(Number(c.weapon_id)===Number(x.row.item_id)?' selected':'')+'>'+esc(x.row.name)+' · '+esc(String(x.w.mag))+' патронов</option>').join('')+'</select></label><p class="desc">Одна покупка — один полный магазин для выбранного оружия.</p>':'';
-  $('rq-buy-modal').innerHTML='<div class="modal-box modal-wide"><h3>'+esc(a.name)+'</h3><div class="ip-row gear-quality-row"><span class="ip-label">Качество:</span><div class="gear-quality-chips">'+GEAR_QUALITIES.map(v=>'<button type="button" class="g-quality-badge gear-quality-chip q-'+v.tone+(q.quality===v.code?' active':'')+'" data-rq-quality="'+v.code+'" aria-pressed="'+(q.quality===v.code)+'"'+(locked?' disabled':'')+'>'+v.name+'</button>').join('')+'</div></div><p class="desc rq-quality-note">'+esc(rqQualityNote(e,q))+'</p>'+rqAcquisitionHtml(e)+choices+weapons+'<div class="info-params rq-params">'+params+'</div>'+qualities+'<div class="desc rq-description">'+descBody(a.description || 'Описание отсутствует.')+'</div><div class="rq-purchase"><label>Количество'+(e.type==='ammo'?' магазинов':'')+'<input id="rq-quantity" type="number" min="1" max="1000" step="1" value="'+c.qty+'"></label><div>Требуется Слава: <b>'+rqFormat(q.renown)+'</b></div><div>За единицу: <b>'+(rqAcquisition(e)?'—':rqFormat(q.unit))+'</b></div><div>Всего: <b id="rq-total">'+(rqAcquisition(e)?'—':rqFormat(q.cost))+'</b></div><div>Доступно: <b>'+rqFormat(rqAvailable(d))+'</b></div></div><div id="rq-errors" class="rq-warning" role="status">'+q.errors.map(esc).join('<br>')+'</div><div class="rq-footer"><button type="button" class="modal-confirm" data-rq-confirm'+(q.errors.length?' disabled':'')+'>'+(rqAcquisition(e)?'Покупка недоступна':'Купить за '+rqFormat(q.cost))+'</button><button type="button" class="modal-close" data-rq-close>Отмена</button></div></div>';
+  const weapons=rqAmmoChoiceHtml(e,c,d);
+  $('rq-buy-modal').innerHTML='<div class="modal-box modal-wide"><h3>'+esc(a.name)+'</h3><div class="ip-row gear-quality-row"><span class="ip-label">Качество:</span><div class="gear-quality-chips">'+GEAR_QUALITIES.map(v=>'<button type="button" class="g-quality-badge gear-quality-chip q-'+v.tone+(q.quality===v.code?' active':'')+'" data-rq-quality="'+v.code+'" aria-pressed="'+(q.quality===v.code)+'"'+(locked?' disabled':'')+'>'+v.name+'</button>').join('')+'</div></div><p class="desc rq-quality-note">'+esc(rqQualityNote(e,q))+'</p>'+rqAcquisitionHtml(e)+choices+weapons+'<div class="info-params rq-params">'+params+'</div>'+qualities+'<div class="desc rq-description">'+descBody(a.description || 'Описание отсутствует.')+'</div><div class="rq-purchase"><label>Количество'+(e.type==='ammo'?' магазинов':'')+'<input id="rq-quantity" type="number" min="1" max="1000" step="1" value="'+c.qty+'"></label><div>Требуется Слава: <b>'+rqFormat(q.renown)+'</b></div><div>За единицу: <b>'+(rqAcquisition(e)?'—':rqFormat(q.unit))+'</b></div><div>Всего: <b id="rq-total">'+(rqAcquisition(e)?'—':rqFormat(q.cost))+'</b></div><div>Доступно: <b>'+rqFormat(rqAvailable(d))+'</b></div></div><div id="rq-errors" class="rq-warning" role="status">'+q.errors.map(esc).join('<br>')+'</div><div class="rq-footer"><button type="button" class="modal-confirm" data-rq-confirm'+(q.validationErrors.length?' disabled':'')+'>'+(q.warnings.length?'Купить…':'Купить за '+rqFormat(q.cost))+'</button><button type="button" class="modal-close" data-rq-close>Отмена</button></div></div>';
+}
+let RQ_MANUAL_CONTEXT=null;
+function rqAmmoChoiceHtml(e,c,d){
+  if(e.type!=='ammo')return '';
+  const models=rqWeaponRows(d,e.item);
+  if(!models.length)return '<label>Патронов в одном магазине<input id="rq-magazine-size" type="number" min="1" step="1" value="'+(c.magazine_size || '')+'" placeholder="Вместимость"></label><p class="desc">В каталоге нет совместимой модели оружия. Укажите вместимость магазина; оружие можно уточнить позже.</p>';
+  return '<label>Оружие<select id="rq-weapon"><option value="">— выбрать —</option>'+models.map(x=>'<option value="'+x.row.item_id+'"'+(Number(c.weapon_id)===Number(x.row.item_id)?' selected':'')+'>'+esc(x.row.name)+(x.owned?' · в арсенале':' · модель из каталога')+' · '+esc(String(x.w.mag))+' патронов</option>').join('')+'</select></label><p class="desc">Одна покупка — один полный магазин для выбранной модели. Оружие может ещё отсутствовать в арсенале.</p>';
+}
+function rqCancelManual(reopen=true){
+  const pending=RQ_MANUAL_CONTEXT;RQ_MANUAL_CONTEXT=null;
+  if($('rq-manual-modal'))closeSheetModal('rq-manual-modal');
+  if(reopen && pending && pending.context===RQ_CONTEXT && pending.d===S.character?.character_data && pending.charId===S.character?.id){rqPreview();openSheetModal('rq-buy-modal');$('rq-buy-modal').querySelector('[data-rq-confirm]')?.focus();}
+}
+function rqManualFingerprint(c,e,d,q){
+  const weapon=e.type==='ammo'?rqWeaponRows(d,e.item).find(x=>Number(x.row.item_id)===Number(c.weapon_id)):null;
+  return JSON.stringify({key:c.key,quality:c.quality,qty:c.qty,combi:c.combi,weapon_id:c.weapon_id,capacity:weapon?.w.mag ?? c.magazine_size,cost:q.cost,renown:q.renown,warnings:q.warnings,validationErrors:q.validationErrors,available:rqAvailable(d),characterRenown:d.vitals?.renown});
+}
+function rqManualAmount(){const input=$('rq-manual-cost');return input?rqNumber(input.value):null;}
+function rqUpdateManualAmount(){
+  const pending=RQ_MANUAL_CONTEXT;if(!pending)return;
+  const value=rqManualAmount(),valid=value!=null && value>=0 && value<=Number.MAX_SAFE_INTEGER;
+  const balance=$('rq-manual-balance'),button=$('rq-manual-form').querySelector('[data-rq-manual-confirm]');
+  balance.textContent=valid?rqFormat(rqAvailable(pending.d)-value):'—';balance.classList.toggle('rq-warning',valid && rqAvailable(pending.d)-value<0);
+  button.disabled=!valid;button.textContent=valid?'Купить и списать '+rqFormat(value):'Подтвердить покупку';
+}
+function rqOpenManual(c,e,d,q){
+  if(RQ_MANUAL_CONTEXT && $('rq-manual-modal')?.classList.contains('active'))return;
+  let modal=$('rq-manual-modal');if(!modal){modal=document.createElement('div');modal.id='rq-manual-modal';modal.className='modal-overlay';document.body.append(modal);}
+  RQ_MANUAL_CONTEXT={context:c,d,charId:S.character.id,fingerprint:rqManualFingerprint(c,e,d,q)};
+  const suggested=!rqAcquisition(e) && q.cost!=null && q.cost>=0?q.cost:'';
+  modal.innerHTML='<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="rq-manual-title"><form id="rq-manual-form" novalidate><h3 id="rq-manual-title">Сколько Реквизиции потратить?</h3><p class="desc">'+esc(e.item.name)+' · '+q.qty+(e.type==='ammo'?' магазинов':' шт.')+'</p><div class="rq-warning">'+q.warnings.map(esc).join('<br>')+'</div><label class="rq-manual-label" for="rq-manual-cost">Сумма за всё выбранное количество</label><input id="rq-manual-cost" type="number" min="0" step="any" inputmode="decimal" value="'+suggested+'" placeholder="Введите сумму" aria-describedby="rq-manual-help"><p id="rq-manual-help" class="desc">Можно указать 0. Сумма больше доступной Реквизиции приведёт к отрицательному остатку.</p><p class="desc">Доступно: '+rqFormat(rqAvailable(d))+' · После покупки: <b id="rq-manual-balance">—</b></p><p id="rq-manual-error" class="rq-warning" role="status"></p><div class="rq-footer"><button type="submit" class="modal-confirm rq-buy-available" data-rq-manual-confirm>Подтвердить покупку</button><button type="button" class="modal-close" data-rq-manual-cancel>Отмена</button></div></form></div>';
+  closeSheetModal('rq-buy-modal');openSheetModal('rq-manual-modal');rqUpdateManualAmount();$('rq-manual-cost').focus();$('rq-manual-cost').select();
+}
+function rqManualConfirm(){
+  const pending=RQ_MANUAL_CONTEXT,c=RQ_CONTEXT,d=S.character?.character_data;
+  if(!pending || !$('rq-manual-modal')?.classList.contains('active'))return false;
+  if(!c || c!==pending.context || d!==pending.d || S.character.id!==pending.charId || dwActive(d)){rqCancelManual(false);return false;}
+  const e=rqEntry(c.key);if(!e){rqCancelManual(false);return false;}const q=rqQuote(e,d,c);
+  if(q.validationErrors.length || rqManualFingerprint(c,e,d,q)!==pending.fingerprint){rqCancelManual();$('rq-errors').textContent='Параметры покупки изменились. Нажмите «Купить» ещё раз.';return false;}
+  const cost=rqManualAmount();if(cost==null || cost<0 || cost>Number.MAX_SAFE_INTEGER){$('rq-manual-error').textContent='Введите неотрицательную сумму Реквизиции.';rqUpdateManualAmount();return false;}
+  return rqIssuePurchase(c,e,d,{...q,cost,unit:cost/q.qty},{catalog_cost:q.cost,warnings:q.warnings});
 }
 function rqConfirm(){
   const c=RQ_CONTEXT,d=S.character?.character_data;
   if(!c || c.d!==d || c.charId!==S.character.id || dwActive(d))return false;
-  const e=rqEntry(c.key);if(!e)return false;const q=rqQuote(e,d,c);if(q.errors.length){rqPreview();return false;}
+  if(RQ_MANUAL_CONTEXT && $('rq-manual-modal')?.classList.contains('active'))return false;
+  const e=rqEntry(c.key);if(!e)return false;const q=rqQuote(e,d,c);
+  if(q.validationErrors.length){rqPreview();return false;}
+  if(q.warnings.length){rqOpenManual(c,e,d,q);return false;}
+  return rqIssuePurchase(c,e,d,q);
+}
+BACKDROP_CLOSE['rq-manual-modal']=()=>rqCancelManual();
+document.addEventListener('click',event=>{if(event.target.closest('[data-rq-manual-cancel]'))rqCancelManual();});
+document.addEventListener('input',event=>{if(event.target.id==='rq-manual-cost'){if($('rq-manual-error'))$('rq-manual-error').textContent='';rqUpdateManualAmount();}});
+document.addEventListener('submit',event=>{if(event.target.id==='rq-manual-form'){event.preventDefault();rqManualConfirm();}});
+document.addEventListener('keydown',event=>{if(event.key==='Escape' && $('rq-manual-modal')?.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();rqCancelManual();}},true);
+
+function rqIssuePurchase(c,e,d,q,manual=null){
   const uid=crypto.randomUUID(),purchase={id:uid,key:e.key,name:e.item.name,quality:q.quality,qty:q.qty,cost:q.cost,unit:q.unit,at:new Date().toISOString()};
+  if(manual)Object.assign(purchase,{manual_price:true,catalog_cost:manual.catalog_cost,rule_warnings:[...manual.warnings]});
   let section='gear',row;
   if(e.type==='ammo'){
-    const x=rqWeaponRows(d,e.item).find(x=>Number(x.row.item_id)===Number(c.weapon_id));if(!x)return false;
-    section='ammo';row={source:'catalog',ammo_id:e.item.id,name:e.item.name,class:e.item.used_for,weapon_id:x.row.item_id,weapon:x.row.name,mags:Array.from({length:q.qty},()=>({cur:Number(x.w.mag)})),max:Number(x.w.mag),activeMag:0,loaded:false};
-    purchase.weapon_id=x.row.item_id;
+    const x=rqWeaponRows(d,e.item).find(x=>Number(x.row.item_id)===Number(c.weapon_id));const capacity=x?Number(x.w.mag):Number(c.magazine_size);if(!Number.isSafeInteger(capacity)||capacity<1)return false;
+    section='ammo';row={source:'catalog',ammo_id:e.item.id,name:e.item.name,class:e.item.used_for,weapon_id:x?.row.item_id ?? null,weapon:x?.row.name || '',mags:Array.from({length:q.qty},()=>({cur:capacity})),max:capacity,activeMag:0,loaded:false};
+    purchase.weapon_id=x?.row.item_id ?? null;purchase.magazine_size=capacity;
   }else{
     row={source:'catalog',item_id:e.item.id,name:e.item.name,qty:q.qty,quality:q.quality,equipped:false};
     if(e.item.stats?.combi)row.combi=JSON.parse(JSON.stringify(c.combi));
@@ -14346,7 +14410,7 @@ function rqConfirm(){
   const separate=e.type!=='ammo' && !ORDNANCE_GROUPS.has(e.type) && !['combat_gear','tool','consumables'].includes(e.type);
   if(separate)for(let i=0;i<q.qty;i++)(d[section] ||= []).push({...JSON.parse(JSON.stringify(row)),qty:1});
   else (d[section] ||= []).push(row);
-  RQ_CONTEXT=null;closeSheetModal('rq-buy-modal');renderSheet();rqRender();debouncedSave();toast('Получено: '+e.item.name+' · −'+rqFormat(q.cost)+' Реквизиции');return true;
+  RQ_CONTEXT=null;rqCancelManual(false);closeSheetModal('rq-buy-modal');renderSheet();rqRender();debouncedSave();toast('Получено: '+e.item.name+' · −'+rqFormat(q.cost)+' Реквизиции');return true;
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-rq-filter],[data-rq-preview],[data-rq-quality],[data-rq-confirm],[data-rq-close]');if(!b || b.disabled)return;e.preventDefault();
@@ -14369,10 +14433,11 @@ document.addEventListener('change',e=>{
     const quote=rqQuote(entry,d,c);$('rq-total').textContent=rqFormat(quote.cost);
     $('rq-errors').innerHTML=quote.errors.map(esc).join('<br>');
     const button=$('rq-buy-modal').querySelector('[data-rq-confirm]');
-    button.disabled=!!quote.errors.length;button.textContent='Купить за '+rqFormat(quote.cost);return;
+    button.disabled=!!quote.validationErrors.length;button.textContent=quote.warnings.length?'Купить…':'Купить за '+rqFormat(quote.cost);return;
   }
   else if(e.target.id==='rq-secondary')c.combi.secondary_item_id=Number(e.target.value)||null;
   else if(e.target.id==='rq-weapon')c.weapon_id=Number(e.target.value)||null;
+  else if(e.target.id==='rq-magazine-size')c.magazine_size=Number(e.target.value)||null;
   else return;
   rqPreview();
 });
@@ -14417,7 +14482,7 @@ function rqColorPreview(){
 rqRenderList=function(){const result=RQ_COLOR_ORIG.rqRenderList();rqColorList();return result;};
 rqPreview=function(){const result=RQ_COLOR_ORIG.rqPreview();rqColorPreview();return result;};
 rqBudget=function(){const result=RQ_COLOR_ORIG.rqBudget();rqColorList();return result;};
-document.addEventListener('change',event=>{if(['rq-quantity','rq-limit','rq-secondary','rq-weapon'].includes(event.target.id)){rqColorList();rqColorPreview();}});
+document.addEventListener('change',event=>{if(['rq-quantity','rq-limit','rq-secondary','rq-weapon','rq-magazine-size'].includes(event.target.id)){rqColorList();rqColorPreview();}});
 </script>
 <style id="requisition-sort-filter-style">
 .rq-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.rq-toolbar label{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.rq-toolbar select,#rq-relic{width:100%;min-width:0;box-sizing:border-box;background:#151518;color:var(--text-main);border:1px solid var(--border-dark);padding:8px}
@@ -14721,6 +14786,9 @@ $('sb-entry-fields').addEventListener('click',e=>{const b=e.target.closest('butt
 <style id="requisition-header-sort-style">
 #adv-requisition .rq-sort-heading{display:flex;align-items:center;gap:6px;width:100%;min-width:0;padding:0!important;border:0!important;border-image:none!important;border-radius:0!important;clip-path:none!important;background:transparent!important;color:var(--text-dim)!important;font:inherit!important;letter-spacing:0!important;text-transform:none!important;text-align:left;white-space:nowrap;cursor:pointer}#adv-requisition .rq-sort-heading.active,#adv-requisition .rq-sort-heading:hover{color:var(--accent-gold,#c9a24b)!important}#adv-requisition .rq-sort-heading:focus-visible{outline:2px solid var(--accent-gold,#c9a24b);outline-offset:4px}.rq-sort-arrow{display:inline-block;min-width:12px}
 @media(max-width:600px){#adv-requisition .rq-toolbar label{flex-direction:column;align-items:stretch}}
+</style>
+<style id="requisition-manual-price-style">
+#rq-manual-modal .modal-box{width:560px;max-width:calc(100vw - 32px);box-sizing:border-box}#rq-manual-modal .desc,#rq-manual-modal .rq-warning{line-height:1.6}#rq-manual-modal .rq-warning{color:#dc8b82!important}#rq-manual-modal .rq-manual-label{display:block;margin:16px 0 8px;font-size:14px;letter-spacing:0;text-transform:none}#rq-manual-cost{width:100%;min-width:0;box-sizing:border-box;background:#151518;color:var(--text-main);border:1px solid var(--border-gold);padding:10px;font:inherit;font-size:22px}#rq-manual-modal .rq-buy-available{background:rgba(96,151,119,.16)!important;color:#94c8a5!important;border:1px solid #609777!important;border-image:none!important}#rq-manual-modal button:disabled{opacity:.45;cursor:not-allowed}
 </style>
 </body>
 </html>
