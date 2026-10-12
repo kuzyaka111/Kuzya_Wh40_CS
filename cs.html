@@ -5225,11 +5225,13 @@ function renderVitals(){
       : `<div class="bar-fill ${barCls}" data-bar="${barKey}" style="width:${pct}%"></div>`;
     const levelHtml = isInsanity ? `<span class="vit-level">${level} ур.</span>` : '';
     const numOk = inCrit ? ` data-in-crit="1"` : '';
-    const maxPart = inCrit
+    const maxPart = isWounds && !inCrit
+      ? `<button type="button" class="vit-inline health-limit" data-health-open="sheet" aria-label="Настроить максимум">${maxV}</button>`
+      : inCrit
       ? `<span class="vit-static-max">10</span>`
       : `<input class="vit-inline vit-max" type="number" value="${maxV}" data-vit-max="${max}" ${editMode && !(dwActive(d) && isWounds)?'':'readonly'} ${dwActive(d) && isWounds?'disabled':''}>`;
     return `<div class="vit-box ${inCrit?'crit':''}" data-vitbox="${cur}">
-      <div class="vit-name" data-tooltip="${esc(tip)}">${inCrit?(dwActive(d) && dwModel(d)?'Критические повреждения':'Крит. ранения'):isWounds?dwHealthName(d):nm}${cur==='fatigue' && dwActive(d)?' (иммунитет)':''}${levelHtml}</div>
+      <${isWounds?'button type="button" data-health-open="sheet" title="Настроить текущее значение и максимум"':'div'} class="vit-name" data-tooltip="${esc(tip)}">${inCrit?(dwActive(d) && dwModel(d)?'Критические повреждения':'Крит. ранения'):isWounds?dwHealthName(d):nm}${cur==='fatigue' && dwActive(d)?' (иммунитет)':''}${levelHtml}</${isWounds?'button':'div'}>
       <div class="vit-control">
         <button class="vit-arrow" data-vit-down="${inCrit?'crit_wounds':cur}"${numOk}>◀</button>
         <div class="bar-wrap">
@@ -5255,7 +5257,7 @@ function renderVitals(){
         if (val === 0) v.wounds = 1;
         else v.crit_wounds = val;
       } else if (inp.dataset.vit === 'wounds'){
-        val = Math.max(0, Math.min(999, val));
+        val = Math.max(0, Math.min(1000000, val));
         v.wounds = val;
         if (val === 0 && !(dwActive(d) && dwModel(d))) v.crit_wounds = 0;
       } else {
@@ -5275,7 +5277,7 @@ function renderVitals(){
       if (btn.dataset.inCrit === '1'){
         v.crit_wounds = Math.min(10, (v.crit_wounds || 0) + 1);
       } else {
-        v[btn.dataset.vitUp] = Math.min(999, (v[btn.dataset.vitUp] || 0) + 1);
+        v[btn.dataset.vitUp] = Math.min(btn.dataset.vitUp === 'wounds'?1000000:999, (v[btn.dataset.vitUp] || 0) + 1);
       }
       afterVitalChange();
     });
@@ -11650,7 +11652,7 @@ function dwVitals(d){
     get(target,key){
       const m=dwModel(d),state=m?dwInstance(d):dwEnsure(d).sarcophagus;
       if(key==='wounds') return Number(m?state.integrity:state.wounds)||0;
-      if(key==='max_wounds') return m?Number(m.structural_integrity):dwMaxWounds(d);
+      if(key==='max_wounds') return m?Number(state.max_integrity ?? m.structural_integrity):Number(state.max_wounds ?? dwMaxWounds(d));
       if(key==='crit_wounds') return m?Math.max(0,Math.min(10,Number(state.critical_damage)||0)):Number(state.critical_damage)||0;
       return target[key];
     },
@@ -12246,8 +12248,8 @@ function sbVitalsHtml(d){
     const activeKey=inCrit?'critical':key;
     if(inCrit){name=sbIsVehicle(d)?'Критические повреждения':'Крит. ранения';cls='crit-wounds';}
     const cur=Number(d.vitals[activeKey])||0,max=inCrit?10:Number(d.vitals['max_'+key])||0,pct=max>0?Math.min(100,Math.max(0,cur/max*100)):0;
-    const maxControl=inCrit?'<span class="vit-static-max">10</span>':`<input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.max_${key}" aria-label="${name}: максимум" value="${max}"${SB.draft?'':' readonly'}>`;
-    return `<div class="vit-box ${inCrit?'crit':''}"><div class="vit-name">${name}</div><div class="vit-control"><button type="button" class="vit-arrow" data-sb-step="${activeKey}:-1" aria-label="${name}: уменьшить">◀</button>
+    const maxControl=key==='health'&&!inCrit?`<button type="button" class="vit-inline health-limit" data-health-open="statblock" aria-label="Настроить максимум">${max}</button>`:inCrit?'<span class="vit-static-max">10</span>':`<input class="vit-inline" type="number" min="0" step="1" data-sb-number="vitals.max_${key}" aria-label="${name}: максимум" value="${max}"${SB.draft?'':' readonly'}>`;
+    return `<div class="vit-box ${inCrit?'crit':''}"><${key==='health'?'button type="button" data-health-open="statblock" title="Настроить текущее значение и максимум"':'div'} class="vit-name">${name}</${key==='health'?'button':'div'}><div class="vit-control"><button type="button" class="vit-arrow" data-sb-step="${activeKey}:-1" aria-label="${name}: уменьшить">◀</button>
       <div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${pct}%"></div><div class="bar-num"><input class="vit-inline" type="number" min="0"${inCrit?' max="10"':''} step="1" data-sb-number="vitals.${activeKey}" aria-label="${name}: текущее" value="${cur}"><span>/</span>${maxControl}</div></div>
       <button type="button" class="vit-arrow" data-sb-step="${activeKey}:1" aria-label="${name}: увеличить">▶</button></div></div>`;
   }).join('');
@@ -13839,18 +13841,7 @@ const SB_HORDE_HELP=[
  ['Страх','Проверка Силы воли против Страха получает бонус, равный текущей численности орды; учитывается сложность источника Страха. Орды с Бесстрашием, Кровожадной толпой, собственной особенностью Страх, а также орды тиранидов невосприимчивы к Страху.'],
  ['Подавление','При проверке сопротивления подавлению орда получает бонус, равный текущей численности. Применяются обычные правила подавления и исключения её талантов и особенностей.']
 ];
-sbHordeRulesHtml=function(d){return `<div class="sb-horde-rules"><b>Правила орды</b><p>Стрелковых атак: ${Math.floor(d.horde.magnitude/10)} · Урон атак: +${sbHordeDamageDice(d)}к10.</p><p>Орда не прицеливается, не страдает от осечек и не расходует боеприпасы. Её массовые атаки обычно нельзя парировать или уклонять; исключения определяет ведущий.</p><div class="sb-horde-reference"><button type="button" data-sb-magnitude-open>Задать численность</button>${SB_HORDE_HELP.map(([name,text])=>`<details><summary>${name}</summary><p>${text}</p></details>`).join('')}</div><small>Deathwatch: «Орды», стр. 413–414 русского издания; Living Errata, глава XIII и Disciplined (Horde).</small></div>`;};
-function sbMagnitudeValues(current,maximum){const c=Number(current),m=Number(maximum);if(String(current).trim()===''||String(maximum).trim()===''||!Number.isSafeInteger(c)||!Number.isSafeInteger(m)||m<1||m>1000000||c<0||c>m)throw Error('Укажите целые значения: максимум от 1 до 1000000, текущая численность — от 0 до максимума.');return {magnitude:c,initial:m};}
-document.addEventListener('click',async e=>{
- const button=e.target.closest('[data-sb-magnitude-open],[data-sb-magnitude-save]');if(!button||!sbAllowed()||!SB.record||!sbIsHorde(sbData()))return;
- e.preventDefault();e.stopImmediatePropagation();
- if(button.hasAttribute('data-sb-magnitude-open')){
-  if(!await sbFlushQuick())return;
-  const h=sbData().horde;sbModal('horde-magnitude','Задать численность',`<div><label for="sb-mag-current">Текущая численность</label><input id="sb-mag-current" type="number" min="0" value="${h.magnitude}"></div><div><label for="sb-mag-max">Начальная / максимальная численность</label><input id="sb-mag-max" type="number" min="1" value="${h.initial}"></div><p class="sb-wide">Начальная численность служит основой для порогов паники.</p><button type="button" class="sb-wide" data-sb-magnitude-save>Применить</button><p class="sb-wide" id="sb-mag-error" role="alert"></p>`);$('sb-entry-form').querySelector('[type="submit"]').hidden=true;return;
- }
- try{const values=sbMagnitudeValues($('sb-mag-current').value,$('sb-mag-max').value),d=sbClone(sbData());Object.assign(d.horde,values);SB.draft=d;sbQueueQuick();$('sb-entry-modal').classList.add('hidden');}catch(err){$('sb-mag-error').textContent=err.message;}
-},true);
-document.addEventListener('submit',e=>{if(e.target.id==='sb-entry-form'&&SB.entry?.kind==='horde-magnitude'){e.preventDefault();e.stopImmediatePropagation();e.target.querySelector('[data-sb-magnitude-save]')?.click();}},true);
+sbHordeRulesHtml=function(d){return `<div class="sb-horde-rules"><b>Правила орды</b><p>Стрелковых атак: ${Math.floor(d.horde.magnitude/10)} · Урон атак: +${sbHordeDamageDice(d)}к10.</p><p>Орда не прицеливается, не страдает от осечек и не расходует боеприпасы. Её массовые атаки обычно нельзя парировать или уклонять; исключения определяет ведущий.</p><div class="sb-horde-reference">${SB_HORDE_HELP.map(([name,text])=>`<details><summary>${name}</summary><p>${text}</p></details>`).join('')}</div><small>Deathwatch: «Орды», стр. 413–414 русского издания; Living Errata, глава XIII и Disciplined (Horde).</small></div>`;};
 
 </script>
 <script data-feature="npc-conditions">
@@ -14640,7 +14631,7 @@ sbVitalsHtml=function(d){
   const host=document.createElement('div');host.innerHTML=NPC_PRESET_ORIGINAL_VITALS(copy);
   for(const key of NPC_NULLABLE_VITALS){
     if(d.vitals[key]!==null||(sbIsHorde(d)&&['health','max_health'].includes(key)))continue;
-    const input=host.querySelector('[data-sb-number="vitals.'+key+'"]');if(!input)continue;
+    const input=host.querySelector('[data-sb-number="vitals.'+key+'"]');if(!input){if(key==='max_health'){const max=host.querySelector('[data-health-open="statblock"].health-limit');if(max){max.textContent='—';max.title='В источнике не указано; нажмите для настройки';}}continue;}
     input.value='';input.setAttribute('value','');input.placeholder='—';input.title='В источнике не указано';
     if(!SB.draft&&key.startsWith('max_')){const span=document.createElement('span');span.className='vit-static-max';span.textContent='—';span.title='В источнике не указано';input.replaceWith(span);}
   }
@@ -14790,6 +14781,106 @@ $('sb-entry-fields').addEventListener('click',e=>{const b=e.target.closest('butt
 <style id="requisition-manual-price-style">
 #rq-manual-modal .modal-box{width:560px;max-width:calc(100vw - 32px);box-sizing:border-box}#rq-manual-modal .desc,#rq-manual-modal .rq-warning{line-height:1.6}#rq-manual-modal .rq-warning{color:#dc8b82!important}#rq-manual-modal .rq-manual-label{display:block;margin:16px 0 8px;font-size:14px;letter-spacing:0;text-transform:none}#rq-manual-cost{width:100%;min-width:0;box-sizing:border-box;background:#151518;color:var(--text-main);border:1px solid var(--border-gold);padding:10px;font:inherit;font-size:22px}#rq-manual-modal .rq-buy-available{background:rgba(96,151,119,.16)!important;color:#94c8a5!important;border:1px solid #609777!important;border-image:none!important}#rq-manual-modal button:disabled{opacity:.45;cursor:not-allowed}
 </style>
+<style id="health-settings-style">
+button.vit-name[data-health-open]{display:block;width:100%;padding:0;border:0!important;border-image:none!important;clip-path:none!important;background:transparent!important;font:inherit;font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--text-dim);cursor:pointer;text-transform:uppercase}
+button[data-health-open].health-limit{pointer-events:auto;padding:0;border:0!important;border-image:none!important;clip-path:none!important;background:transparent!important;color:inherit;cursor:pointer}
+[data-health-open]:hover{text-decoration:underline;text-underline-offset:3px}[data-health-open]:focus-visible{outline:2px solid var(--accent-gold,#c9a24b);outline-offset:3px}
+#health-settings-modal .modal-box{width:480px;max-width:calc(100vw - 32px);box-sizing:border-box}#health-settings-modal label{display:block;margin:16px 0 8px;font-size:14px;text-transform:none;letter-spacing:0}#health-settings-modal input{width:100%;min-width:0;box-sizing:border-box;background:#151518;color:var(--text-main);border:1px solid var(--border-gold);padding:10px;font:inherit;font-size:22px}#health-settings-modal .desc{line-height:1.6}#health-settings-error{color:#dc8b82}.health-settings-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+</style>
+<script id="health-settings-script">
+// Health settings share one dialog; character and statblock saves retain their own lifecycle.
+let HEALTH_CONTEXT=null;
+function healthRead(source,d){
+  if(source==='sheet'){
+    const v=dwVitals(d);
+    return {current:v.wounds,maximum:v.max_wounds,critical:v.crit_wounds||0};
+  }
+  if(sbIsHorde(d))return {current:d.horde.magnitude,maximum:d.horde.initial};
+  return {current:d.vitals.health,maximum:d.vitals.max_health,critical:d.vitals.critical||0};
+}
+function healthClose(){
+  const trigger=HEALTH_CONTEXT?.trigger;HEALTH_CONTEXT=null;
+  closeSheetModal('health-settings-modal');
+  if(trigger?.isConnected)trigger.focus();
+}
+async function healthOpen(source,trigger){
+  let d;
+  if(source==='statblock'){
+    if(!sbAllowed()||SB.busy||!SB.record||S.chronicle.id!==SB.chronicleId)return;
+    const recordId=SB.record.id,chronicle=SB.chronicleId;
+    if(!await sbFlushQuick()||SB.record?.id!==recordId||SB.chronicleId!==chronicle||!sbAllowed()||S.chronicle.id!==chronicle||SB.busy)return;
+    d=sbData();
+  }else{
+    d=S.character?.character_data;if(!d)return;
+  }
+  const horde=source==='statblock'&&sbIsHorde(d);
+  const title=horde?'Численность':source==='sheet'?dwHealthName(d):sbIsVehicle(d)?'Структурная целостность':'Раны';
+  const values=healthRead(source,d);
+  HEALTH_CONTEXT={source,d,trigger,owner:source==='sheet'?S.character:SB.record,chronicle:SB.chronicleId,
+    draft:source==='statblock'?SB.draft:null,model:source==='sheet'?d.dreadnought?.model_code:null,
+    dread:source==='sheet'&&dwActive(d),horde,values,fingerprint:JSON.stringify(values)};
+  let modal=$('health-settings-modal');
+  if(!modal){modal=document.createElement('div');modal.id='health-settings-modal';modal.className='modal-overlay';document.body.append(modal);}
+  const currentLabel=horde?'Текущая численность':'Текущее значение';
+  modal.innerHTML=`<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="health-settings-title"><form id="health-settings-form" novalidate>
+    <h3 id="health-settings-title">${title}</h3>
+    <label for="health-current">${currentLabel}</label><input id="health-current" type="number" min="0" max="1000000" step="1" value="${values.current??''}" placeholder="Не указано">
+    <label for="health-maximum">${horde?'Начальная / максимальная численность':'Максимум'}</label><input id="health-maximum" type="number" min="1" max="1000000" step="1" value="${values.maximum??''}" placeholder="Не указано">
+    <p class="desc">Изменение максимума не меняет текущее значение автоматически.${horde?' Начальная численность служит основой для порогов паники.':''}${Number(values.critical)>0?' Критические ранения / повреждения сохраняются отдельно.':''}</p>
+    <p id="health-settings-error" role="alert"></p><div class="health-settings-actions"><button type="submit" class="modal-confirm">Применить</button><button type="button" class="modal-close" data-health-cancel>Отмена</button></div>
+  </form></div>`;
+  openSheetModal('health-settings-modal');$('health-current').focus();$('health-current').select();
+}
+function healthNumber(raw,min,original){
+  if(String(raw).trim()===''&&original===null)return null;
+  const n=Number(raw);
+  if(String(raw).trim()===''||!Number.isSafeInteger(n)||n<min||n>1000000)throw Error('Введите целые числа: текущее значение от 0 до 1000000, максимум от 1 до 1000000.');
+  return n;
+}
+function healthApply(){
+  const c=HEALTH_CONTEXT;if(!c||!$('health-settings-modal').classList.contains('active'))return false;
+  const d=c.source==='sheet'?S.character?.character_data:sbData();
+  const stale=c.d!==d||(c.source==='sheet'?(c.owner!==S.character||c.model!==d?.dreadnought?.model_code||c.dread!==dwActive(d)):
+    (c.owner!==SB.record||c.chronicle!==SB.chronicleId||c.draft!==SB.draft||!sbAllowed()||S.chronicle.id!==c.chronicle||SB.busy));
+  if(stale||JSON.stringify(healthRead(c.source,d))!==c.fingerprint){healthClose();toast('Показатели изменились. Откройте настройку ещё раз.');return false;}
+  try{
+    const current=healthNumber($('health-current').value,0,c.values.current),maximum=healthNumber($('health-maximum').value,1,c.values.maximum);
+    if(c.horde&&current>maximum)throw Error('Текущая численность не должна превышать начальную / максимальную.');
+    const currentChanged=current!==c.values.current,maximumChanged=maximum!==c.values.maximum;
+    if(!currentChanged&&!maximumChanged){healthClose();return true;}
+    if(c.source==='sheet'){
+      if(maximumChanged){
+        if(dwActive(d)){
+          const m=dwModel(d),state=m?dwInstance(d):dwEnsure(d).sarcophagus;
+          state[m?'max_integrity':'max_wounds']=maximum;
+        }else d.vitals.max_wounds=maximum;
+      }
+      if(currentChanged)dwVitals(d).wounds=current;
+      healthClose();afterVitalChange();
+    }else{
+      const next=sbClone(d);
+      if(c.horde){next.horde.magnitude=current;next.horde.initial=maximum;}
+      else{
+        if(maximumChanged)next.vitals.max_health=maximum;
+        if(currentChanged)next.vitals.health=current;
+      }
+      // In edit mode this is part of the draft, including its Save / Cancel contract.
+      if(c.draft){Object.assign(SB.draft,next);sbTouch();healthClose();renderStatblock();}
+      else{SB.draft=next;healthClose();sbQueueQuick();}
+    }
+    return true;
+  }catch(err){$('health-settings-error').textContent=err.message;return false;}
+}
+BACKDROP_CLOSE['health-settings-modal']=healthClose;
+document.addEventListener('click',event=>{
+  const open=event.target.closest('[data-health-open]');
+  if(open){event.preventDefault();healthOpen(open.dataset.healthOpen,open);return;}
+  if(event.target.closest('[data-health-cancel]'))healthClose();
+});
+document.addEventListener('submit',event=>{if(event.target.id==='health-settings-form'){event.preventDefault();healthApply();}});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('health-settings-modal')?.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();healthClose();}},true);
+
+</script>
 </body>
 </html>
 
