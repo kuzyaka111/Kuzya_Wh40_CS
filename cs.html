@@ -13841,5 +13841,37 @@ document.addEventListener('click',async e=>{
 document.addEventListener('submit',e=>{if(e.target.id==='sb-entry-form'&&SB.entry?.kind==='horde-magnitude'){e.preventDefault();e.stopImmediatePropagation();e.target.querySelector('[data-sb-magnitude-save]')?.click();}},true);
 
 </script>
+<script data-feature="npc-conditions">
+// Reuse character conditions/actions; persist only the statblock actor.
+const NPC_CONDITION_ORIG={normalize:normalizeStatblock,actor:sbActorData,commit:sbCommitActor,render:renderStatblock,line:renderConditionsLine,refresh:refreshConditions,valid:conditionOwnerValid,settings:sbOpenPlaySettings,roll:callRollApi,result:showRollResult};
+normalizeStatblock=function(raw){const d=NPC_CONDITION_ORIG.normalize(raw);d.conditions=normalizeConditions(raw?.conditions);d.conditions_collapsed=!!raw?.conditions_collapsed;d.discord_rolls=raw?.discord_rolls===true;return d;};
+sbActorData=function(d){const a=NPC_CONDITION_ORIG.actor(d);a.conditions=normalizeConditions(d.conditions);a.conditions_collapsed=!!d.conditions_collapsed;a.discord_rolls=d.discord_rolls===true;return a;};
+sbCommitActor=function(){if(!sbActorActive()||SB.draft)return false;const a=S.character.character_data,d=sbData();d.conditions=normalizeConditions(a.conditions);d.conditions_collapsed=!!a.conditions_collapsed;d.discord_rolls=a.discord_rolls===true;return NPC_CONDITION_ORIG.commit();};
+conditionOwnerValid=function(){return NPC_CONDITION_ORIG.valid()&&(!sbActorActive()||(!SB.draft&&sbAllowed()));};
+renderConditionsLine=function(){
+ if(!sbActorActive())return NPC_CONDITION_ORIG.line();
+ const tags=$('sb-root').querySelector('.sb-tags');if(!tags)return;
+ let host=$('sb-conditions-line');if(!host){host=document.createElement('div');host.id='sb-conditions-line';host.className='conditions-line';tags.after(host);}
+ const d=S.character.character_data,collapsed=!!d.conditions_collapsed;
+ host.innerHTML='<button type="button" data-npc-condition-fold aria-expanded="'+!collapsed+'">Состояния: '+(collapsed?'▸':'▾')+'</button><span class="conditions-tags"'+(collapsed?' hidden':'')+'>'+characterConditions(d).map(r=>'<button type="button" class="condition-tag" data-npc-condition="'+escAttr(r.code)+'">'+esc(conditionLabel(r))+'</button>').join('')+'<button type="button" data-npc-condition-plus aria-label="Открыть список состояний">+</button></span>';
+ host.querySelector('[data-npc-condition-fold]').onclick=()=>{if(SB.draft)return;d.conditions_collapsed=!d.conditions_collapsed;sbCommitActor();};
+ host.querySelector('[data-npc-condition-plus]').onclick=async()=>{if(SB.draft)return toast('Завершите редактирование.');if(await sbFlushQuick()){sbSyncActor();openConditionsModal();}};
+ host.querySelectorAll('[data-npc-condition]').forEach(el=>el.onclick=()=>{if(!SB.draft)openConditionDetail(el.dataset.npcCondition);});
+};
+refreshConditions=function(){if(!sbActorActive())return NPC_CONDITION_ORIG.refresh();hideTooltip();sbCommitActor();renderConditionChoices();if($('roll-modal').classList.contains('active')){renderRollMods();renderRollTotal();}};
+renderStatblock=function(){NPC_CONDITION_ORIG.render();if(sbActorActive())renderConditionsLine();};
+sbOpenPlaySettings=async function(){await NPC_CONDITION_ORIG.settings();if(!sbActorActive())return;const cb=$('discord-rolls');cb.disabled=false;cb.checked=S.character.character_data.discord_rolls===true;renderDiscordRollsState();const note=$('settings-modal').querySelector('.sb-settings-extra p');if(note)note.textContent='Отправка использует Discord текущей хроники. Переключатель сохраняется отдельно для этого НПЦ.';};
+callRollApi=async function(body){
+ if(!sbActorActive()||body.action!=='roll')return NPC_CONDITION_ORIG.roll(body);
+ const owner=S.character,record=SB.record.id,chronicle=SB.chronicleId;
+ if(!await sbFlushQuick())throw Error('Не удалось сохранить изменения НПЦ перед броском.');
+ if(S.character!==owner||SB.record.id!==record)throw Error('Статблок изменился. Откройте бросок заново.');
+ if(!S.character.character_data.discord_rolls)return NPC_CONDITION_ORIG.roll(body);
+ const request={...body,statblock_id:record,chronicle_id:chronicle};delete request.character_id;
+ const r=await sbOriginalRuntime.callRollApi(request);SB_PLAY.lastRoll=r;return r;
+};
+showRollResult=function(r){NPC_CONDITION_ORIG.result(r);if(!sbActorActive()||r.skip==='npc_local')return;const note=$('roll-result').querySelector('.desc');if(note)note.textContent=r.delivered?'НПЦ · Отправлено в Discord':'НПЦ · '+({char_off:'Отправка выключена',no_url:'Discord хроники не настроен',chronicle_off:'Отправка хроники выключена',dead:'Вебхук Discord недоступен',discord_busy:'Discord временно ограничил отправку',discord_fail:'Не удалось отправить в Discord'}[r.skip]||'Результат только на листе');};
+
+</script>
 </body>
 </html>
