@@ -15057,6 +15057,143 @@ document.addEventListener('keydown',event=>{
 },true);
 </script>
 
+<!-- ADVANCEMENT-GRANTS-2026-10-13 -->
+<style>
+.xp-entry.has-adv-recovery{flex-wrap:wrap;}
+.xp-entry.has-adv-recovery .xp-row-actions{flex-basis:100%;flex-wrap:wrap;flex-shrink:1;}
+.xp-entry.has-adv-recovery .xp-row-btn{max-width:100%;white-space:normal;}
+</style>
+<script>
+// Purchases and explicit recovery share one grant path; receipts prevent replay.
+const ADV_GRANTS_ORIG={openBuyModal,confirmBuy,renderXpJournal};
+let advGrantContext=null;
+function advGrantSubject(item){
+  const parsed=purchasedAdvanceSubject(item.name), meta=item.req_advanced?.grant;
+  const full=talentByName(meta?.name || String(item.name || '').replace(/[†‡]/g,'').replace(/\s*\([xх×]\d+\)/gi,'').trim());
+  const psi=String(item.name || '').match(/^Пси-рейтинг\s+(\d+)$/i);
+  return {name:meta?.name || (full ? full.name : psi ? 'Пси-рейтинг' : parsed.name),
+    group:meta?.group || (full ? '' : parsed.group),
+    level:meta?.level || parsed.level,psi:psi ? Number(psi[1]) : null};
+}
+function advGrantResolve(item){
+  const subject=advGrantSubject(item);
+  const skill=item.req_advanced?.grant_kind==='skill' || /умение/i.test(item.type || '');
+  const talent=!skill && /талант/i.test(item.type || '');
+  const matches=skill ? DB_SKILLS.filter(r=>normEgg(r.name)===normEgg(subject.name))
+    : talent ? DB_TALENTS.filter(r=>normEgg(r.name)===normEgg(subject.name)) : [];
+  return matches.length===1 ? {subject,row:matches[0],skill} : null;
+}
+function advGrantAny(group){return /^(любой|любая|любое|любые)$/i.test(String(group || '').trim());}
+function advGrantGroup(resolved, saved){
+  let group=saved || resolved.subject.group || '';
+  if(advGrantAny(group) || (resolved.row.groups_enabled && !group)){
+    group=prompt('Укажите выбранную группу для «'+resolved.subject.name+'»:','');
+    if(group===null) return null;
+    group=group.trim();
+    if(!group || advGrantAny(group) || group.length>100){toast('Укажите конкретную группу (до 100 символов). Покупка не изменена.');return null;}
+  }
+  return group;
+}
+function advGrantPresent(d,resolved,group){
+  if(resolved.skill){
+    const row=[...(d.skills_basic || []),...(d.skills_adv || [])].find(r=>toId(r.id)===toId(resolved.row.id));
+    const target=group ? row?.groups?.find(g=>normEgg(g.name)===normEgg(group)) : row;
+    return !!target && SKILL_LEVELS.indexOf(target.level)>=SKILL_LEVELS.indexOf(resolved.subject.level);
+  }
+  if(resolved.subject.psi) return permanentPsiRating(d)>=resolved.subject.psi;
+  return (d.talents || []).some(r=>toId(r.id)===toId(resolved.row.id) && normEgg(r.group || '')===normEgg(group));
+}
+function advGrantApply(d,item,resolved,group,receipt){
+  if(resolved.skill){
+    if(!SKILL_LEVELS.includes(resolved.subject.level) || resolved.subject.level==='untrained') return false;
+    return grantPurchasedAdvance(d,{...item,req_advanced:{...item.req_advanced,grant:{name:resolved.row.name,group,level:resolved.subject.level}}},group);
+  }
+  const repeatable=normEgg(resolved.row.name)==='крепкое телосложение' || normEgg(resolved.row.name)==='пси-рейтинг';
+  if(!repeatable && advGrantPresent(d,resolved,group)) return true;
+  (d.talents ||= []).push({id:resolved.row.id,name:resolved.row.name,desc:resolved.row.description || '',
+    groups_enabled:!!resolved.row.groups_enabled,group,source:'advancement',table_id:item.id,grant_receipt:receipt});
+  let effect=1;
+  if(resolved.subject.psi) effect=Math.max(0,resolved.subject.psi-permanentPsiRating(d));
+  if(repeatable && effect){
+    d.modifiers ||= {perm:[],cond:[]};d.modifiers.perm ||= [];
+    d.modifiers.perm.push({name:resolved.row.name,target:normEgg(resolved.row.name)==='крепкое телосложение'?'vitals':'indicator',
+      target_name:normEgg(resolved.row.name)==='крепкое телосложение'?'max_wounds':'psi_rating',mode:'add',timing:'pre',effect,source:'advancement',grant_receipt:receipt});
+  }
+  return true;
+}
+function advGrantCommit(d,next){
+  for(const key of ['skills_basic','skills_adv','talents','modifiers','xp_log']) if(key in next) d[key]=next[key];
+  advGrantContext=null;closeSheetModal('buy-modal');renderSheet();renderAdvCatalog();renderXpJournal();debouncedSave();
+}
+openBuyModal=function(item){
+  advGrantContext=null;
+  const result=ADV_GRANTS_ORIG.openBuyModal(item);
+  if(!item.req_advanced?.variable_cost && $('buy-modal').classList.contains('active'))
+    advGrantContext={character:S.character,d:S.character.character_data,state:JSON.stringify(S.character.character_data),item:JSON.stringify(item),id:Number(item.id)};
+  return result;
+};
+confirmBuy=function(){
+  const d=S.character?.character_data, ctx=advGrantContext;
+  const item=ADV_CATALOG.find(i=>Number(i.id)===Number($('buy-modal-confirm').dataset.advId));
+  if(!d || !item || !ctx || ctx.character!==S.character || ctx.d!==d || ctx.state!==JSON.stringify(d) || ctx.id!==Number(item.id) || ctx.item!==JSON.stringify(item))
+    return toast('Лист или покупка изменились. Откройте покупку заново.');
+  if(advRemaining(item,d)<=0) return toast('Это улучшение уже куплено');
+  const reason=advanceBlockedReason(item,d);if(reason) return toast(reason);
+  if(dwActive(d) && !dwAdvanceAllowed(d,item)) return toast('Покупка недоступна этой специализации дредноута');
+  const resolved=advGrantResolve(item);
+  if(!resolved) return toast('Не удалось однозначно найти умение или талант в справочнике. Опыт не списан.');
+  const before=JSON.stringify(d),cost=dwActive(d)?dwAdvancePrice(d,item):Number(item.cost);
+  if(!Number.isFinite(cost) || cost<0) return toast('Стоимость покупки не определена. Опыт не списан.');
+  const group=advGrantGroup(resolved);
+  if(group===null) return;
+  if(S.character!==ctx.character || S.character.character_data!==d || JSON.stringify(d)!==before || ctx.item!==JSON.stringify(item))
+    return toast('Лист или покупка изменились. Откройте покупку заново.');
+  if(dwActive(d) && dwAdvanceOwned(d,item,group)) return toast('Это улучшение для выбранной группы уже изучено');
+  const next=JSON.parse(before),receipt=crypto.randomUUID();
+  try{if(!advGrantApply(next,item,resolved,group,receipt)) return toast('Не удалось добавить улучшение. Опыт не списан.');}
+  catch(e){console.warn('advancement grant:',e);return toast('Не удалось добавить улучшение. Опыт не списан.');}
+  (next.xp_log ||= []).push({table_id:item.id,name:item.name,cost,source:'advancement',group,
+    grant_applied:true,grant_receipt:receipt,date:new Date().toISOString().slice(0,10)});
+  advGrantCommit(d,next);toast('Куплено: '+item.name+' ('+cost+' XP)');
+};
+function advRecoveryItem(entry){
+  if(!entry || entry.hidden || entry.grant_applied || !(Number(entry.cost)>0) || entry.table_id==null || entry.psi_power_id || entry.catalog_key) return null;
+  return ADV_CATALOG.find(i=>Number(i.id)===Number(entry.table_id) && String(i.name)===String(entry.name) && !i.req_advanced?.variable_cost && /умение|талант/i.test(i.type || '')) || null;
+}
+function restorePurchasedAdvance(index){
+  const character=S.character,d=character?.character_data,entry=d?.xp_log?.[index],item=advRecoveryItem(entry);
+  if(!item) return toast('Эта запись не требует восстановления или не найдена в каталоге.');
+  const resolved=advGrantResolve(item);
+  if(!resolved) return toast('Покупка не сопоставлена со справочником. Лист и опыт не изменены.');
+  const before=JSON.stringify(d),group=advGrantGroup(resolved,entry.group);
+  if(group===null) return;
+  const present=advGrantPresent(d,resolved,group);
+  const repeatable=!resolved.skill && ['крепкое телосложение','пси-рейтинг'].includes(normEgg(resolved.row.name));
+  if(repeatable && !resolved.subject.psi && present)
+    return toast('Этот повторяемый талант уже есть на листе. Нельзя определить, учтена ли старая покупка: восстановление остановлено, опыт не изменён.');
+  if(!confirm((present?'Подтвердить уже имеющееся приобретение':'Восстановить на листе')+' «'+item.name+'»'+(group?' — '+group:'')+'?\nОпыт повторно списываться не будет.')) return;
+  if(S.character!==character || character.character_data!==d || JSON.stringify(d)!==before || advRecoveryItem(entry)!==item)
+    return toast('Лист или запись изменились. Откройте журнал заново.');
+  const next=JSON.parse(before),receipt=crypto.randomUUID();
+  try{if(!present && !advGrantApply(next,item,resolved,group,receipt)) return toast('Восстановление не выполнено. Лист и опыт не изменены.');}
+  catch(e){console.warn('advancement recovery:',e);return toast('Восстановление не выполнено. Лист и опыт не изменены.');}
+  Object.assign(next.xp_log[index],{grant_applied:true,grant_receipt:receipt,group});
+  advGrantCommit(d,next);toast(present?'Приобретение уже есть на листе. Опыт не изменён.':'Восстановлено: '+item.name+'. Опыт не изменён.');
+}
+renderXpJournal=function(){
+  ADV_GRANTS_ORIG.renderXpJournal();
+  const host=$('xp-entries');if(!host || !S.character) return;
+  host.querySelectorAll('.xp-entry').forEach(row=>{
+    const index=Number(row.dataset.idx);
+    if(!advRecoveryItem(S.character.character_data.xp_log[index])) return;
+    const button=document.createElement('button');button.type='button';button.className='xp-row-btn';
+    row.classList.add('has-adv-recovery');
+    button.textContent='Восстановить на листе';button.title='Добавить оплаченное приобретение без повторного списания опыта';
+    button.addEventListener('click',()=>restorePurchasedAdvance(index));row.querySelector('.xp-row-actions')?.appendChild(button);
+  });
+};
+
+</script>
 </body>
 </html>
 
