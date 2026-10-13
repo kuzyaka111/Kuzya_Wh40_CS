@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -14881,6 +14881,182 @@ document.addEventListener('submit',event=>{if(event.target.id==='health-settings
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('health-settings-modal')?.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();healthClose();}},true);
 
 </script>
+<style id="npc-preset-options-style">
+#sb-entry-modal.npc-preset-options-modal .box{width:780px;max-width:calc(100vw / 1.3 - 28px);box-sizing:border-box}
+#sb-entry-modal.npc-preset-options-modal #sb-entry-fields{display:block}
+.npc-option-group{min-width:0;margin:18px 0;padding:14px;border:1px solid #c9a24b66}
+.npc-option-group legend{padding:0 8px;color:#e6bd60;font-weight:700}
+.npc-option-card{margin:12px 0;padding:12px;border:1px solid #c9a24b44;background:rgba(201,162,75,.04)}
+.npc-option-label{display:flex!important;align-items:flex-start;gap:12px;margin:0!important;cursor:pointer;text-transform:none!important;letter-spacing:0!important}
+.npc-option-label input{flex:0 0 auto;width:20px!important;height:20px;margin:2px 0 0;accent-color:#c9a24b}
+.npc-option-label span{font-weight:700;color:#e6bd60}
+.npc-option-card .sb-description{margin-top:10px;line-height:1.6}
+.npc-option-status{margin:12px 0 0;line-height:1.5}
+.npc-option-status.violation,.npc-option-violation{color:#f2a99e!important}
+.npc-option-violation{border:1px solid #d58c80;padding:12px;margin:12px 0;line-height:1.6}
+@media(max-width:600px){.npc-option-group{padding:10px}.npc-option-card{padding:10px}}
+</style>
+<script id="npc-preset-options-script">
+// Configurable presets remain schema 2 until the user has made an explicit choice.
+const NPC_OPTION_SECTIONS=new Set(['features','talents','skills_basic','skills_adv','weapons']);
+function npcOptionObject(value){return !!value&&typeof value==='object'&&!Array.isArray(value);}
+function npcOptionName(value){return typeof value==='string'&&value.trim().length>0;}
+function npcOptionEffectValid(effect){
+  if(!npcOptionObject(effect)||!NPC_OPTION_SECTIONS.has(effect.section)||!npcOptionObject(effect.value)||!npcOptionName(effect.value.name))return false;
+  const value=effect.value;
+  if(['description','desc'].some(k=>Object.hasOwn(value,k)&&typeof value[k]!=='string'))return false;
+  if(['skills_basic','skills_adv'].includes(effect.section)){
+    if(!npcOptionName(value.characteristic)||!SKILL_LEVELS.includes(value.level))return false;
+    if(Object.hasOwn(value,'groups_enabled')&&typeof value.groups_enabled!=='boolean')return false;
+    if(Object.hasOwn(value,'groups')&&(!Array.isArray(value.groups)||value.groups.some(g=>!npcOptionObject(g)||!npcOptionName(g.name)||!SKILL_LEVELS.includes(g.level)||(Object.hasOwn(g,'characteristic')&&typeof g.characteristic!=='string'))))return false;
+  }
+  return true;
+}
+function npcPresetOptionsValid(block){
+  if(!npcOptionObject(block)||block.schema_version!==2||!['npc','vehicle'].includes(block.type)||!npcOptionName(block.name)||block.name.trim().length>200||!Array.isArray(block.choice_groups)||!block.choice_groups.length)return false;
+  const groupIds=new Set(),groupNames=new Set();
+  for(const group of block.choice_groups){
+    if(!npcOptionObject(group)||!npcOptionName(group.id)||groupIds.has(group.id)||!npcOptionName(group.name)||groupNames.has(group.name)||typeof group.description!=='string'||!Number.isInteger(group.min)||!Number.isInteger(group.max)||group.min<0||group.max<group.min||!Array.isArray(group.options)||!group.options.length||group.max>group.options.length)return false;
+    groupIds.add(group.id);groupNames.add(group.name);const optionIds=new Set(),optionNames=new Set();
+    for(const option of group.options){
+      if(!npcOptionObject(option)||!npcOptionName(option.id)||optionIds.has(option.id)||!npcOptionName(option.name)||optionNames.has(option.name)||typeof option.description!=='string'||!Array.isArray(option.effects)||!option.effects.length||!option.effects.every(npcOptionEffectValid))return false;
+      optionIds.add(option.id);optionNames.add(option.name);
+    }
+  }
+  return ['skills_basic','skills_adv','talents','features','traits','weapons'].every(k=>Array.isArray(block[k]))&&npcOptionObject(block.stats)&&STATS.every(([key])=>Object.hasOwn(block.stats,key))&&npcOptionObject(block.vitals)&&npcOptionObject(block.defence)&&npcOptionObject(block.movement);
+}
+const NPC_OPTION_BASE_CAN_APPLY=npcPresetCanApply;
+npcPresetCanApply=function(record){
+  if(record?.statblock?.schema_version===2)return record.status==='ready'&&npcPresetOptionsValid(record.statblock);
+  if(['motx-006','storm-079'].includes(record?.id))return false;
+  return NPC_OPTION_BASE_CAN_APPLY(record);
+};
+const NPC_OPTION_BASE_PREVIEW=npcPresetPreview;
+npcPresetPreview=function(id){
+  NPC_OPTION_BASE_PREVIEW(id);
+  const record=NPC_PRESETS.rows?.find(x=>x.id===id);
+  if(SB.entry?.kind!=='preset'||!npcPresetOptionsValid(record?.statblock))return;
+  const summary='<div class="npc-option-preview"><p>Перед применением выберите варианты. Дополнительные варианты разрешены с предупреждением о нарушении книжного ограничения.</p>'+record.statblock.choice_groups.map(g=>'<details><summary>'+esc(g.name)+' · по книге: '+g.min+(g.max!==g.min?'–'+g.max:'')+'</summary><p>'+esc(g.description)+'</p><ul>'+g.options.map(o=>'<li>'+esc(o.name)+'</li>').join('')+'</ul></details>').join('')+'</div>';
+  $('npc-preset-preview').querySelector('[data-npc-preset-apply]')?.insertAdjacentHTML('beforebegin',summary);
+};
+function npcPresetOptionsFingerprint(record){return JSON.stringify({id:record.id,revision:record.revision,statblock:record.statblock});}
+function npcPresetOptionsContext(entry=SB.entry){
+  const record=NPC_PRESETS.rows?.find(x=>x.id===entry?.presetId);
+  return !!entry&&entry.kind==='preset-options'&&SB.entry===entry&&!$('sb-entry-modal').classList.contains('hidden')&&sbAllowed()&&!SB.busy&&SB.record?.id===entry.recordId&&SB.record.revision===entry.recordRevision&&SB.chronicleId===entry.chronicleId&&S.chronicle?.id===entry.chronicleId&&JSON.stringify(SB.draft??null)===entry.draftFingerprint&&npcPresetCanApply(record)&&npcPresetOptionsFingerprint(record)===entry.presetFingerprint;
+}
+function npcPresetOptionsSelections(entry=SB.entry){
+  if(!npcPresetOptionsContext(entry))return null;
+  const groups=entry.preset.statblock.choice_groups,selected=[];
+  const inputs=[...$('sb-entry-fields').querySelectorAll('input[data-npc-option-group]')];
+  if(inputs.length!==groups.reduce((n,g)=>n+g.options.length,0))return null;
+  const seen=new Set();
+  for(const input of inputs){
+    const group=groups.find(g=>g.id===input.dataset.npcOptionGroup),option=group?.options.find(o=>o.id===input.dataset.npcOptionId);
+    const key=JSON.stringify([group?.id,option?.id]);
+    if(!group||!option||seen.has(key))return null;seen.add(key);
+  }
+  for(const group of groups){
+    const ids=inputs.filter(i=>i.dataset.npcOptionGroup===group.id&&i.checked).map(i=>i.dataset.npcOptionId);
+    selected.push({group,options:group.options.filter(o=>ids.includes(o.id))});
+  }
+  return selected;
+}
+function npcPresetOptionsRefresh(){
+  if(SB.entry?.kind!=='preset-options')return;
+  const selected=npcPresetOptionsSelections(),submit=$('sb-entry-form').querySelector('[type="submit"]');
+  let valid=!!selected,violation=false;
+  for(const item of selected||[]){
+    const count=item.options.length,over=count>item.group.max,under=count<item.group.min;
+    valid=valid&&!under;violation=violation||over;
+    const status=[...$('sb-entry-fields').querySelectorAll('[data-npc-option-status]')].find(el=>el.dataset.npcOptionStatus===item.group.id);
+    status.classList.toggle('violation',over);
+    status.textContent=over?'Нарушение книжного ограничения: выбрано '+count+', по книге допускается '+item.group.max+'. Можно применить все выбранные варианты.':under?'Выбрано '+count+'. Выберите не меньше '+item.group.min+'.':'Выбрано '+count+'. Книжное ограничение соблюдено.';
+  }
+  submit.disabled=!valid;submit.textContent=violation?'Применить с нарушением':'Применить';
+}
+function npcPresetOpenOptions(record){
+  const entry={presetId:record.id,preset:sbClone(record),presetFingerprint:npcPresetOptionsFingerprint(record),recordRevision:SB.record.revision,chronicleId:SB.chronicleId,draftFingerprint:JSON.stringify(SB.draft??null)};
+  const body='<p class="sb-description">Выберите варианты для пресета «'+esc(record.name)+'». Заранее ничего не выбрано. Выбор добавляет способности в карточку; временные эффекты применяются по их правилам.</p>'+record.statblock.choice_groups.map(g=>'<fieldset class="npc-option-group"><legend>'+esc(g.name)+'</legend><p>'+esc(g.description)+'</p><p>По книге: '+g.min+(g.max!==g.min?'–'+g.max:'')+'. Можно выбрать больше с предупреждением.</p>'+g.options.map(o=>'<div class="npc-option-card"><label class="npc-option-label"><input type="checkbox" data-npc-option-group="'+escAttr(g.id)+'" data-npc-option-id="'+escAttr(o.id)+'"><span>'+esc(o.name)+'</span></label><div class="sb-description">'+sbDescriptionHtml(o.description)+'</div></div>').join('')+'<div class="npc-option-status" role="status" aria-live="polite" data-npc-option-status="'+escAttr(g.id)+'"></div></fieldset>').join('');
+  sbModal('preset-options','Варианты пресета',body,entry);
+  $('sb-entry-modal').classList.remove('npc-preset-modal');$('sb-entry-modal').classList.add('npc-preset-options-modal');
+  npcPresetOptionsRefresh();return true;
+}
+function npcPresetAppendChoice(raw,effect){
+  const value=sbClone(effect.value),list=raw[effect.section];
+  if(!Array.isArray(list))throw Error('Неизвестный раздел выбранного варианта.');
+  if(['skills_basic','skills_adv'].includes(effect.section)){
+    const row=list.find(x=>value.id!=null?String(x.id)===String(value.id):x.id==null&&x.name===value.name);
+    if(!row){list.push(value);return;}
+    if(row.characteristic!==value.characteristic)throw Error('Варианты задают разные характеристики одного умения.');
+    if(SKILL_LEVELS.indexOf(value.level)>SKILL_LEVELS.indexOf(row.level))row.level=value.level;
+    row.gifted=!!(row.gifted||value.gifted);row.counts_as_basic=!!(row.counts_as_basic||value.counts_as_basic);row.groups_enabled=!!(row.groups_enabled||value.groups_enabled);
+    row.groups??=[];
+    for(const group of value.groups||[]){
+      const found=row.groups.find(g=>g.name===group.name);
+      if(!found)row.groups.push(group);else{
+        if((found.characteristic||row.characteristic)!==(group.characteristic||value.characteristic))throw Error('Варианты задают разные характеристики группы умения.');
+        if(SKILL_LEVELS.indexOf(group.level)>SKILL_LEVELS.indexOf(found.level))found.level=group.level;
+      }
+    }
+  }else if(!list.some(x=>JSON.stringify(x)===JSON.stringify(value)))list.push(value);
+}
+function npcPresetConfirmOptions(){
+  const entry=SB.entry,selected=npcPresetOptionsSelections(entry);
+  if(!selected||selected.some(item=>item.options.length<item.group.min))return false;
+  const record=entry.preset,raw=sbClone(record.statblock),violations=[];
+  const choices=selected.map(item=>{
+    const over=item.options.length>item.group.max;
+    if(over)violations.push(item.group.name+': выбрано '+item.options.length+', книжный максимум — '+item.group.max+'.');
+    return {group_id:item.group.id,group_name:item.group.name,min:item.group.min,max:item.group.max,option_ids:item.options.map(o=>o.id),option_names:item.options.map(o=>o.name),exceeds_limit:over};
+  });
+  try{
+    for(const item of selected)for(const option of item.options)for(const effect of option.effects)npcPresetAppendChoice(raw,effect);
+    delete raw.choice_groups;raw.schema_version=1;raw.id=SB.record.id;raw.revision=SB.record.revision;raw.type=SB.record.type;raw.type_choice_migrated=true;
+    if(record.statblock.type==='vehicle')raw.race='Техника';raw.discord_rolls=sbData().discord_rolls===true;
+    raw.preset_metadata={id:record.id,name:record.name,revision:record.revision,ruleset:record.ruleset,sources:sbClone(npcPresetSources(record)),applied_at:new Date().toISOString(),layout_version:2,original_source:npcPresetOriginalSource(record),choice_schema_version:2,choices,rule_violations:violations};
+    if(violations.length)(raw.notes??=[]).push({name:'Нарушение книжного ограничения при выборе пресета',description:violations.join(' ')});
+    if(new TextEncoder().encode(JSON.stringify(raw)).length>=1048576)throw Error('Выбранный профиль слишком велик для сохранения.');
+    const draft=normalizeStatblock(raw);if(!draft.name.trim())return false;
+    if(!npcPresetOptionsContext(entry))return false;
+    SB.draft=draft;SB.error='';sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();toast(violations.length?'Пресет применён с нарушением книжного ограничения. Сохраните или отмените изменения.':'Пресет применён к черновику. Сохраните или отмените изменения.');return true;
+  }catch(error){toast('Пресет не применён: '+error.message);return false;}
+}
+const NPC_OPTION_BASE_APPLY=npcPresetApply;
+npcPresetApply=function(id){
+  const record=NPC_PRESETS.rows?.find(x=>x.id===id);
+  if(record?.statblock?.schema_version!==2)return NPC_OPTION_BASE_APPLY(id);
+  if(!sbAllowed()||SB.busy||!SB.record||SB.entry?.kind!=='preset'||SB.entry.recordId!==SB.record.id||SB.entry.chronicleId!==SB.chronicleId||S.chronicle?.id!==SB.chronicleId||$('sb-entry-modal').classList.contains('hidden')||!npcPresetCanApply(record))return false;
+  return npcPresetOpenOptions(record);
+};
+const NPC_OPTION_BASE_SUBMIT=sbSubmitModal;
+sbSubmitModal=function(event){return SB.entry?.kind==='preset-options'?npcPresetConfirmOptions():NPC_OPTION_BASE_SUBMIT(event);};
+const NPC_OPTION_BASE_CLOSE=closeModal;
+closeModal=function(id){
+  if(id==='sb-entry-modal'&&(SB.entry?.kind==='preset-options'||$('sb-entry-modal').classList.contains('npc-preset-options-modal'))){
+    if(SB.entry?.kind==='preset-options')SB.entry=null;
+    $('sb-entry-modal').classList.remove('npc-preset-options-modal');
+    $('sb-entry-form').querySelector('[type="submit"]').disabled=false;
+  }
+  return NPC_OPTION_BASE_CLOSE(id);
+};
+const NPC_OPTION_BASE_MODAL=sbModal;
+sbModal=function(kind,...args){
+  if($('sb-entry-modal').classList.contains('npc-preset-options-modal')){$('sb-entry-modal').classList.remove('npc-preset-options-modal');$('sb-entry-form').querySelector('[type="submit"]').disabled=false;}
+  return NPC_OPTION_BASE_MODAL(kind,...args);
+};
+$('sb-entry-fields').addEventListener('change',event=>{if(event.target.matches('input[data-npc-option-group]'))npcPresetOptionsRefresh();});
+$('sb-entry-modal').addEventListener('click',event=>{if(event.target===$('sb-entry-modal')&&SB.entry?.kind==='preset-options')closeModal('sb-entry-modal');});
+document.addEventListener('keydown',event=>{
+  if(SB.entry?.kind!=='preset-options'||$('sb-entry-modal').classList.contains('hidden'))return;
+  if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeModal('sb-entry-modal');return;}
+  if(event.key==='Tab'){
+    const focusable=[...$('sb-entry-modal').querySelectorAll('input,button')].filter(el=>!el.disabled&&!el.hidden),first=focusable[0],last=focusable.at(-1);
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+  }
+},true);
+</script>
+
 </body>
 </html>
 
