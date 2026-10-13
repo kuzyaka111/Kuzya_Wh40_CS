@@ -15194,6 +15194,193 @@ renderXpJournal=function(){
 };
 
 </script>
+<style id="starting-arsenal-style">
+.sga-choice-card{margin:10px 0;padding:12px;border:1px solid #8f7338!important;border-radius:18px!important;background:rgba(201,162,75,.04)}.sga-entry{display:block;width:100%;text-align:left;border:0!important;border-image:none!important;background:transparent!important;clip-path:none!important;padding:4px 0!important;color:var(--gold)!important;font:inherit!important;cursor:pointer;white-space:normal}.sga-entry{text-transform:none!important;letter-spacing:0!important;font-size:16px!important}.sga-entry::before,.sga-entry::after{display:none!important}.sga-entry:hover{text-decoration:underline}.sga-entry-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.sga-entry-actions button{max-width:100%;white-space:normal}.sga-issue-notes{margin:12px 0;color:var(--text-dim);font-size:13px}.sga-symbol-description{line-height:1.5;max-height:240px;overflow:auto;margin:14px 0}.sga-symbol-description p{margin:10px 0}.sga-variant{display:flex!important;gap:10px;align-items:flex-start;margin:12px 0!important;text-transform:none!important;letter-spacing:0!important}.sga-variant input[type=checkbox]{flex:0 0 auto;width:18px!important;height:18px!important;margin-top:3px}#starting-choice-modal .modal-box{width:620px;max-width:calc(100vw - 32px);box-sizing:border-box;max-height:calc(100dvh - 36px);overflow:auto}#starting-choice-modal label{display:block;margin:14px 0 6px;font-size:15px;text-transform:none;letter-spacing:0}#starting-choice-modal select,#starting-choice-modal input:not([type=checkbox]){width:100%;min-width:0;box-sizing:border-box;padding:10px;background:#151518;color:var(--text-main);border:1px solid var(--border-gold);font:inherit}#starting-choice-modal fieldset{border:1px solid var(--border-dark);min-width:0;padding:10px}#sga-error{color:#dc8b82}#starting-choice-modal legend{font-size:14px}
+</style>
+<script id="starting-arsenal-runtime">
+// Starting choices belong to Arsenal entries. Book effects remain descriptive.
+const SGA_ORIG={normalize,sgRules,sgReconcile,gearCardHtml,showGearInfo,gearItemDesc,changeChapter};
+let SGA_CONTEXT=null;
+normalize=function(raw){
+  const d=SGA_ORIG.normalize(raw),st=raw?.starting_equipment;
+  if(st&&d.starting_equipment)for(const key of ['symbols','symbol_archive','symbol_locks'])if(st[key]&&typeof st[key]==='object')d.starting_equipment[key]=sgClone(st[key]);
+  return d;
+};
+function sgaChapter(d){return chapterByIdOrName(d.info?.chapter_id??d.info?.chapter);}
+function sgaSource(d){
+  const chapter=sgaChapter(d),seen=new Set();let source=chapter;
+  while(source&&!seen.has(source.id)){
+    seen.add(source.id);
+    if(Number(source.id)===53)return {chapter,source,items:[],replacement:true};
+    const items=Object.values(GEAR_MAP).filter(e=>Number(e.stats?.chapter_trapping?.chapter_id)===Number(source.id)).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+    if(items.length)return {chapter,source,items,replacement:false};
+    source=source.orden_type?.kind==='heir'?chapterByIdOrName(source.orden_type.founder):source.orden_type?.kind==='codex'?chapterByIdOrName(4):null;
+  }
+  return {chapter,source:null,items:[],replacement:false};
+}
+function sgaSymbolState(d){const st=sgState(d,true);st.symbols||={};st.symbol_archive||=[];st.symbol_locks||={};return st;}
+function sgaSlotActive(d,key){return sgRules(d).some(r=>r.rule_key===key);}
+function sgaSelected(d,key){const chapter=sgaChapter(d);return (d.gear||[]).find(row=>row.starting_symbol?.slot===key&&row.starting_symbol.chapter_id===Number(chapter?.id));}
+function sgaGeneric(row){return GEAR_MAP[row.item_id]?.stats?.starting_item_key==='chapter_trapping';}
+function sgaLegacy(d,key){return (d.gear||[]).find(row=>sgaGeneric(row)&&row.starting_grant?.claims?.includes(key));}
+function sgaUntouched(row){return !!row&&row.name===GEAR_MAP[row.item_id]?.name&&(row.qty==null||Number(row.qty)===1)&&(!row.quality||row.quality==='С')&&!row.equipped&&!row.slot&&row.starting_grant?.claims?.length===1&&Object.keys(row).every(k=>['source','item_id','name','qty','quality','starting_grant','equipped'].includes(k));}
+function sgaArchive(st,row){if(!st.symbol_archive.some(x=>x.starting_grant?.uid===row.starting_grant?.uid))st.symbol_archive.push(row);}
+function sgaSyncSymbols(d){
+  if(!startingEquipmentLoaded)return false;
+  const st=sgaSymbolState(d),chapterId=Number(sgaChapter(d)?.id),source=sgaSource(d);let changed=false;
+  d.gear=d.gear.filter(row=>{
+    const x=row.starting_symbol;if(!x)return true;
+    const choice=st.symbols[x.slot]?.[chapterId];
+    if(sgaSlotActive(d,x.slot)&&x.chapter_id===chapterId&&choice?.uid===row.starting_grant?.uid)return true;
+    sgaArchive(st,row);changed=true;return false;
+  });
+  st.symbol_archive=st.symbol_archive.filter(row=>{
+    const x=row.starting_symbol,choice=x&&st.symbols[x.slot]?.[chapterId];
+    if(!x||!sgaSlotActive(d,x.slot)||x.chapter_id!==chapterId||choice?.uid!==row.starting_grant?.uid)return true;
+    if(!d.gear.some(r=>r.starting_grant?.uid===row.starting_grant?.uid)){d.gear.push(row);changed=true;}return false;
+  });
+  if(source.replacement){d.gear=d.gear.filter(row=>{if(sgaGeneric(row)&&sgaUntouched(row)&&row.starting_grant?.claims?.includes('common.symbol')){sgaArchive(st,row);changed=true;return false;}return true;});}
+  return changed;
+}
+sgRules=function(d){
+  let rules=SGA_ORIG.sgRules(d).map(r=>['common.symbol','spec.15.symbol'].includes(r.rule_key)?{...r,action:'native'}:r);
+  if(sgaSelected(d,'common.symbol')?.starting_symbol?.key==='sacris-claymore')rules=rules.filter(r=>r.rule_key!=='common.knife');
+  return rules;
+};
+sgReconcile=function(d){const first=sgaSyncSymbols(d),result=SGA_ORIG.sgReconcile(d);return sgaSyncSymbols(d)||result||first;};
+changeChapter=async function(name){const d=S.character?.character_data;const result=await SGA_ORIG.changeChapter(name);if(d&&S.character?.character_data===d&&startingEquipmentLoaded){sgReconcile(d);sgRefresh();}return result;};
+function sgaCard(label,action,value='',note=''){
+  return `<div class="gw-card sga-choice-card"><button type="button" class="g-name sga-entry" ${action}="${escAttr(value)}">${esc(label)}</button>${note?`<div class="desc">${note}</div>`:''}</div>`;
+}
+function sgaVoucherHtml(row){
+  const d=S.character?.character_data,key=row.starting_grant?.claims?.find(k=>sgRules(d).some(r=>r.rule_key===k&&r.conditions?.per_mission));
+  if(!key)return sgaCard(row.name,'data-sga-info',row.starting_grant?.uid||'','Право на выдачу сейчас недоступно для выбранной специализации.');
+  const used=sgState(d).receipts[key]?.mission_used;
+  return sgaCard('Магазин специальных боеприпасов на выбор','data-sg-ammo',key,(used?'Магазин для этой миссии уже получен.':'Один магазин на миссию, до 25 Реквизиции; требования по Славе сохраняются.')+`<div class="sga-entry-actions"><button type="button" data-sg-new-mission>Новая миссия</button></div>`);
+}
+gearCardHtml=function(row,i,g,key,layout){
+  if(key==='gear'&&GEAR_MAP[row.item_id]?.stats?.starting_item_key==='special_ammo_clip')return sgaVoucherHtml(row);
+  if(key==='gear'&&sgaGeneric(row)){
+    const slot=row.starting_grant?.claims?.find(x=>['common.symbol','spec.15.symbol'].includes(x));
+    if(slot&&sgaUntouched(row)){
+      if(sgaSource(S.character.character_data).replacement&&slot==='common.symbol')return '';
+      return sgaCard(slot==='common.symbol'?'Символ ордена на выбор':'Второй символ ордена или талисман на выбор','data-sga-symbol',slot);
+    }
+  }
+  let out=SGA_ORIG.gearCardHtml(row,i,g,key,layout);
+  const slot=row.starting_symbol?.slot||sgaGeneric(row)&&row.starting_grant?.claims?.find(x=>['common.symbol','spec.15.symbol'].includes(x));
+  if(key==='gear'&&slot)out=out.replace(/<\/div>$/,`<div class="sga-entry-actions"><button type="button" data-sga-symbol="${escAttr(slot)}">Выбрать символ ордена</button></div></div>`);
+  return out;
+};
+sgRenderPanel=function(){
+  $('starting-equipment-panel')?.remove();
+  const host=document.querySelector('[data-list="gear"]'),d=S.character?.character_data;if(!host||!d)return;
+  host.querySelector('[data-sga-choices]')?.remove();
+  if(dwActive(d))return;
+  let cards='';
+  if(!startingEquipmentLoaded)cards=sgaCard('Загрузить стартовое снаряжение','data-sg-retry');
+  else{
+    const specs=sgSpecs(d),st=sgState(d),rules=sgRules(d),missing=specs.filter(s=>!st.enrolled[s.id]);
+    if(missing.length)cards+=sgaCard('Получить стартовый комплект','data-sg-accept','',esc(missing.map(s=>s.name).join(', ')));
+    for(const r of rules){
+      if(['common.symbol','spec.15.symbol'].includes(r.rule_key)){
+        if(sgaSource(d).replacement&&r.rule_key==='common.symbol')continue;
+        if(!sgaSelected(d,r.rule_key)&&!sgaLegacy(d,r.rule_key))cards+=sgaCard(r.rule_key==='common.symbol'?'Символ ордена на выбор':'Второй символ ордена или талисман на выбор','data-sga-symbol',r.rule_key);
+      }else if(r.action==='choice'&&st.receipts[r.rule_key]?.choice==null)cards+=sgaCard(r.label+' на выбор','data-sga-choice',r.rule_key,esc(r.note||''));
+      else if(r.action==='upgrade')cards+=sgaCard(r.label,'data-sga-upgrade',r.rule_key,esc(r.note||''));
+      else if(r.conditions?.per_mission&&!d.gear.some(row=>row.starting_grant?.claims?.includes(r.rule_key)))cards+=sgaVoucherHtml({name:r.label,starting_grant:{claims:[r.rule_key]}});
+    }
+    const notes=[...new Set(rules.map(r=>r.note).filter(Boolean))];
+    if(notes.length)cards+=`<details class="sga-issue-notes"><summary>Условия стартовой выдачи</summary>${notes.map(n=>'<p>'+esc(n)+'</p>').join('')}</details>`;
+  }
+  if(cards){const container=document.createElement('div');container.dataset.sgaChoices='1';container.innerHTML=cards;host.append(container);}
+};
+function sgaClose(){SGA_CONTEXT=null;closeSheetModal('starting-choice-modal');}
+function sgaOpenModal(title,body,context){
+  let modal=$('starting-choice-modal');if(!modal){modal=document.createElement('div');modal.id='starting-choice-modal';modal.className='modal-overlay';document.body.append(modal);}
+  SGA_CONTEXT={...context,d:S.character.character_data,charId:S.character.id,chapterId:Number(sgaChapter(S.character.character_data)?.id)};
+  modal.innerHTML=`<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="sga-title"><form id="sga-form" novalidate><h3 id="sga-title">${esc(title)}</h3>${body}<p id="sga-error" role="alert"></p><div class="sga-entry-actions"><button type="submit" class="modal-confirm">Применить</button><button type="button" class="modal-close" data-sga-cancel>Отмена</button></div></form></div>`;
+  openSheetModal('starting-choice-modal');modal.querySelector('select,input,button')?.focus();
+}
+function sgaSlotItems(d,slot){const source=sgaSource(d),items=source.items.slice();if(slot==='spec.15.symbol'&&GEAR_MAP[46])items.push(GEAR_MAP[46]);return items;}
+function sgaOpenSymbol(slot){
+  const d=S.character?.character_data;if(!d||!sgaSlotActive(d,slot)||dwActive(d))return;
+  const source=sgaSource(d);if(source.replacement&&slot==='common.symbol')return;
+  const items=sgaSlotItems(d,slot),existing=sgaSelected(d,slot),signature=JSON.stringify(items.map(x=>[x.id,x.stats?.chapter_trapping]));
+  const note=source.chapter&&source.source&&source.chapter.id!==source.source.id?`Набор: ${source.source.name}${source.chapter.orden_type?.kind==='codex'?' — кодексный набор по правилу приложения':''}.`:source.source?`Орден: ${source.source.name}.`:'Для выбранного ордена нет подтверждённого набора символов.';
+  sgaOpenModal(slot==='common.symbol'?'Символ ордена':'Второй символ ордена или талисман',`<p class="desc">${esc(note)} Выберите один предмет и необходимые варианты. Правила бонусов приведены в описании и применяются вручную.</p><label for="sga-item">Символ<select id="sga-item"><option value="">— выбрать —</option>${items.map(e=>`<option value="${e.id}"${existing?.item_id===e.id?' selected':''}>${esc(e.name)}</option>`).join('')}</select></label><div id="sga-symbol-details"></div>`,{kind:'symbol',slot,signature,selected:existing?sgClone(existing.starting_symbol):null,fingerprint:JSON.stringify(existing||null)});
+  sgaDrawSymbol();
+}
+function sgaDrawSymbol(){
+  const c=SGA_CONTEXT;if(c?.kind!=='symbol')return;
+  const item=sgaSlotItems(c.d,c.slot).find(e=>e.id===Number($('sga-item').value)),host=$('sga-symbol-details');if(!item){host.innerHTML='';return;}
+  const m=item.stats?.chapter_trapping||{},lock=sgState(c.d).symbol_locks?.[m.key],chosen=lock||(c.selected?.key===m.key?c.selected:null),ids=chosen?.variants||[];
+  host.innerHTML=`<details class="sga-symbol-description"${m.variants?.length?'':' open'}><summary>Описание и источник</summary>${descBody(item.description||'')}${m.rules?'<p>'+esc(m.rules)+' Источник: '+esc(m.book)+', стр. '+m.page+'.</p>':''}</details>${m.variants?.length?`<fieldset><legend>Выберите ${m.choice_count||1}${lock?' (выбор закреплён)':''}</legend>${m.variants.map(v=>`<label class="sga-variant"><input type="checkbox" data-sga-variant="${escAttr(v.id)}"${ids.includes(v.id)?' checked':''}${lock?' disabled':''}><span><b>${esc(v.label)}</b><br>${esc(v.effect)}</span></label>`).join('')}</fieldset>`:''}<div id="sga-detail-fields"></div>${m.requirement?`<label class="sga-variant"><input type="checkbox" id="sga-requirement"><span>${esc(m.requirement)} Подтверждаю выполнение условия.</span></label>`:''}`;
+  sgaDrawDetails(chosen);
+}
+function sgaDrawDetails(chosen=null){
+  const c=SGA_CONTEXT;if(c?.kind!=='symbol')return;
+  const item=sgaSlotItems(c.d,c.slot).find(e=>e.id===Number($('sga-item').value)),m=item?.stats?.chapter_trapping||{};
+  const ids=[...document.querySelectorAll('#sga-symbol-details [data-sga-variant]:checked')].map(e=>e.dataset.sgaVariant);
+  const labels=[...(m.detail?[m.detail]:[]),...(m.variants||[]).filter(v=>ids.includes(v.id)&&v.detail).map(v=>v.detail)];
+  const old={...Object.fromEntries([...document.querySelectorAll('[data-sga-detail]')].map(e=>[e.dataset.sgaDetail,e.value])),...(chosen?.details||{})};
+  $('sga-detail-fields').innerHTML=labels.map(label=>`<label>${esc(label)}<input data-sga-detail="${escAttr(label)}" maxlength="150" value="${escAttr(old[label]||'')}" required></label>`).join('');
+}
+function sgaOpenChoice(key,upgrade=false){
+  const d=S.character?.character_data,r=d&&sgRules(d).find(r=>r.rule_key===key);if(!r)return;
+  const options=upgrade?(d.gear||[]).map((row,i)=>({id:i,name:row.name,row})).filter(x=>['weapon_melee','weapon_ranged'].includes(gearRowType(x.row))&&gearItemQuality(x.row)!=='И'):(r.options||[]).map(id=>GEAR_MAP[id]).filter(Boolean);
+  sgaOpenModal(r.label,`<p class="desc">${esc(r.note||'Предмет будет выдан один раз.')}</p><label for="sga-choice">${upgrade?'Оружие':'Предмет'}<select id="sga-choice"><option value="">— выбрать —</option>${options.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select></label>`,{kind:upgrade?'upgrade':'choice',key,options:options.map(e=>({id:e.id,row:e.row})),rule:JSON.stringify(r)});
+}
+async function sgaApply(){
+  const c=SGA_CONTEXT,d=S.character?.character_data;if(!c||c.busy)return false;
+  if(d!==c.d||S.character.id!==c.charId||Number(sgaChapter(d)?.id)!==c.chapterId){sgaClose();toast('Персонаж или орден изменился. Откройте выбор заново.');return false;}
+  try{
+    if(c.kind==='symbol'){
+      if(!sgaSlotActive(d,c.slot)||JSON.stringify(sgaSlotItems(d,c.slot).map(x=>[x.id,x.stats?.chapter_trapping]))!==c.signature||JSON.stringify(sgaSelected(d,c.slot)||null)!==c.fingerprint)throw Error('Условия выдачи изменились. Откройте выбор заново.');
+      const item=sgaSlotItems(d,c.slot).find(e=>e.id===Number($('sga-item').value));if(!item)throw Error('Выберите символ.');
+      const m=item.stats?.chapter_trapping||{key:'ordinary-charm'},variants=[...document.querySelectorAll('#sga-symbol-details [data-sga-variant]:checked')].map(e=>e.dataset.sgaVariant);
+      if(m.variants?.length&&variants.length!==(m.choice_count||1))throw Error('Выберите ровно '+(m.choice_count||1)+' вариант(а).');
+      const details=Object.fromEntries([...document.querySelectorAll('[data-sga-detail]')].map(e=>[e.dataset.sgaDetail,e.value.trim()]));if(Object.values(details).some(s=>!s))throw Error('Заполните уточнения выбранного символа.');
+      if(m.requirement&&!$('sga-requirement')?.checked)throw Error('Подтвердите выполнение условия ношения.');
+      const st=sgaSymbolState(d),lock=st.symbol_locks[m.key];if(lock&&JSON.stringify(lock.variants)!==JSON.stringify(variants))throw Error('Для этого символа выбор уже закреплён.');
+      const old=sgaSelected(d,c.slot),legacy=sgaLegacy(d,c.slot),reuse=!old&&sgaUntouched(legacy)?legacy:null;
+      const choice={slot:c.slot,chapter_id:c.chapterId,source_id:Number(sgaSource(d).source?.id)||c.chapterId,key:m.key,variants,details};
+      const labels=(m.variants||[]).filter(v=>variants.includes(v.id)).map(v=>v.label),row={source:'catalog',item_id:item.id,name:item.name+(labels.length?' — '+labels.join(', '):''),qty:1,quality:'С',starting_symbol:choice};
+      if(reuse)row.starting_grant=sgClone(reuse.starting_grant);sgMark(row,c.slot);choice.uid=row.starting_grant.uid;
+      if(old){sgaArchive(st,old);d.gear.splice(d.gear.indexOf(old),1);}
+      if(reuse)d.gear.splice(d.gear.indexOf(reuse),1);
+      d.gear.push(row);(st.symbols[c.slot]||={})[c.chapterId]=sgClone(choice);
+      if(m.locked&&!lock)st.symbol_locks[m.key]={variants:sgClone(variants),details:sgClone(details)};
+      sgaClose();sgReconcile(d);sgRefresh();return true;
+    }
+    const r=sgRules(d).find(r=>r.rule_key===c.key);if(!r||JSON.stringify(r)!==c.rule)throw Error('Условия выдачи изменились. Откройте выбор заново.');
+    const raw=$('sga-choice').value;if(raw==='')throw Error('Выберите предмет.');const value=Number(raw),option=c.options.find(e=>e.id===value);if(!option)throw Error('Недопустимый выбор.');
+    if(c.kind==='upgrade'&&d.gear[value]!==option.row)throw Error('Список оружия изменился. Откройте выбор заново.');
+    c.busy=true;if(c.kind==='upgrade')await sgUpgrade(c.key,value);else await sgSelectChoice(c.key,value);if(SGA_CONTEXT===c)sgaClose();return true;
+  }catch(error){if($('sga-error'))$('sga-error').textContent=error.message;return false;}finally{c.busy=false;}
+}
+gearItemDesc=function(row){
+  const base=SGA_ORIG.gearItemDesc(row),x=row?.starting_symbol;if(!x)return base;
+  const m=GEAR_MAP[row.item_id]?.stats?.chapter_trapping,variants=(m?.variants||[]).filter(v=>x.variants.includes(v.id));
+  return base+(m?.rules?'<p>'+esc(m.rules)+' Источник: '+esc(m.book)+', стр. '+m.page+'.</p>':'')+'<p><b>Выбрано:</b> '+esc(variants.map(v=>v.label+': '+v.effect).join('; ')||GEAR_MAP[row.item_id]?.name||row.name)+'</p>'+Object.entries(x.details||{}).map(([k,v])=>'<p>'+esc(k)+': '+esc(v)+'</p>').join('');
+};
+showGearInfo=function(row,key,index){
+  if(key==='gear'&&GEAR_MAP[row.item_id]?.stats?.starting_item_key==='special_ammo_clip'){
+    const rule=row.starting_grant?.claims?.find(k=>sgRules(S.character.character_data).some(r=>r.rule_key===k&&r.conditions?.per_mission));if(rule)return sgOpenAmmo(rule);
+  }
+  const slot=key==='gear'&&sgaGeneric(row)&&sgaUntouched(row)&&row.starting_grant?.claims?.find(k=>['common.symbol','spec.15.symbol'].includes(k));if(slot)return sgaOpenSymbol(slot);
+  return SGA_ORIG.showGearInfo(row,key,index);
+};
+BACKDROP_CLOSE['starting-choice-modal']=sgaClose;
+document.addEventListener('click',event=>{
+  const b=event.target.closest('[data-sga-symbol],[data-sga-choice],[data-sga-upgrade],[data-sga-cancel]');if(!b)return;event.preventDefault();event.stopPropagation();
+  if(b.hasAttribute('data-sga-cancel'))sgaClose();else if(b.hasAttribute('data-sga-symbol'))sgaOpenSymbol(b.dataset.sgaSymbol);else sgaOpenChoice(b.dataset.sgaChoice||b.dataset.sgaUpgrade,b.hasAttribute('data-sga-upgrade'));
+});
+document.addEventListener('change',event=>{if(event.target.id==='sga-item')sgaDrawSymbol();else if(event.target.hasAttribute('data-sga-variant'))sgaDrawDetails();});
+document.addEventListener('submit',event=>{if(event.target.id==='sga-form'){event.preventDefault();sgaApply();}});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('starting-choice-modal')?.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();sgaClose();}},true);
+
+</script>
 </body>
 </html>
 
