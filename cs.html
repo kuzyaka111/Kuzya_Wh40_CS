@@ -13937,7 +13937,7 @@ callRollApi=async function(body){
  const owner=S.character,record=SB.record.id,chronicle=SB.chronicleId;
  if(!await sbFlushQuick())throw Error('Не удалось сохранить изменения НПЦ перед броском.');
  if(S.character!==owner||SB.record.id!==record)throw Error('Статблок изменился. Откройте бросок заново.');
- if(!S.character.character_data.discord_rolls)return NPC_CONDITION_ORIG.roll(body);
+ if(!await mwNpcSend())return NPC_CONDITION_ORIG.roll(body);
  const request={...body,statblock_id:record,chronicle_id:chronicle};delete request.character_id;
  const r=await sbOriginalRuntime.callRollApi(request);SB_PLAY.lastRoll=r;return r;
 };
@@ -16635,7 +16635,7 @@ async function doDamageRoll(){
     // Validate without consuming randomness or sending a request.
     damageResolve({...input,hit:false},()=>1);
     let r;
-    if(sbActorActive()&&!S.character.character_data.discord_rolls){r={...damageResolve(input,sbRandomDie),delivered:false,skip:'npc_local'};}
+    if(sbActorActive()&&!await mwNpcSend()){r={...damageResolve(input,sbRandomDie),delivered:false,skip:'npc_local'};}
     else {
       if(sbActorActive()){if(!await sbFlushQuick())throw Error('Не удалось сохранить НПЦ перед броском.');if(!damageOwnerValid())throw Error('Статблок изменился.');}
       const request={action:'roll-damage',character_id:S.character.id,chronicle_id:S.chronicle?.id,weapon_name:w.name,damage:input};
@@ -16643,7 +16643,7 @@ async function doDamageRoll(){
       r=await sbOriginalRuntime.callRollApi(request);
     }
     if(!damageOwnerValid())return;
-    $('damage-result').innerHTML='<div class="roll-big ok">'+r.ordinary+'</div><div class="roll-verdict">Праведная ярость: <b>+'+r.fury+'</b></div><div class="roll-eq">С яростью: <b>'+r.total+'</b></div><div class="roll-lines">'+esc(damageResultLines(r).slice(3).join('\n'))+'</div><div class="desc">'+esc(r.skip==='npc_local'?'Бросок НПЦ · результат только на листе':r.delivered?'Отправлено в Discord':rollSkipText(r.skip))+'</div>';
+    $('damage-result').innerHTML='<div class="roll-big ok">'+r.ordinary+'</div><div class="roll-verdict">Праведная ярость: <b>+'+r.fury+'</b></div><div class="roll-eq">С яростью: <b>'+r.total+'</b></div><div class="roll-lines">'+esc(damageResultLines(r).slice(3).join('\n'))+'</div><div class="desc">'+esc(mwDeliveryText(r)||(r.skip==='npc_local'?'Бросок НПЦ · результат только на листе':r.delivered?'Отправлено в Discord':rollSkipText(r.skip)))+'</div>';
   }catch(e){$('damage-error').textContent='Бросок не выполнен: '+e.message;}
   finally{DAMAGE.busy=false;$('damage-go').disabled=!damageOwnerValid();}
 }
@@ -17067,7 +17067,7 @@ callRollApi=async function(body){
  let request=body;
  if(body.action==='roll'&&w&&w.stage!=='bs')request={...body,psychic_test:true,is_attack:w.variant.attack===true&&w.variant.hit==='focus',zone_mode:w.variant.hit==='focus'?(w.variant.zone||'reverse'):'none'};
  if(body.action==='roll-location'&&sbActorActive()){
-  if(!S.character.character_data.discord_rolls){const die=sbRandomDie(100);return {d100:die,target:100,mod:0,threshold:100,success:true,degrees:0,delivered:false,skip:'npc_local',location_only:true,hit_location:warpLocation(body.zone_mode,die)};}
+  if(!await mwNpcSend()){const die=sbRandomDie(100);return {d100:die,target:100,mod:0,threshold:100,success:true,degrees:0,delivered:false,skip:'npc_local',location_only:true,hit_location:warpLocation(body.zone_mode,die)};}
   const owner=S.character;if(!await sbFlushQuick())throw Error('Не удалось сохранить НПЦ.');if(S.character!==owner)throw Error('НПЦ изменился.');request={...body,statblock_id:SB.record.id,chronicle_id:SB.chronicleId};delete request.character_id;
  }
  const r=await WARP_ORIG.api(request);
@@ -17394,6 +17394,75 @@ function sqDamageRerolls(){const w=damageWeapons().find(w=>w.id===DAMAGE.weapon)
 doDamageRoll=async function(...args){const owner=S.character,weapon=DAMAGE.weapon,used=SQ_EFFECT.damageRerolling,current=SQ_EFFECT.cache.get(sqCacheKey(S.user?.id,owner?.chronicle_id))?.signature;if(SQ_EFFECT.damageSignature!==current){SQ_EFFECT.damageSignature=current;SQ_EFFECT.damageRerolling=false;renderDamageRoll();$('damage-error').textContent='Изменились активные способности. Проверьте обновлённые бонусы перед броском.';return;}await SQ_ORIG.doDamageRoll(...args);SQ_EFFECT.damageRerolling=false;if(S.character!==owner||!$('damage-result').textContent.trim())return;SQ_EFFECT.lastDamage={owner,weapon,used};const available=used?[]:sqDamageRerolls();if(available.length)$('damage-result').insertAdjacentHTML('beforeend','<div class="sq-roll-notes">'+available.map((x,i)=>'<div>'+esc(x.condition)+'</div><button type="button" class="btn" data-sq-damage-reroll="'+i+'">Перебросить урон · '+esc(x.a.row.name)+'</button>').join('')+'<div>Перебрасываются все кубики; используется второй результат.</div></div>');};
 $('damage-go').onclick=()=>doDamageRoll();
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-sq-reroll]');if(b){const last=SQ_EFFECT.lastRoll,choice=last&&sqRollRerolls(last.result)[Number(b.dataset.sqReroll)];if(!last||last.used||last.owner!==S.character||last.sel!==ROLL.sel||last.action!==ROLL.action||ROLL.busy||!choice)return;last.used=true;SQ_EFFECT.rerolling=true;if(choice.a.kind==='solo'&&choice.a.rank>=7&&[292,296].includes(Number(choice.a.ref.ability_id))){const rule=sqRules(S.character.character_data).find(r=>r.name===choice.a.row.name&&r.type==='check');if(rule)SQ_EFFECT.rollOn[rule.id]=true;}await SQ_ORIG.doRoll();if(SQ_EFFECT.rerolling){SQ_EFFECT.rerolling=false;last.used=false;}return;}const damage=e.target.closest('[data-sq-damage-reroll]');if(damage){const last=SQ_EFFECT.lastDamage;if(!last||last.used||last.owner!==S.character||last.weapon!==DAMAGE.weapon||DAMAGE.busy||!sqDamageRerolls()[Number(damage.dataset.sqDamageReroll)])return;last.used=true;SQ_EFFECT.damageRerolling=true;await doDamageRoll();}});
+
+</script>
+<script id="master-webhook-v1">
+// Master channel configuration is saved separately from sheet parameters.
+const MW={context:null,config:null,busy:false};
+function mwContext(){
+ if(!S.character||!S.user||!S.chronicle)return null;
+ const npc=sbActorActive();
+ return {owner:S.character,chronicle:S.chronicle.id,user:S.user.id,role:S.role,key:npc?'npc:'+SB.record.id:'character:'+S.character.id,body:{chronicle_id:S.chronicle.id,user_id:S.user.id,...(npc?{statblock_id:SB.record.id}:{character_id:S.character.id})}};
+}
+function mwValid(c){const n=mwContext();return !!n&&n.owner===c.owner&&n.key===c.key&&n.chronicle===c.chronicle&&n.user===c.user&&n.role===c.role;}
+async function mwNpcSend(){
+ if(S.character.character_data.discord_rolls===true)return true;
+ const c=mwContext();if(!c)throw Error('Лист изменился.');
+ const cfg=await sbOriginalRuntime.callRollApi({action:'get-master-webhook',...c.body});
+ if(!mwValid(c))throw Error('Лист изменился. Откройте бросок заново.');
+ return cfg.has_url&&cfg.enabled;
+}
+function mwPaint(){
+ const p=$('master-webhook-panel');if(!p)return;
+ const c=MW.config;p.hidden=S.role!=='gm';
+ $('master-webhook-add').hidden=!!c?.has_url;
+ $('master-webhook-editor').hidden=!c?.has_url;
+ $('master-webhook-url').value='';
+ $('master-webhook-url').placeholder=c?.has_url?'Адрес сохранён — введите новый для замены':'https://discord.com/api/webhooks/...';
+ $('master-webhook-enabled').checked=c?.enabled===true;
+ $('master-webhook-note').textContent=c?.has_url?'Адрес сохранён'+(c.hint?' · '+c.hint:'')+'. '+(c.enabled?'Отправка включена.':'Отправка выключена.'):'Адрес ещё не задан.';
+}
+async function mwOpen(){
+ MW.context=mwContext();MW.config=null;MW.busy=false;mwPaint();
+ const c=MW.context;if(!c||c.role!=='gm')return;
+ $('master-webhook-add').disabled=true;
+ try{const cfg=await sbOriginalRuntime.callRollApi({action:'get-master-webhook',...c.body});if(!mwValid(c)||MW.context!==c)return;MW.config=cfg;mwPaint();}
+ catch(e){if(mwValid(c)&&MW.context===c)$('master-webhook-note').textContent=e.message;}
+ finally{if(MW.context===c)$('master-webhook-add').disabled=false;}
+}
+async function mwSave(clear=false){
+ const c=MW.context;if(MW.busy||!c||c.role!=='gm'||!mwValid(c))return;
+ MW.busy=true;const buttons=['master-webhook-save','master-webhook-remove'];buttons.forEach(id=>$(id).disabled=true);
+ try{
+  const cfg=await sbOriginalRuntime.callRollApi({action:'set-master-webhook',...c.body,webhook_url:$('master-webhook-url').value.trim(),enabled:$('master-webhook-enabled').checked,clear});
+  if(!mwValid(c)||MW.context!==c)return;
+  MW.config=cfg;mwPaint();toast(clear?'Вебхук Мастера убран':'Вебхук Мастера сохранён');
+ }catch(e){if(mwValid(c)&&MW.context===c)$('master-webhook-note').textContent=e.message;}
+ finally{if(MW.context===c){MW.busy=false;buttons.forEach(id=>$(id).disabled=false);}}
+}
+const MW_OPEN_SETTINGS=openSettings;
+openSettings=function(...args){const r=MW_OPEN_SETTINGS(...args);mwOpen();return r;};
+const MW_NPC_SETTINGS=sbOpenPlaySettings;
+sbOpenPlaySettings=async function(...args){const r=await MW_NPC_SETTINGS(...args);await mwOpen();return r;};
+const MW_CLOSE=doCloseSettings;
+doCloseSettings=function(...args){MW.context=null;MW.config=null;return MW_CLOSE(...args);};
+document.addEventListener('DOMContentLoaded',()=>{
+ const host=$('settings-modal').querySelector('.settings-opts');
+ host.insertAdjacentHTML('beforeend','<div id="master-webhook-panel" hidden style="padding:12px 0"><button type="button" class="settings-opt-btn" id="master-webhook-add">Добавить Вебхук Мастера</button><div id="master-webhook-editor" hidden><div class="settings-opt-name">Вебхук Мастера</div><div class="settings-opt-desc">Отдельный канал для бросков этого листа. Работает независимо от канала хроники. Эти настройки сохраняются отдельной кнопкой «Сохранить вебхук».</div><label for="master-webhook-url">Адрес вебхука</label><input id="master-webhook-url" class="editable-field vox-webhook" autocomplete="off" style="width:100%;box-sizing:border-box;margin:8px 0"><label class="settings-opt-check"><input type="checkbox" id="master-webhook-enabled"> Отправлять броски в канал Мастера</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" class="modal-confirm" id="master-webhook-save">Сохранить вебхук</button><button type="button" class="modal-close" id="master-webhook-remove">Убрать вебхук</button></div></div><p class="desc" id="master-webhook-note" aria-live="polite"></p></div>');
+ $('master-webhook-add').onclick=()=>{if(S.role!=='gm')return;$('master-webhook-editor').hidden=false;$('master-webhook-add').hidden=true;$('master-webhook-enabled').checked=true;$('master-webhook-url').focus();};
+ $('master-webhook-save').onclick=()=>mwSave();
+ $('master-webhook-remove').onclick=()=>{if(confirm('Убрать второй вебхук этого листа?'))mwSave(true);};
+});
+function mwDeliveryText(r){
+ if(!r.master_delivery)return '';
+ const primary=r.primary_delivery?.delivered,master=r.master_delivery.delivered;
+ if(primary&&master)return 'Отправлено в канал хроники и канал Мастера';
+ if(master)return 'Отправлено в канал Мастера'+(r.primary_delivery?.skip==='char_off'?'':' · канал хроники: '+rollSkipText(r.primary_delivery?.skip));
+ if(primary)return 'Отправлено в канал хроники'+(['no_url','master_off'].includes(r.master_delivery.skip)?'':' · не удалось отправить в канал Мастера');
+ return ['no_url','master_off'].includes(r.master_delivery.skip)?'':'Не удалось отправить в канал Мастера';
+}
+const MW_SHOW_RESULT=showRollResult;
+showRollResult=function(r){const out=MW_SHOW_RESULT(r),text=mwDeliveryText(r),note=$('roll-result')?.querySelector('.desc');if(text&&note)note.textContent=text;return out;};
 
 </script>
 </body>
