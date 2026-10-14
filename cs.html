@@ -2783,7 +2783,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
     <div class="action-foot"><button type="button" class="modal-close" id="action-cancel">Отменить</button><button type="button" class="modal-confirm" id="action-confirm" disabled>Подтвердить</button></div>
     <div id="action-selected" class="action-selected" hidden></div>
     <div class="action-error" id="action-error" role="alert"></div>
-    <div class="action-choose-toolbar"><button type="button" class="modal-close" id="action-add-custom">+ Добавить своё</button></div>
+    <div class="action-choose-toolbar"><button type="button" class="modal-close" id="action-add-custom">+ Добавить своё</button><button type="button" class="modal-confirm" id="action-damage">Бросить урон</button></div>
     <div class="desc" id="action-load-status" role="status"></div>
     <button type="button" class="modal-close" id="action-retry" hidden>Повторить загрузку</button>
     <div id="action-choices"></div>
@@ -13792,7 +13792,7 @@ callRollApi=async function(body){
 showRollResult=function(r){
  sbOriginalRuntime.showRollResult(r);if(!sbActorActive())return;
  const note=$('roll-result').querySelector('.desc');if(note)note.textContent='Бросок НПЦ · '+S.character.name;
- if(ROLL.action?.row.requires_weapon&&r.success){$('roll-result').insertAdjacentHTML('beforeend','<button type="button" class="modal-confirm" data-sb-play="damage">Урон оружия</button>');}
+
 };
 function sbRollWill(name,modifier=0){openRoll({kind:'stat',sel:{kind:'stat',id:'stat:sv',statKey:'sv',name,characteristic:'Сила Воли'}});if(modifier){ROLL.temp.push({label:name,value:modifier});renderRoll();}}
 function sbDamageExpression(expr,extraDice=0){
@@ -16469,6 +16469,207 @@ squadChannel?.addEventListener('message',e=>{if(e.data?.chronicle===SQUAD.chroni
 charChannel?.addEventListener('message',()=>{if(squadIsOpen())squadLoad(true);});
 window.addEventListener('focus',()=>{if(squadIsOpen())squadLoad(true);});
 setInterval(()=>{if(squadIsOpen()&&!document.hidden)squadLoad(true);},15000);
+
+</script>
+<script data-feature="weapon-damage">
+// Deathwatch Core pp. 245/276; Living Errata 1.1 p. 5.
+// Shared by the sheet's local NPC rolls and the server. Natural dice are retained.
+function damageParseExpression(value){
+  const s=String(value||'').trim().toLowerCase().replace(/[кд]/g,'d').replace(/[−–]/g,'-').replace(/\s+/g,'');
+  const m=/^(\d{1,2})d(5|10)((?:[+-]\d{1,4})*)$/.exec(s);
+  if(!m||Number(m[1])<1||Number(m[1])>20)throw Error('Укажите урон в формате 1к10+5 или 1к5−3 (используйте знак -).');
+  const flat=(m[3].match(/[+-]\d+/g)||[]).reduce((n,x)=>n+Number(x),0);
+  if(Math.abs(flat)>9999)throw Error('Слишком большой бонус профиля.');
+  return {count:Number(m[1]),sides:Number(m[2]),flat,expression:s};
+}
+function damageInteger(value,min,max,label){
+  const n=Number(value);if(!Number.isSafeInteger(n)||n<min||n>max)throw Error('Некорректное значение: '+label);return n;
+}
+function damageResolve(input,die){
+  const p=damageParseExpression(input.expression);
+  const bonus=damageInteger(input.bonus??0,-9999,9999,'бонус урона');
+  const extra=damageInteger(input.extra_dice??0,0,20,'дополнительные к10');
+  const accurate=damageInteger(input.accurate_dice??0,0,2,'Точное');
+  const proven=damageInteger(input.proven??0,0,10,'Проверенное');
+  const trigger=damageInteger(input.fury_trigger??10,8,10,'порог ярости');
+  const degrees=damageInteger(input.degrees??0,0,1998,'степени успеха');
+  const threshold=damageInteger(input.confirm_target??0,-1998,1998,'порог подтверждения');
+  const natural=()=>damageInteger(die(10),1,10,'кубик');
+  const dice=Array.from({length:p.count+(input.tearing===true?1:0)},()=>{const raw=natural();return {raw,value:Math.max(proven,p.sides===5?Math.ceil(raw/2):raw),discarded:false};});
+  const horde=Array.from({length:extra},()=>{const raw=natural();return {raw,value:raw};});
+  const precision=Array.from({length:accurate},()=>{const raw=natural();return {raw,value:raw};});
+  const pool=[...dice,...horde,...precision];
+  if(input.tearing===true){const lowest=pool.reduce((a,b)=>a.value<=b.value?a:b);lowest.discarded=true;}
+  const kept=pool.filter(d=>!d.discarded);
+  // A single damage die may be replaced by attack degrees; replacement is not natural.
+  if(input.hit===true&&input.replace_degrees===true&&degrees>0){const d=kept.reduce((a,b)=>a.value<=b.value?a:b);if(degrees>d.value){d.before=d.value;d.value=degrees;d.replaced=true;}}
+  const ordinary=Math.max(0,kept.reduce((n,d)=>n+d.value,p.flat+bonus));
+  // Deathwatch's Accurate adds damage dice; unlike some other game lines it does
+  // not exclude them from Fury (Core p. 142). Misses never trigger it automatically.
+  const eligible=kept;
+  const triggered=input.hit===true&&input.fury_allowed===true&&eligible.some(d=>d.raw>=trigger);
+  let confirmed=false,confirmation=null,fury=0;const furyDice=[];
+  if(triggered){
+    if(input.auto_confirm===true||(input.volatile===true&&eligible.some(d=>d.raw===10)))confirmed=true;
+    else {const roll=damageInteger(die(100),1,100,'подтверждение');confirmation={d100:roll,target:threshold,success:roll<=threshold};confirmed=confirmation.success;}
+    if(confirmed){for(let i=0;;i++){if(i===100)throw Error('Цепочка ярости превысила 100 кубиков; результат не завершён.');const raw=natural();furyDice.push(raw);fury+=raw;if(raw!==10)break;}}
+  }
+  return {expression:p.expression,profile_bonus:p.flat,bonus,dice,extra_dice:horde,accurate_dice:precision,ordinary,fury,total:ordinary+fury,fury_dice:furyDice,triggered,confirmed,confirmation,auto_confirm:triggered&&confirmation===null,hit:input.hit===true,fury_allowed:input.fury_allowed===true,notes:Array.isArray(input.notes)?input.notes.map(x=>String(x).slice(0,200)).slice(0,12):[]};
+}
+function damageResultLines(r){
+  const diceText=d=>String(d.raw)+(d.raw!==d.value?' → '+d.value:'')+(d.discarded?' (отброшен)':'')+(d.replaced?' (степени успеха)':'');
+  const lines=['Обычный урон: '+r.ordinary,'Праведная ярость: +'+r.fury,'С яростью: '+r.total,'Профиль: '+r.expression+' · Бонусы: '+(r.bonus>=0?'+':'')+r.bonus,'Кубики: '+r.dice.map(diceText).join(', ')];
+  if(r.extra_dice.length)lines.push('Дополнительные к10: '+r.extra_dice.map(diceText).join(', '));
+  if(r.accurate_dice.length)lines.push('Точное: '+r.accurate_dice.map(diceText).join(', '));
+  if(!r.hit)lines.push('Попадание не подтверждено — ярость не применяется.');
+  else if(!r.fury_allowed)lines.push('Праведная ярость для этого броска выключена.');
+  else if(!r.triggered)lines.push('Условия Праведной ярости не выполнены.');
+  else if(r.auto_confirm)lines.push('Праведная ярость подтверждена автоматически.');
+  else if(r.confirmation)lines.push('Подтверждение ярости: '+r.confirmation.d100+' ≤ '+r.confirmation.target+' — '+(r.confirmed?'успех':'провал'));
+  if(r.fury_dice.length)lines.push('Кубики ярости: '+r.fury_dice.join(', '));
+  return [...lines,...r.notes];
+}
+
+// Damage is a separate optional roll, including after an unsuccessful attack.
+const DAMAGE={owner:null,weapon:'',attack:null,busy:false,lastAttack:null,npcId:null};
+function damageTrait(pattern){
+  const d=S.character?.character_data||{};
+  return [...(d.talents||[]),...(d.traits||[]),...(d.features||[])].some(x=>pattern.test(typeof x==='string'?x:x?.name||''));
+}
+function damageWeapons(){
+  const d=S.character.character_data;
+  return actionWeapons(d).map(w=>{
+    const p={...w.profile},row=w.id.startsWith('gear:')?d.gear?.[Number(w.id.slice(5))]:null;
+    // The table helper already adds Strength/quality/modifiers. Use its base resolver
+    // so damage bonuses are itemised and applied exactly once here.
+    const baseProfile=typeof EA_ORIG!=='undefined'?EA_ORIG.gearEffWeapon:gearEffWeapon;
+    let profile=row?{...baseProfile(row,p)}:p,ammo=null;
+    if(row&&LAUNCHER_CLASSES.has(String(p.class||''))){const rocket=gearRocketRow(row),rp=rocket&&gearResolve(rocket);profile.qualities=[...(p.qualities||[]),...(rp?.qualities||[])];}
+    if(w.id.startsWith('dw:')){
+      const model=dwModel(d),inst=dwInstance(d),slot=w.id.slice(3),code=inst?.loadout?.[slot]||model?.slots?.find(x=>x.code===slot)?.default;
+      const state=inst?.weapons?.[slot+':'+code];profile=dwWeaponProfile(d,dwGear(code),state);profile.damage_bonuses_included=true;
+      if(profile.ammo_dependent&&!state?.rocket_id)profile.dmg='Зависит от выбранной ракеты';
+    }
+    if(row){const loaded=(d.ammo||[]).filter(a=>a.loaded&&a.weapon===row.name&&ammoMatchesWeapon(AMMO_MAP[a.ammo_id]?.used_for||a.class,a.ammo_id,row,p));const a=loaded.at(-1);ammo=a?AMMO_MAP[a.ammo_id]||{name:a.name}:null;}
+    const npcRow=w.id.startsWith('npc:')?sbData()?.weapons?.[Number(w.id.slice(4))]:null;
+    return {...w,profile,row,ammo,npcRow};
+  }).concat([{id:'unarmed',name:'Без оружия',label:'Без оружия',type:'unarmed',profile:{dmg:damageTrait(/Мастер кулачного боя|Unarmed Master/i)?'1d10':damageTrait(/Кулачный боец|Unarmed Warrior/i)?'1d10-3':'1d5-3',dmg_type:'Ударный'}}]);
+}
+function damageQuality(w,id,pattern){
+  const ref=(w.profile.qualities||[]).find(q=>Number(q?.qid??q)===id);
+  if(ref!=null)return {param:Number(ref.param)||0};
+  const text=[w.npcRow?.qualities,w.profile.qualities_text,...(w.profile.source_qualities||[])].filter(Boolean).join(' ');
+  const m=pattern.exec(text);return m?{param:Number(m[1])||0}:null;
+}
+function damageFlatMods(d,w,target){
+  const names=new Set(['all','gear',w.type,w.profile.class]);
+  return permMods(d).filter(m=>m.target===target&&names.has(m.target_name)&&m.mode==='add').reduce((n,m)=>n+(Number(m.effect)||0),0);
+}
+function damageStrength(d){
+  if(dwActive(d))return statBonus(d,'sil');
+  const pre=charBase(d,'sil')+modsAdd(d,'stat','sil','pre');
+  return Math.floor(Math.floor(pre/10)*modsMul(d,'stat','sil'))+Math.floor(modsAdd(d,'stat','sil','post')/10);
+}
+function damageDefaults(w){
+  const d=S.character.character_data,melee=['weapon_melee','shield','unarmed'].includes(w.type),npc=sbActorActive(),p=w.profile;
+  const a=DAMAGE.attack?.weapon_id===w.id?DAMAGE.attack:null,notes=[];
+  let bonus=damageFlatMods(d,w,'weapon_damage'),pen=(Number(p.pen)||0)+damageFlatMods(d,w,'armor_penetration');
+  let expression=String(p.dmg||'').split('·')[0].trim(),tearing=!!damageQuality(w,11,/Разрывающ|Tearing/i),proven=damageQuality(w,9,/(?:Проверенное|Proven)\s*\(?\s*(\d+)/i)?.param||0,trigger=10;
+  if(melee&&(!npc||w.type==='unarmed')&&!p.damage_bonuses_included&&!p.includes_strength_bonus){
+    let strength=npc?(sbBonus(sbData(),'sil')||0):damageStrength(d);
+    // Core fist rule and errata hammer rule. Explicit known catalogue IDs only.
+    if([144,163,168].includes(Number(w.row?.item_id)))strength*=2;
+    if(Number(w.row?.item_id)===143)strength+=Math.floor((charBase(d,'sil')+modsAdd(d,'stat','sil','pre'))/10);
+    bonus+=strength;notes.push('Бонус Силы: +'+strength);
+  }
+  if(!npc&&!p.damage_bonuses_included)bonus+=gearPsyDamageBonus(p,d);
+  if(w.row){const quality=typeof eaWeaponBonus==='function'?eaWeaponBonus(w.row):(melee&&gearItemQuality(w.row)==='И'?1:0);if(quality){bonus+=quality;notes.push('Качество оружия: +'+quality+' урона');}}
+  if(a?.damage_bonuses)for(const m of a.damage_bonuses){if(['all',w.type].includes(m.target_name)){bonus+=m.effect;notes.push(m.name+': +'+m.effect);}}
+  if(npc&&melee&&w.type!=='unarmed')notes.push('Профиль НПЦ уже включает бонус Силы.');
+  const ammoId=Number(w.ammo?.id);
+  if(w.ammo)notes.push('Боеприпас: '+w.ammo.name);
+  if([2,6,12].includes(ammoId))tearing=true;
+  if(ammoId===12)trigger=9;
+  const vengeful=damageQuality(w,82,/(?:Мстительное|Vengeful)\s*\(?\s*(\d+)/i)?.param;if(vengeful>=8&&vengeful<=10)trigger=Math.min(trigger,vengeful);
+  if([11,15].includes(ammoId)||(ammoId===3&&!/сталкер|stalker/i.test(w.name)))bonus-=2;
+  if(ammoId===10)pen=8;if(ammoId===13)pen=9;if(ammoId===11)pen-=2;if(ammoId===4)pen+=5;if([6,28].includes(ammoId))pen+=1;if(ammoId===26)pen-=3;
+  const accurate=!!damageQuality(w,12,/Точное|Accurate/i)&&/^(л[её]гкое|basic)$/i.test(String(p.weight_class||w.npcRow?.weapon_type||''));
+  const hit=a?!!a.success:true;
+  const accurateDice=accurate&&hit&&a?.single&&a?.aimed?Math.min(2,Math.floor(a.degrees/2)):0;
+  const situation=(d.modifiers?.cond||[]).filter(m=>m.target==='weapon_damage'&&m.mode==='add'&&['all','gear',w.type,p.class].includes(m.target_name));
+  const dmgType=[7,25].includes(ammoId)?'Взрывной':ammoId===8?'Энергетический':p.dmg_type;
+  return {expression,bonus,pen:Math.max(0,pen),tearing,proven,trigger,accurate,accurateDice,hit,attack:a,notes,situation,dmgType,volatile:!!damageQuality(w,14,/Яростное|Volatile/i),deathwatch:damageTrait(/Подготовка караульного|Deathwatch Training/i),eye:damageTrait(/Глаз мстителя|Eye of Vengeance/i)&&w.type==='weapon_ranged'&&ammoId!==11&&ammoId!==15&&ammoId!==8&&ammoId!==26&&!/Взрыв|Explosive/i.test(dmgType||'')&&!damageQuality(w,5,/Зажигательное|Flame/i)};
+}
+function damageOwnerValid(){return !!S.character&&S.character===DAMAGE.owner&&(!sbActorActive()||SB.record?.id===DAMAGE.npcId)&&!editMode;}
+function openDamageRoll(attack=null){
+  if(!S.character||editMode||ROLL.busy||DAMAGE.busy)return;
+  if(sbActorActive()&&SB.draft)return toast('Завершите редактирование перед броском.');
+  DAMAGE.owner=S.character;DAMAGE.npcId=sbActorActive()?SB.record?.id:null;DAMAGE.attack=attack;DAMAGE.weapon=attack?.weapon_id||'';
+  closeSheetModal('action-modal');$('damage-modal').classList.add('active');renderDamageRoll();
+}
+function damageCheckbox(id,label,checked=false){return '<label class="damage-check"><input type="checkbox" id="'+id+'"'+(checked?' checked':'')+'> '+esc(label)+'</label>';}
+function renderDamageRoll(){
+  const weapons=damageWeapons(),w=weapons.find(x=>x.id===DAMAGE.weapon),host=$('damage-params');
+  $('damage-weapon').innerHTML='<option value="">Выберите оружие…</option>'+weapons.map(x=>'<option value="'+escAttr(x.id)+'"'+(x.id===DAMAGE.weapon?' selected':'')+'>'+esc(x.label)+'</option>').join('');
+  $('damage-result').innerHTML='';$('damage-error').textContent='';$('damage-go').disabled=!w;host.innerHTML='';if(!w)return;
+  const c=damageDefaults(w),a=c.attack;let special=false;try{damageParseExpression(c.expression);}catch(e){special=true;}
+  const confirm=a?a.threshold:Math.max(0,charBase(S.character.character_data,['weapon_melee','shield','unarmed'].includes(w.type)?'bb':'db')+rollMods(S.character.character_data,['weapon_melee','shield','unarmed'].includes(w.type)?'bb':'db').filter(m=>m.locked).reduce((n,m)=>n+Number(m.value||0),0));
+  const field=(id,label,value,attrs='')=>'<label>'+label+'<input id="'+id+'" value="'+escAttr(value)+'" '+attrs+'></label>';
+  const note=special?'Особый профиль: '+c.expression+'. Укажите формулу по правилу оружия; она не подставляется автоматически.':'Профиль оружия: '+c.expression+' · ББ: '+c.pen;
+  const description=w.npcRow?.description||(w.row?.item_id?GEAR_MAP[w.row.item_id]?.description:'');
+  host.innerHTML='<div class="desc">'+esc(note)+'</div>'+(description?'<details><summary>Особые правила оружия</summary><div class="desc">'+esc(description.replace(/<[^>]*>/g,' ').replace(/\s+/g,' '))+'</div></details>':'')+(w.ammo?.description?'<details><summary>Правило боеприпаса</summary><div class="desc">'+esc(w.ammo.description.replace(/<[^>]*>/g,' ').replace(/\s+/g,' '))+'</div></details>':'')
+    +'<div class="damage-grid">'+field('damage-expression',special?'Формула особого урона':'Урон оружия',special?'':c.expression,special?'placeholder="Например, 2к10+5"':'readonly')+field('damage-bonus','Бонусы к урону',c.bonus,'type="number" min="-9999" max="9999" step="1"')+field('damage-extra','Дополнительные к10',sbActorActive()?sbHordeDamageDice(sbData()):0,'type="number" min="0" max="20" step="1"')+field('damage-confirm','Порог подтверждения ярости',confirm,'type="number" min="-1998" max="1998" step="1"')+field('damage-degrees','Степени успеха атаки',a?.success?a.degrees:0,'type="number" min="0" max="1998" step="1"')+'</div>'
+    +damageCheckbox('damage-hit','Попадание засчитано',c.hit)
+    +damageCheckbox('damage-fury','Применять Праведную ярость',!sbActorActive()||damageTrait(/^(?:Мастер|Master)(?:\s*\(\d+\))?$|Touched by the Fates|Отмеченн.*Судьб/i))
+    +(c.deathwatch?damageCheckbox('damage-xenos','Цель — ксенос (Подготовка караульного)'):'')
+    +(c.eye?damageCheckbox('damage-eye','Объявлен Глаз мстителя: одиночная атака'):'')
+    +(c.accurate?damageCheckbox('damage-accurate','Одиночный прицельный выстрел из Точного лёгкого оружия',!!(a?.single&&a?.aimed)):'')
+    +damageCheckbox('damage-replace','Заменить один низкий кубик степенями успеха',true)
+    +c.situation.map((m,i)=>damageCheckbox('damage-situation-'+i,(m.name||'Ситуативный бонус')+': '+(m.effect>=0?'+':'')+m.effect)).join('')
+    +'<label>Праведная ярость на натуральном результате<select id="damage-trigger">'+[10,9,8].map(n=>'<option value="'+n+'"'+(n===c.trigger?' selected':'')+'>'+n+(n<10?' и выше':'')+'</option>').join('')+'</select></label>'
+    +'<div class="desc">'+esc([c.tearing?'Разрывающее: дополнительный кубик, меньший отбрасывается.':'',c.proven?'Проверенное ('+c.proven+').':'',c.volatile?'Яростное: подтверждение ярости автоматически.':'',c.trigger<10?'Праведная ярость на натуральной 9 или 10.':'',...c.notes].filter(Boolean).join(' '))+'</div>'
+    +'<div class="desc">Один бросок — урон одного попадания. Дополнительные условия оружия и боеприпаса задайте в бонусах и кубиках. Для отдельного броска укажите порог со всеми модификаторами атаки. После промаха ярость применяется только если попадание засчитано.</div>';
+}
+async function doDamageRoll(){
+  if(DAMAGE.busy)return;
+  if(!damageOwnerValid()){$('damage-error').textContent='Персонаж изменился. Откройте бросок заново.';return;}
+  const w=damageWeapons().find(x=>x.id===DAMAGE.weapon);if(!w)return;
+  const c=damageDefaults(w),read=id=>$(id)?.checked===true;
+  const input={expression:$('damage-expression').value,bonus:$('damage-bonus').value,extra_dice:$('damage-extra').value,confirm_target:$('damage-confirm').value,degrees:$('damage-degrees').value,hit:read('damage-hit'),fury_allowed:read('damage-fury'),tearing:c.tearing,proven:c.proven,fury_trigger:$('damage-trigger').value,volatile:c.volatile,accurate_dice:read('damage-accurate')?Math.min(2,Math.floor(Number($('damage-degrees').value)/2)):0,replace_degrees:read('damage-replace'),auto_confirm:(c.deathwatch&&read('damage-xenos'))||(c.eye&&read('damage-eye')),notes:[...c.notes,'ББ: '+c.pen+(w.profile.dmg_type?' · '+w.profile.dmg_type:'')]};
+  input.notes[input.notes.length-1]='ББ: '+c.pen+(c.dmgType?' · '+c.dmgType:'');
+  for(const [i,m]of c.situation.entries())if(read('damage-situation-'+i)){input.bonus=Number(input.bonus)+Number(m.effect);input.notes.push((m.name||'Ситуативный бонус')+': '+m.effect);}
+  DAMAGE.busy=true;$('damage-go').disabled=true;$('damage-error').textContent='';$('damage-result').textContent='';
+  try{
+    // Validate without consuming randomness or sending a request.
+    damageResolve({...input,hit:false},()=>1);
+    let r;
+    if(sbActorActive()&&!S.character.character_data.discord_rolls){r={...damageResolve(input,sbRandomDie),delivered:false,skip:'npc_local'};}
+    else {
+      if(sbActorActive()){if(!await sbFlushQuick())throw Error('Не удалось сохранить НПЦ перед броском.');if(!damageOwnerValid())throw Error('Статблок изменился.');}
+      const request={action:'roll-damage',character_id:S.character.id,chronicle_id:S.chronicle?.id,weapon_name:w.name,damage:input};
+      if(sbActorActive()){request.statblock_id=SB.record.id;request.chronicle_id=SB.chronicleId;delete request.character_id;}
+      r=await sbOriginalRuntime.callRollApi(request);
+    }
+    if(!damageOwnerValid())return;
+    $('damage-result').innerHTML='<div class="roll-big ok">'+r.ordinary+'</div><div class="roll-verdict">Праведная ярость: <b>+'+r.fury+'</b></div><div class="roll-eq">С яростью: <b>'+r.total+'</b></div><div class="roll-lines">'+esc(damageResultLines(r).slice(3).join('\n'))+'</div><div class="desc">'+esc(r.skip==='npc_local'?'Бросок НПЦ · результат только на листе':r.delivered?'Отправлено в Discord':rollSkipText(r.skip))+'</div>';
+  }catch(e){$('damage-error').textContent='Бросок не выполнен: '+e.message;}
+  finally{DAMAGE.busy=false;$('damage-go').disabled=!damageOwnerValid();}
+}
+const damagePreviousResult=showRollResult;
+showRollResult=function(r){
+  damagePreviousResult(r);DAMAGE.lastAttack=null;
+  if(!actionAttackCheck())return;
+  const weaponId=ROLL.action?.weapon_id||'';
+  DAMAGE.lastAttack={owner:S.character,weapon_id:weaponId,success:!!r.success,degrees:r.degrees||0,threshold:r.threshold??r.target+(r.mod||0),single:!['full_auto','semi_auto','suppressing_fire'].includes(ROLL.action?.row.code),aimed:rollModRows().some(m=>m.prepared==='aim'&&m.on),damage_bonuses:(typeof eaRollItems==='function'?eaRollItems():[]).filter(a=>a.target==='damage'&&a.on).map(a=>({name:a.name,target_name:a.target_name,effect:a.effect}))};
+  const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.id='roll-damage';b.textContent='Бросить урон';
+  b.onclick=()=>{if(DAMAGE.lastAttack?.owner===S.character)openDamageRoll(DAMAGE.lastAttack);};document.querySelector('#roll-result .roll-result-acts').append(b);
+};
+const damageStyle=document.createElement('style');damageStyle.textContent='#damage-modal{z-index:1300}#damage-modal .modal-box{max-width:620px;max-height:90vh;overflow:auto}.damage-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.damage-check{display:flex;gap:8px;align-items:center;margin:10px 0}.damage-check input{width:auto;margin:0}#damage-result .roll-lines{white-space:pre-wrap}#damage-modal .desc{margin:10px 0}#damage-modal .action-foot{position:static}#damage-modal .action-foot button{margin:0;overflow-wrap:normal}@media(max-width:480px){.damage-grid{grid-template-columns:1fr}#damage-modal .action-foot{flex-direction:column;align-items:stretch}#damage-modal .action-foot button{width:100%;flex:auto}}';document.head.append(damageStyle);
+const damageModal=document.createElement('div');damageModal.id='damage-modal';damageModal.className='modal-overlay';damageModal.innerHTML='<div class="modal-box"><h3>Бросить урон</h3><label>Оружие<select id="damage-weapon"></select></label><div id="damage-params"></div><div id="damage-error" class="action-error" role="alert"></div><div class="action-foot"><button type="button" class="modal-close" id="damage-close">Закрыть</button><button type="button" class="modal-confirm" id="damage-go" disabled>Бросить урон</button></div><div id="damage-result" role="status" aria-live="polite"></div></div>';document.body.append(damageModal);
+$('damage-weapon').onchange=e=>{if(DAMAGE.busy){e.target.value=DAMAGE.weapon;return;}DAMAGE.weapon=e.target.value;renderDamageRoll();};
+$('damage-go').onclick=doDamageRoll;$('damage-close').onclick=()=>{if(!DAMAGE.busy)$('damage-modal').classList.remove('active');};
+$('action-damage').onclick=()=>openDamageRoll();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!DAMAGE.busy)$('damage-modal').classList.remove('active');});
 
 </script>
 </body>
