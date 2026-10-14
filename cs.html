@@ -2766,7 +2766,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 
       <div class="roll-mods-head">
         <span class="desc" style="margin:0">Модификаторы броска</span>
-        <span class="skill-filter-toggle" id="roll-add-mod" title="Разовый модификатор, не сохраняется">+ Свой модификатор</span>
+        <button type="button" class="skill-filter-toggle" id="roll-add-mod" title="Добавить разовый или сохранить ситуативный модификатор">+ Свой модификатор</button>
       </div>
       <div id="roll-mods" class="roll-mods"></div>
       <div class="roll-err hidden" id="roll-err"></div>
@@ -6701,7 +6701,7 @@ function rollMods(d, k){
     const isStat  = m.target === 'stat' && (m.target_name === k || m.target_name === 'all');
     if (!isCheck && !isStat) return;
     const label = m.name || (isCheck ? 'Проверки' : (statFullName(k) || 'Характеристика'));
-    out.push({ label, value: Number(m.effect) || 0, section, locked, ...(isArmourAutoSenses(m) ? armourAutoSenses(d) : {}) });
+    out.push({ label, value: Number(m.effect) || 0, section, locked, source:m.source || '', ...(isArmourAutoSenses(m) ? armourAutoSenses(d) : {}) });
   };
   const mm = d.modifiers || {};
   (mm.perm || []).forEach(m => add(m, 'perm', true));
@@ -8780,14 +8780,7 @@ function bindRollModal(){
       $('roll-params').classList.remove('collapsed');
       renderRoll();
     }));
-  $('roll-add-mod').addEventListener('click', () => {
-    const raw = prompt('Разовый модификатор броска.\nНапример: +5 Аура или -10 Холод\nВ лист не сохраняется.');
-    if (raw == null) return;
-    const m = String(raw).trim().match(/^([+-]?\d+)\s*(.*)$/);
-    if (!m){ toast('Нужно число, например «+5 Аура»'); return; }
-    ROLL.temp.push({ label:(m[2] || 'Разовый').trim(), value:parseInt(m[1], 10) });
-    renderRollMods(); renderRollTotal();
-  });
+  $('roll-add-mod').addEventListener('click', () => rmcOpen());
   $('roll-go').addEventListener('click', doRoll);
   $('roll-cancel').addEventListener('click', closeRoll);
   wrap.addEventListener('click', e => {
@@ -9247,7 +9240,7 @@ function modSourceTag(m){
 function renderModDraft(){
   const df = MOD_DRAFT;
   if (!df) return '';
-  const targetOpts = MOD_TARGETS.map(([v, l]) =>
+  const targetOpts = (df.section === 'perm' ? MOD_TARGETS.map(([v,l]) => v === 'check' ? ['skill','Умения'] : [v,l]).concat(df.target === 'check' ? [['check','Проверки (старая запись)']] : []) : MOD_TARGETS).map(([v, l]) =>
     `<option value="${v}"${df.target === v ? ' selected' : ''}>${l}</option>`).join('');
   const subOpts = modTargetOptions(df.target).map(o =>
     `<option value="${escAttr(o.value)}"${o.value === df.target_name ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
@@ -15649,6 +15642,70 @@ function aiOpenInstance(row){
     renderSheet();debouncedSave();aiOpenInstance(row);toast('Изменения этого экземпляра брони сохранены.');
   };
 }
+
+</script>
+<style id="roll-modifier-editor-style">
+#roll-add-mod{font:inherit;background:transparent;border:0;color:var(--gold);cursor:pointer;padding:4px}#roll-modifier-editor .modal-box{width:540px;max-width:calc(100vw - 32px);box-sizing:border-box;max-height:calc(100dvh - 36px);overflow:auto}#roll-modifier-editor label{display:block;margin:16px 0 8px;font-size:15px;text-transform:none;letter-spacing:0}#roll-modifier-editor input{width:100%;min-width:0;box-sizing:border-box;background:#151518;color:var(--text-main);border:1px solid var(--border-gold);padding:10px;font:inherit;font-size:20px}.rmc-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.rmc-actions button{white-space:normal}#rmc-error{color:#dc8b82}#roll-modifier-editor .desc{line-height:1.5}
+</style>
+<script id="roll-situational-runtime">
+// Saved check modifiers share the existing conditional list and save lifecycle.
+const RMC_ORIG={modTargetOptions,modTargetNameLabel,modsFieldsVisible,modDraftApply,skillBadgeInfo};
+MOD_TARGET_LABELS.skill='Умения';
+let RMC_CONTEXT=null;
+function rmcClose(){RMC_CONTEXT=null;closeSheetModal('roll-modifier-editor');$('roll-add-mod')?.focus();}
+function rmcOpen(){
+  const d=S.character?.character_data;if(!d||ROLL.busy||!$('roll-modal').classList.contains('active'))return;
+  if(RMC_CONTEXT)return;
+  RMC_CONTEXT={owner:S.character,d,temp:ROLL.temp,sel:ROLL.sel,action:ROLL.action,actor:sbActorActive(),record:SB.record,chronicle:SB.chronicleId,draft:SB.draft};
+  let modal=$('roll-modifier-editor');if(!modal){modal=document.createElement('div');modal.id='roll-modifier-editor';modal.className='modal-overlay';document.body.append(modal);}
+  modal.innerHTML=`<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="rmc-title"><form id="rmc-form" novalidate><h3 id="rmc-title">Свой модификатор</h3><label for="rmc-name">Название</label><input id="rmc-name" maxlength="60" placeholder="Например: Аура или Холод"><label for="rmc-value">Бонус / штраф</label><input id="rmc-value" type="number" step="1" value="0"><p class="desc">«Добавить» — только к этому броску. «в Ситуативные» — сохранить для следующих проверок. Сейчас модификатор будет включён, в следующих проверках — выключен.</p><p id="rmc-error" role="alert"></p><div class="rmc-actions"><button type="submit" class="modal-confirm">Добавить</button><button type="button" class="modal-confirm" data-rmc-save>в Ситуативные</button><button type="button" class="modal-close" data-rmc-cancel>Отмена</button></div></form></div>`;
+  openSheetModal('roll-modifier-editor');$('rmc-name').focus();
+}
+function rmcRowsFingerprint(row){return JSON.stringify([row.label,row.value,row.section,!!row.locked,!!row.unavailable,row.scope||'',row.source||'']);}
+function rmcApply(saved=false){
+  const c=RMC_CONTEXT;if(!c)return false;
+  if(c.owner!==S.character||c.d!==S.character?.character_data||c.temp!==ROLL.temp||c.sel!==ROLL.sel||c.action!==ROLL.action||ROLL.busy||!$('roll-modal').classList.contains('active')||
+    (c.actor&&(!sbActorActive()||!sbAllowed()||SB.busy||SB.record!==c.record||SB.chronicleId!==c.chronicle||S.chronicle?.id!==c.chronicle||SB.draft!==c.draft))){rmcClose();toast('Проверка или персонаж изменились. Откройте ввод заново.');return false;}
+  const raw=$('rmc-value').value,name=$('rmc-name').value.trim(),value=Number(raw);
+  if(!raw.trim()||!Number.isSafeInteger(value)){ $('rmc-error').textContent='Введите целый бонус или штраф.';return false; }
+  if(saved&&!name){$('rmc-error').textContent='Укажите название ситуативного модификатора.';return false;}
+  if(!saved){ROLL.temp.push({label:name||'Разовый',value});rmcClose();renderRollMods();renderRollTotal();rollResultReset();return true;}
+  const before=rollMods(c.d,rollCharKey()),oldOn={...ROLL.on},source='roll-saved:'+crypto.randomUUID();
+  const modifier=normalizeModifier({name,target:'check',target_name:'all',mode:'add',effect:value,timing:'pre',source});
+  if(c.actor&&SB.draft){SB.draft.modifiers.cond.push(modifier);sbTouch();renderStatblock();}
+  else{c.d.modifiers.cond.push(modifier);if(c.actor)sbCommitActor();else modsSave();}
+  const queues=new Map();before.forEach((row,i)=>{const key=rmcRowsFingerprint(row);if(!queues.has(key))queues.set(key,[]);queues.get(key).push(oldOn[i]===true);});
+  const after=rollMods(S.character.character_data,rollCharKey());ROLL.on={};after.forEach((row,i)=>{if(row.source===source)ROLL.on[i]=true;else{const queue=queues.get(rmcRowsFingerprint(row));if(queue?.length)ROLL.on[i]=queue.shift();}});
+  rmcClose();renderRollMods();renderRollTotal();rollResultReset();return true;
+}
+modTargetOptions=function(target){
+  if(target==='skill')return [{value:'',label:'— выбрать умение —'},...DB_SKILLS.slice().sort((a,b)=>a.name.localeCompare(b.name,'ru')).map(s=>({value:String(s.id),label:s.name}))];
+  if(target==='check')return [{value:'all',label:'Все проверки'}];
+  return RMC_ORIG.modTargetOptions(target);
+};
+modTargetNameLabel=function(target,name){if(target==='skill')return DB_SKILLS.find(s=>String(s.id)===String(name))?.name||'Умение '+name;return RMC_ORIG.modTargetNameLabel(target,name);};
+modsFieldsVisible=function(mod){return mod?.target==='skill'||RMC_ORIG.modsFieldsVisible(mod);};
+modDraftApply=function(){
+  if(MOD_DRAFT?.target==='skill'){
+    if(!DB_SKILLS.some(s=>String(s.id)===String(MOD_DRAFT.target_name)))return toast('Выберите умение из справочника');
+    if(!Number.isFinite(Number(MOD_DRAFT.effect)))return toast('Введите числовой модификатор');
+  }
+  return RMC_ORIG.modDraftApply();
+};
+skillBadgeInfo=function(d,row,level,basicish,chName){
+  const result=RMC_ORIG.skillBadgeInfo(d,row,level,basicish,chName);if(result.value==null)return result;
+  const id=row?.skill_id??row?.id??DB_SKILLS.find(s=>s.name===row?.name)?.id;
+  const mods=permMods(d).filter(m=>m.target==='skill'&&String(m.target_name)===String(id));if(!mods.length)return result;
+  let value=Number(result.value);for(const timing of ['pre','post']){
+    const rows=mods.filter(m=>(m.timing||'pre')===timing);
+    value=(value+rows.filter(m=>m.mode!=='mul').reduce((n,m)=>n+Number(m.effect||0),0))*rows.filter(m=>m.mode==='mul').reduce((n,m)=>n*Number(m.effect||0),1);
+  }
+  value=Math.ceil(value);return {...result,value,text:String(value),title:result.title+' · '+mods.map(m=>(m.name||'Модификатор умения')+' '+(m.mode==='mul'?'×':Number(m.effect)>=0?'+':'')+m.effect).join('; ')};
+};
+BACKDROP_CLOSE['roll-modifier-editor']=rmcClose;
+document.addEventListener('click',event=>{if(event.target.closest('[data-rmc-save]')){event.preventDefault();rmcApply(true);}else if(event.target.closest('[data-rmc-cancel]'))rmcClose();});
+document.addEventListener('submit',event=>{if(event.target.id==='rmc-form'){event.preventDefault();rmcApply(false);}});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('roll-modifier-editor')?.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();rmcClose();}} ,true);
 
 </script>
 </body>
