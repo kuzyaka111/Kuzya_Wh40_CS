@@ -5763,7 +5763,7 @@ function addSlot(type){
 function delSlot(slotId){
   S.character.character_data.slots = (S.character.character_data.slots || [])
     .filter(s => s.id !== slotId);
-  (S.character.character_data.gear || []).forEach(r => { if (r.slot === slotId) r.slot = ''; });
+  (S.character.character_data.gear || []).forEach(r => { if (r.slot === slotId){ r.slot = ''; r.equipped = false; } });
   renderList('gear');
   debouncedSave();
 }
@@ -15382,6 +15382,10 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('starting
 .ai-history-choice b{min-width:42px;color:var(--gold);}
 #ai-history-select,.ai-instance-fields input:not([type=checkbox]),.ai-instance-fields textarea{width:100%;box-sizing:border-box;min-width:0;background:#101012;color:var(--text-main);border:1px solid var(--border-dark);padding:8px;font:inherit;}
 .ai-instance-fields{display:grid;gap:12px;margin-top:12px;}
+.ai-armour-group .gear-head{min-width:0;}
+.ai-armour-group .gear-head .g-name{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ai-armour-group .ai-armour-status{flex-shrink:0;white-space:nowrap;margin:0;}
+.ai-armour-group .gear-head .xp-row-btn{flex-shrink:0;width:auto;margin:0;}
 .ai-instance-fields label{display:block;}
 .ai-zone-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
 @media(max-width:500px){.ai-zone-fields{grid-template-columns:repeat(2,minmax(0,1fr));}}
@@ -15529,7 +15533,7 @@ gearTableHtml=function(rows,key,opts){
   if(key!=='gear' || opts?.equippedOnly || opts?.groupsOnly || opts?.excludeGroups)return html;
   const d=S.character?.character_data;aiEnsure(d);const armours=aiRows(d);
   html+='<div class="gw-group ai-armour-group"><div class="gw-group-title">Броня</div><button type="button" class="add-row-btn" data-ai-add>+ Добавить броню</button>';
-  html+=armours.length?armours.map((r,n)=>{const i=d.gear.indexOf(r),worn=r.armour_instance.stats.category==='primary'?aiActive(d)===r:gearIsEquipped(r);return '<div class="gear-item '+gearCardClasses(r)+'">'+gearDeleteButtonHtml('gear',i,r.name)+'<div class="gear-head" data-open="gear:'+i+'"><span class="g-name">'+esc(r.name)+gearQualityBadge(r)+' <small>· экземпляр '+(n+1)+'</small></span></div><div class="desc">'+(worn?'Надета':'В Арсенале')+'</div><button type="button" class="xp-row-btn" data-ai-wear="'+escAttr(r.armour_instance.id)+'">'+(worn?'Снять':'Надеть')+'</button></div>';}).join(''):'<div class="desc">Броня ещё не добавлена.</div>';
+  html+=armours.length?armours.map((r,n)=>{const i=d.gear.indexOf(r),worn=r.armour_instance.stats.category==='primary'?aiActive(d)===r:gearIsEquipped(r);return '<div class="gear-item '+gearCardClasses(r)+'">'+gearDeleteButtonHtml('gear',i,r.name)+'<div class="gear-head" data-open="gear:'+i+'"><span class="g-name">'+esc(r.name)+gearQualityBadge(r)+' <small>· экземпляр '+(n+1)+'</small></span><span class="desc ai-armour-status">'+(worn?'Надета':'В Арсенале')+'</span>'+(worn?'':'<button type="button" class="xp-row-btn" data-ai-wear="'+escAttr(r.armour_instance.id)+'">Надеть</button>')+'</div></div>';}).join(''):'<div class="desc">Броня ещё не добавлена.</div>';
   return html+'</div>';
 };
 renderList=function(key){
