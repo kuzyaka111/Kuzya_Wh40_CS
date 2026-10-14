@@ -6028,6 +6028,14 @@ function gearPsyDamageBonus(w, d){
   const pr = dwPsyRating(d);
   return pr >= (Number(w.force_min_psy_rating) || 0) ? pr : 0;
 }
+function gearPsyPenBonus(w,d){
+  // Dreadnought roll profiles already include their psychic penetration.
+  return w?.damage_bonuses_included ? 0 : gearPsyDamageBonus(w,d);
+}
+function gearPsyPenValue(w,d){
+  const bonus=gearPsyPenBonus(w,d);
+  return bonus ? (Number(w?.pen)||0)+bonus : w?.pen;
+}
 function gearPsyDamageBadgeHtml(w){
   const value = gearPsyDamageBonus(w, S.character?.character_data);
   return value ? ` <span class="mod-pos" data-psy-damage-bonus="${value}" title="Бонус урона: текущий Пси-рейтинг">+${value}</span>` : '';
@@ -6150,11 +6158,13 @@ function gearStatsCellsHtml(r,i,g,key,w,editable){
     if (f === 'dmg') return gearDmgCellHtml(f, ew, i, editable, !!g.dmgType, key, wclsv);
     if (f === 'sks') return gearSksCellHtml(i, w, editable);
     if (f === 'ammo') return gearAmmoCellHtml(r, i, w);
-    const val = ew ? ew[f] : undefined;
+    const psyPen=f==='pen'&&!editable ? gearPsyPenBonus(ew,S.character?.character_data) : 0;
+    const val = ew ? (f==='pen'&&!editable ? gearPsyPenValue(ew,S.character?.character_data) : ew[f]) : undefined;
     if (editable) return `<td class="gw-h-${f}"><input data-gear-field="${i}:${f}" value="${esc(val ?? '')}" placeholder="—"></td>`;
     const v = (val === undefined || val === null || val === '') ? '—' : esc(val);
     const badge = (f === 'pen' && !editable && key && wclsv) ? weaponModBadgeHtml(S.character.character_data, wclsv, key, f) : '';
-    return `<td class="gw-h-${f}"><b>${v}${badge}</b></td>`;
+    const penNote=psyPen ? ` title="${escAttr('Базовая БРБ: '+(Number(ew.pen)||0)+'; Пси-рейтинг: +'+psyPen)}"` : '';
+    return `<td class="gw-h-${f}"><b${penNote}>${v}${badge}</b></td>`;
   }).join('');
 }
 function gearRowHtml(r, i, g, key){
@@ -6184,7 +6194,7 @@ function gearColumnText(row,field){
   }
   if(field==='pen'){
     const span=document.createElement('span');span.innerHTML=weaponModBadgeHtml(S.character.character_data,w.class || '','gear','pen');
-    return String(w.pen ?? '—')+(span.textContent || '');
+    return String(gearPsyPenValue(w,S.character?.character_data) ?? '—')+(span.textContent || '');
   }
   if(field==='sks'){const sks=gearSksGlyphs(w);return `${sks.s}/${sks.c}/${sks.d}`;}
   if(field==='ammo'){
