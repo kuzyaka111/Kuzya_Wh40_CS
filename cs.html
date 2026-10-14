@@ -8678,6 +8678,15 @@ async function callRollApi(body){
   } finally { clearTimeout(timeout); }
 }
 
+// Deathwatch Core, table 8-3: reverse the attack roll digits; 00 means 100.
+function bodyHitLocation(d100){
+  if(!Number.isInteger(d100) || d100<1 || d100>100) return null;
+  const n=d100%100, reversed=(n%10)*10+Math.floor(n/10), value=reversed || 100;
+  const name=value<=10 ? 'Голова' : value<=20 ? 'Правая рука' : value<=30 ? 'Левая рука'
+    : value<=70 ? 'Корпус' : value<=85 ? 'Правая нога' : 'Левая нога';
+  return {value,name};
+}
+
 async function doRoll(){
   if (ROLL.busy) return;
   rollErr('');
@@ -8699,6 +8708,7 @@ async function doRoll(){
       character_id: S.character.id,
       user_id: S.user ? S.user.id : null,
       kind: s.kind,
+      is_attack: actionAttackCheck(),
       stat_key: s.statKey || null,
       stat_label: ROLL.action ? ROLL.action.name+(ROLL.action.weapon_name ? ' · '+ROLL.action.weapon_name : '')+' · '+(s.name || 'Проверка') : (s.kind === 'custom' ? (ROLL.customName.trim() || 'Свой бросок') : (s.name || 'Проверка')),
       characteristic: s.characteristic || null,
@@ -8735,6 +8745,7 @@ function showRollResult(r){
   // ответ функции отдаёт threshold; подстраховка на случай старого ответа
   const threshold = r.threshold != null ? r.threshold : r.target + mod;
   const deg = rollDegreesText(r.degrees);
+  const location = ok && r.hit_location;
   const lines = (r.mod_details || []).map(m =>
     '• ' + m.label + ' ' + (Number(m.value) > 0 ? '+' : '') + m.value).join('\n');
   const box = document.querySelector('#roll-modal .roll-box');
@@ -8747,6 +8758,7 @@ function showRollResult(r){
     + '<div class="roll-eq">' + esc(rollThresholds(r.target, mod, threshold)) + '</div>'
     + '<div class="roll-verdict ' + (ok ? 'ok' : 'fail') + '">' + (ok ? 'Успех' : 'Провал')
     + (deg ? ' · ' + deg : '') + '</div>'
+    + (location ? '<div class="roll-hit-location" style="text-align:center;margin-top:10px">Зона попадания: <b>' + esc(location.name) + '</b> (' + esc(String(r.d100).padStart(2,'0')) + ' → ' + esc(location.value===100 ? '00' : String(location.value).padStart(2,'0')) + ')</div>' : '')
     + (lines ? '<div class="roll-lines">' + esc(lines) + '</div>' : '')
     + '<div class="desc" style="text-align:center;margin-top:10px">'
     + (r.delivered ? 'Отправлено в Discord' : rollSkipText(r.skip)) + '</div>'
@@ -13710,6 +13722,7 @@ callRollApi=async function(body){
  if(!sbActorActive()||body.action!=='roll')return sbOriginalRuntime.callRollApi(body);
  const target=Number(body.target),mod=Number(body.mod)||0,threshold=target+mod,d100=sbRandomDie(100);
  const r={...body,target,mod,threshold,d100,success:d100<=threshold,degrees:Math.floor(Math.abs(threshold-d100)/10),delivered:false,skip:'npc_local'};
+ r.hit_location=body.is_attack===true && r.success ? bodyHitLocation(d100) : null;
  SB_PLAY.lastRoll=r;return r;
 };
 showRollResult=function(r){
