@@ -16066,6 +16066,212 @@ $('vox-tools-close').onclick=voxCloseTools;$('vox-tools-modal').addEventListener
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('vox-tools-modal').classList.contains('hidden')){e.stopImmediatePropagation();voxCloseTools();}},true);
 
 </script>
+<style id="npc-ammo-stock-style">
+#sb-root .npc-ammo-stock{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:9px;color:var(--text-dim);font-size:13px}
+#sb-root .npc-ammo-controls{display:inline-flex;align-items:center;gap:6px;max-width:100%}
+#sb-root .npc-ammo-controls input{width:90px;min-width:0;box-sizing:border-box;padding:4px 6px;background:#101012;border:1px solid var(--border-dark);color:var(--text);font:inherit;text-align:center}
+#sb-root .npc-ammo-controls input:invalid{border-color:#bd756b}
+#sb-root .npc-ammo-controls .ammo-step{flex:none}
+#sb-root .npc-ammo-controls .ammo-step:disabled{opacity:.35;cursor:default}
+#sb-root .npc-ammo-links{margin-top:6px;color:var(--text-dim);font-size:12px;overflow-wrap:anywhere}
+#sb-root .npc-ammo-unknown{overflow-wrap:anywhere;max-width:100%}
+</style>
+<script id="npc-ammo-stock-script">
+// NPC stock is an inventory count. Weapon magazine capacity remains independent.
+// Rendering, loading and saving never create or replenish ammunition.
+const NPC_AMMO_MAX_QUANTITY=1000000;
+const NPC_AMMO_UNITS={
+  magazine:['магазин','магазина','магазинов'],
+  battery:['батарея','батареи','батарей'],
+  charge:['заряд','заряда','зарядов'],
+  round:['патрон','патрона','патронов'],
+  fuel:['топливная ёмкость','топливные ёмкости','топливных ёмкостей'],
+  grenade:['граната','гранаты','гранат'],
+  rocket:['ракета','ракеты','ракет'],
+  mine:['мина','мины','мин'],
+  other:['единица','единицы','единиц']
+};
+const NPC_AMMO_CONTROL_CONTEXTS=new Map();
+let npcAmmoContextSequence=0;
+function npcAmmoQuantity(value){
+  if(typeof value!=='number'&&typeof value!=='string')return null;
+  if(typeof value==='string'&&!value.trim())return null;
+  const number=Number(value);
+  return Number.isSafeInteger(number)&&number>=0&&number<=NPC_AMMO_MAX_QUANTITY?number:null;
+}
+function npcAmmoUnitLabel(unit,quantity){
+  const forms=Object.hasOwn(NPC_AMMO_UNITS,unit)?NPC_AMMO_UNITS[unit]:NPC_AMMO_UNITS.other;
+  if(quantity==null)return forms[2];
+  const last=quantity%10,lastTwo=quantity%100;
+  return forms[lastTwo>=11&&lastTwo<=14?2:last===1?0:last>=2&&last<=4?1:2];
+}
+function npcAmmoIsStock(row){
+  return !!row&&typeof row==='object'&&!Array.isArray(row)&&['ammo','grenades','rockets','mines'].includes(sbGearType(row));
+}
+function npcAmmoRowUnit(row){
+  return {grenades:'grenade',rockets:'rocket',mines:'mine'}[sbGearType(row)]||row.ammo_unit;
+}
+function npcAmmoLinkedWeapons(row,data=sbData()){
+  const keys=new Set((Array.isArray(row.ammo_weapon_keys)?row.ammo_weapon_keys:[]).filter(key=>typeof key==='string'&&key));
+  if(!keys.size)return [];
+  const seen=new Set();
+  return (data?.weapons||[]).filter(weapon=>{
+    if(!weapon||npcAmmoIsStock(weapon)||typeof weapon.ammo_key!=='string'||!keys.has(weapon.ammo_key))return false;
+    const labelKey=weapon.ammo_key+'\u0000'+String(weapon.name||'');if(seen.has(labelKey))return false;
+    seen.add(labelKey);return true;
+  });
+}
+function npcAmmoCanEdit(){
+  return sbAllowed()&&!SB.busy&&!!SB.draft&&!!SB.record&&SB.draft.id===SB.record.id&&SB.chronicleId===S.chronicle?.id;
+}
+function npcAmmoCaptureContext(row,index){
+  const token=String(++npcAmmoContextSequence);
+  NPC_AMMO_CONTROL_CONTEXTS.set(token,{row,index,draft:SB.draft,record:SB.record,recordId:SB.record?.id,recordRevision:SB.record?.revision,chronicle:S.chronicle,chronicleId:SB.chronicleId});
+  return token;
+}
+function npcAmmoContextRow(index,token){
+  const context=NPC_AMMO_CONTROL_CONTEXTS.get(String(token));
+  if(!context||!npcAmmoCanEdit()||context.index!==index||context.draft!==SB.draft||context.record!==SB.record||context.recordId!==SB.record.id||context.recordRevision!==SB.record.revision||context.chronicle!==S.chronicle||context.chronicleId!==SB.chronicleId||SB.draft.weapons?.[index]!==context.row||!npcAmmoIsStock(context.row))return null;
+  return context.row;
+}
+function npcAmmoDraftRow(index,token=null){
+  if(!npcAmmoCanEdit()||!Number.isSafeInteger(index)||index<0)return null;
+  if(token!=null)return npcAmmoContextRow(index,token);
+  const row=SB.draft.weapons?.[index];
+  return npcAmmoIsStock(row)?row:null;
+}
+function npcAmmoSetQuantity(index,value,token=null){
+  const row=npcAmmoDraftRow(index,token),quantity=npcAmmoQuantity(value);
+  if(!row||quantity==null)return false;
+  if(row.quantity!==quantity){row.quantity=quantity;sbTouch();}
+  return true;
+}
+function npcAmmoStep(index,delta,token=null){
+  if(delta!==1&&delta!==-1)return false;
+  const row=npcAmmoDraftRow(index,token),quantity=npcAmmoQuantity(row?.quantity);
+  if(quantity==null)return false;
+  const next=Math.max(0,Math.min(NPC_AMMO_MAX_QUANTITY,quantity+delta));
+  return npcAmmoSetQuantity(index,next,token);
+}
+function npcAmmoStockHtml(row,index){
+  const quantity=npcAmmoQuantity(row.quantity),unit=npcAmmoUnitLabel(npcAmmoRowUnit(row),quantity),editing=!!SB.draft;
+  const originalQuantity=quantity==null&&row.quantity!=null&&String(row.quantity)!==''?String(row.quantity):null;
+  const token=editing?npcAmmoCaptureContext(row,index):'',context=`data-npc-ammo-context="${token}"`;
+  const controls=editing?`${originalQuantity!=null?`<span class="npc-ammo-unknown">${esc(originalQuantity)}</span>`:''}<span class="npc-ammo-controls"><button type="button" class="ammo-step" data-npc-ammo-step="-1" data-npc-ammo-index="${index}" ${context} aria-label="Уменьшить запас: ${esc(row.name)}"${quantity==null||quantity===0?' disabled':''}>−</button><input type="number" min="0" max="${NPC_AMMO_MAX_QUANTITY}" step="1" data-npc-ammo-quantity="${index}" ${context} value="${quantity??''}" placeholder="—" aria-label="Количество боеприпасов: ${esc(row.name)}"><button type="button" class="ammo-step" data-npc-ammo-step="1" data-npc-ammo-index="${index}" ${context} aria-label="Увеличить запас: ${esc(row.name)}"${quantity==null||quantity===NPC_AMMO_MAX_QUANTITY?' disabled':''}>+</button></span>`:`<b>${quantity??esc(originalQuantity??'—')}</b>`;
+  const linked=npcAmmoLinkedWeapons(row),hasLinks=Array.isArray(row.ammo_weapon_keys)&&row.ammo_weapon_keys.length>0;
+  const existingKeys=new Set(linked.map(weapon=>weapon.ammo_key)),missing=hasLinks&&row.ammo_weapon_keys.some(key=>!existingKeys.has(key));
+  return `<div class="npc-ammo-stock"><span>Количество:</span>${controls}<span data-npc-ammo-unit="${index}">${esc(unit)}</span></div>${hasLinks?`<div class="npc-ammo-links">Для оружия: ${linked.length?linked.map(weapon=>esc(weapon.name)).join(', ')+(missing?' · часть оружия отсутствует':''):'оружие отсутствует'}</div>`:''}`;
+}
+const NPC_AMMO_ORIGINAL_ENTRY=sbEntry;
+sbEntry=function(key,row,index){
+  if(key!=='weapons'||!npcAmmoIsStock(row))return NPC_AMMO_ORIGINAL_ENTRY(key,row,index);
+  if(sbGearType(row)!=='ammo'){
+    // Ordnance keeps its original weapon table, qualities and damage profile.
+    const host=document.createElement('div');host.innerHTML=NPC_AMMO_ORIGINAL_ENTRY(key,row,index);
+    const card=host.querySelector('.sb-weapon')||host.firstElementChild;
+    if(card){const table=card.querySelector('.gw-table-wrap');if(table)table.insertAdjacentHTML('afterend',npcAmmoStockHtml(row,index));else card.insertAdjacentHTML('beforeend',npcAmmoStockHtml(row,index));}
+    return host.innerHTML;
+  }
+  const actions=SB.draft?`<span class="sb-entry-actions"><button type="button" class="mods-edit" data-sb-edit="${key}:${index}" aria-label="Изменить: ${esc(row.name)}">✎</button><button type="button" class="mods-del" data-sb-remove="${key}:${index}" aria-label="Убрать: ${esc(row.name)}">×</button></span>`:'';
+  const formatted=row.source==='catalog'||(typeof npcPresetLayout2==='function'&&npcPresetLayout2(sbData()));
+  const description=row.description?`<div class="sb-description">${formatted?sbDescriptionHtml(row.description):esc(row.description)}</div>`:'';
+  return `<div class="gw-slot sb-gear-item npc-ammo-item"><div class="gw-slot-head"><span class="sb-entry-name">${esc(row.name)} <span class="ammo-class">Боеприпасы</span></span>${actions}</div>${npcAmmoStockHtml(row,index)}${description}</div>`;
+};
+function npcAmmoRefreshControl(input){
+  const index=Number(input.dataset.npcAmmoQuantity),row=npcAmmoDraftRow(index,input.dataset.npcAmmoContext||'');if(!row)return;
+  const quantity=npcAmmoQuantity(row.quantity),stock=input.closest('.npc-ammo-stock');if(!stock)return;
+  if(quantity!=null)stock.querySelector('.npc-ammo-unknown')?.remove();
+  const unit=stock.querySelector('[data-npc-ammo-unit]');if(unit)unit.textContent=npcAmmoUnitLabel(npcAmmoRowUnit(row),quantity);
+  for(const button of stock.querySelectorAll('[data-npc-ammo-step]'))button.disabled=quantity==null||(button.dataset.npcAmmoStep==='-1'?quantity===0:quantity===NPC_AMMO_MAX_QUANTITY);
+}
+function npcAmmoInputValid(input,row){
+  // Untouched legacy rows may have an unknown count. An existing numeric count
+  // cannot be cleared silently or replaced by a fraction/negative value.
+  if(input.value===''&&!input.validity.badInput&&npcAmmoQuantity(row?.quantity)==null){input.setCustomValidity('');return true;}
+  const valid=npcAmmoQuantity(input.value)!=null&&!input.validity.badInput;
+  input.setCustomValidity(valid?'':'Введите целое неотрицательное количество до '+NPC_AMMO_MAX_QUANTITY+'.');
+  return valid&&input.checkValidity();
+}
+$('sb-root').addEventListener('input',event=>{
+  const input=event.target;if(!input.matches('[data-npc-ammo-quantity]'))return;
+  const index=Number(input.dataset.npcAmmoQuantity),token=input.dataset.npcAmmoContext||'',row=npcAmmoDraftRow(index,token);if(!row)return;
+  if(npcAmmoInputValid(input,row)&&npcAmmoQuantity(input.value)!=null){npcAmmoSetQuantity(index,input.value,token);npcAmmoRefreshControl(input);}
+});
+$('sb-root').addEventListener('change',event=>{
+  const input=event.target;if(!input.matches('[data-npc-ammo-quantity]'))return;
+  const index=Number(input.dataset.npcAmmoQuantity),token=input.dataset.npcAmmoContext||'',row=npcAmmoDraftRow(index,token);if(!row)return;
+  if(!npcAmmoInputValid(input,row)){toast('Введите целое неотрицательное количество боеприпасов.');return;}
+  if(npcAmmoQuantity(input.value)!=null){npcAmmoSetQuantity(index,input.value,token);npcAmmoRefreshControl(input);}
+});
+$('sb-root').addEventListener('click',event=>{
+  const button=event.target.closest('[data-npc-ammo-step]');if(!button||button.disabled)return;
+  const index=Number(button.dataset.npcAmmoIndex),delta=Number(button.dataset.npcAmmoStep);
+  if(npcAmmoStep(index,delta,button.dataset.npcAmmoContext||''))renderStatblock();
+});
+const NPC_AMMO_ORIGINAL_RENDER=renderStatblock;
+renderStatblock=function(...args){NPC_AMMO_CONTROL_CONTEXTS.clear();return NPC_AMMO_ORIGINAL_RENDER(...args);};
+const NPC_AMMO_ORIGINAL_MANUAL_FIELDS=sbManualGearFields;
+sbManualGearFields=function(row={}){
+  const html=NPC_AMMO_ORIGINAL_MANUAL_FIELDS(row);if(!npcAmmoIsStock(row))return html;
+  const host=document.createElement('div');host.innerHTML=html;
+  let input=host.querySelector('[name="quantity"]');
+  if(!input){
+    host.insertAdjacentHTML('beforeend',`<div><label for="sb-entry-quantity">Количество ${esc(npcAmmoUnitLabel(npcAmmoRowUnit(row),5))}</label><input id="sb-entry-quantity" name="quantity" value="${esc(row.quantity??'')}"></div>`);
+    input=host.querySelector('[name="quantity"]');
+  }
+  if(input){
+    const quantity=npcAmmoQuantity(row.quantity),legacyText=quantity==null&&row.quantity!=null&&String(row.quantity)!==''&&!(SB.entry?.index<0);
+    if(!legacyText){input.type='number';input.min='0';input.max=String(NPC_AMMO_MAX_QUANTITY);input.step='1';input.required=quantity!=null||(SB.entry?.index<0&&sbGearType(row)==='ammo');}
+  }
+  return host.innerHTML;
+};
+$('sb-entry-form').addEventListener('submit',event=>{
+  const entry=SB.entry;if(entry?.kind||entry?.key!=='weapons'||!npcAmmoCanEdit()||entry.recordId!==SB.record.id)return;
+  const input=$('sb-entry-fields').querySelector('[name="quantity"]'),type=$('sb-entry-fields').querySelector('[name="gear_type"]')?.value;
+  if(!input||!npcAmmoIsStock({gear_type:type}))return;
+  const original=entry.manualDraft?.quantity,quantity=npcAmmoQuantity(input.value);
+  if((entry.index>=0||type!=='ammo')&&npcAmmoQuantity(original)==null&&input.value===String(original??'')){
+    // Exclude an untouched legacy value from FormData so the original null,
+    // missing property, expression or free text stays exactly as stored.
+    input.disabled=true;return;
+  }
+  if(quantity==null){event.preventDefault();event.stopImmediatePropagation();toast('Введите целое неотрицательное количество боеприпасов.');}
+},true);
+function npcAmmoNormalizeQuantities(data){
+  for(const row of data?.weapons||[]){
+    if(!npcAmmoIsStock(row))continue;
+    const quantity=npcAmmoQuantity(row.quantity);if(quantity!=null)row.quantity=quantity;
+  }
+  return data;
+}
+const NPC_AMMO_ORIGINAL_NORMALIZE=normalizeStatblock;
+normalizeStatblock=function(raw){return npcAmmoNormalizeQuantities(NPC_AMMO_ORIGINAL_NORMALIZE(raw));};
+const NPC_AMMO_ORIGINAL_SAVE=saveStatblock;
+saveStatblock=async function(readInputs=true,quick=false){
+  if(!quick&&npcAmmoCanEdit()){
+    for(const input of $('sb-root').querySelectorAll('[data-npc-ammo-quantity]')){
+      const index=Number(input.dataset.npcAmmoQuantity),token=input.dataset.npcAmmoContext||'',row=npcAmmoDraftRow(index,token);
+      if(!row){toast('Список снаряжения изменился. Обновите отображение перед сохранением.');return false;}
+      if(!npcAmmoInputValid(input,row)){input.reportValidity();toast('Проверьте количество боеприпасов.');return false;}
+      if(npcAmmoQuantity(input.value)!=null)npcAmmoSetQuantity(index,input.value,token);
+    }
+    npcAmmoNormalizeQuantities(SB.draft);
+  }
+  return NPC_AMMO_ORIGINAL_SAVE(readInputs,quick);
+};
+// The internal links remain available in source JSON, while ordinary previews
+// show translated inventory fields rather than technical weapon keys.
+if(typeof NPC_PRESET_LABELS!=='undefined')Object.assign(NPC_PRESET_LABELS,{ammo_unit:'Единица боеприпасов',ammo_weapon_keys:'Для оружия'});
+if(typeof NPC_PRESET_HIDDEN_KEYS!=='undefined')for(const key of ['ammo_key','ammo_weapon_keys'])NPC_PRESET_HIDDEN_KEYS.add(key);
+if(typeof npcPresetValue==='function'){
+  const originalValue=npcPresetValue;
+  npcPresetValue=function(value,depth=0){
+    if(value&&typeof value==='object'&&!Array.isArray(value)&&Object.hasOwn(value,'ammo_unit'))value={...value,ammo_unit:npcAmmoUnitLabel(value.ammo_unit,1)};
+    return originalValue(value,depth);
+  };
+}
+</script>
+
 </body>
 </html>
 
