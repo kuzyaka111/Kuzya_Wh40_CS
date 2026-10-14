@@ -1260,6 +1260,7 @@ html,body{max-width:100%;overflow-x:hidden;}
   .buy-warning{background:rgba(140,28,28,.15);border:1px solid var(--red-bright);padding:8px 12px;margin-bottom:6px;font-size:12px;color:var(--red-bright);line-height:1.4;}
   .buy-info{font-size:13px;color:var(--text-main);margin-bottom:6px;}
   .buy-info b{color:var(--gold);}
+body:has(#advancement-modal.active) #info-modal{z-index:1000;}
 
   /* ========== CHAPTER / SPEC / PLUS MODALS ========== */
   #chapter-modal,
@@ -11060,10 +11061,15 @@ function renderAdvCatalog(){
   });
 }
 
+function advancementDescription(item){
+  const resolved=advGrantResolve(item);
+  return resolved?.row.description?.trim() || item.description?.trim() || 'Описание отсутствует в справочнике.';
+}
+
 function openBuyModal(item){
   const d = S.character.character_data;
   const remaining = advRemaining(item, d);
-  if (remaining <= 0) return toast('Это улучшение уже куплено');
+  if (remaining <= 0) return showInfo(item.name, advancementDescription(item));
 
   const log = d.xp_log || [];
   const spent = log.reduce((a, x) => a + (Number(x.cost) || 0), 0);
@@ -11074,6 +11080,7 @@ function openBuyModal(item){
   if (item.requirements && !checkRequirement(item.requirements, d)) warnings.push('Требования не выполнены: ' + item.requirements);
 
   $('buy-modal-title').textContent = item.name;
+  $('buy-modal-desc').innerHTML = descHtml(advancementDescription(item));
   $('buy-modal-cost').textContent = 'Стоимость: ' + item.cost + ' XP';
   $('buy-modal-available').textContent = 'Доступно: ' + available + ' XP';
   $('buy-modal-warnings').innerHTML = warnings.length
@@ -11314,6 +11321,7 @@ function updateAdvFilter(){
 <div class="modal-overlay" id="buy-modal">
   <div class="modal-box">
     <h3 id="buy-modal-title" style="margin-bottom:12px"></h3>
+    <div class="desc" id="buy-modal-desc" style="margin-bottom:14px;overflow-wrap:anywhere"></div>
     <div class="buy-info" id="buy-modal-cost"></div>
     <div class="buy-info" id="buy-modal-available" style="color:var(--text-dim);margin-bottom:14px"></div>
     <div id="buy-modal-warnings" style="margin-bottom:14px"></div>
@@ -13201,7 +13209,7 @@ advMaxPurchases=function(item,d){ return item.req_advanced?.advanced_specializat
 getAdvStatus=function(item,d){ return advanceBlockedReason(item,d) ? 'locked' : ADV_SPEC_ORIG.getAdvStatus(item,d); };
 openBuyModal=function(item){
   const d=S.character.character_data, reason=advanceBlockedReason(item,d);
-  if(reason) return showInfo(item.name,esc(reason));
+  if(reason) return showInfo(item.name,reason+'\n\n'+advancementDescription(item));
   if(item.req_advanced?.variable_cost === 'psi_power'){ if(advRemaining(item,d)<=0) return toast('Все покупки по этой строке уже использованы'); advancedPowerTable=item; return openPicker('psi'); }
   advancedPowerTable=null; return ADV_SPEC_ORIG.openBuyModal(item);
 };
