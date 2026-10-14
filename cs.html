@@ -1954,6 +1954,52 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 </style>
 <style data-feature="npc-menu-center">#sb-root .sb-toolbar-right:has(.npc-roll-tools){position:absolute;left:50%;transform:translateX(-50%);justify-content:center}
 #sb-root .npc-roll-tools .toolbar-menu{left:50%;right:auto;transform:translateX(-50%)}</style>
+<style data-feature="squad-window">
+/* Squad sheet follows the existing character sheet's charcoal, red and gold. */
+#screen-squad{position:relative;z-index:1;max-width:none;padding:24px;color:#e6e2d8;font-family:'Unbounded',Arial,sans-serif;}
+#squad-root{--bg-panel:#1a1a1c;--border-gold:#a8862f;--border-dark:#3a3a3d;padding-top:0;background:linear-gradient(110deg,#18181b,#201516 52%,#18181b);border:1px solid #a8862f;border-image:var(--sheet-frame) 8 / 7px stretch;}
+#squad-root h1,#squad-root h2{font-family:'Roboto Condensed',Arial,sans-serif;text-transform:uppercase;letter-spacing:.06em;}
+#squad-root h1{color:#f2ead8;font-size:30px;margin:5px 0;}
+#squad-root h2{color:#c9a24b;font-size:19px;margin:0 0 18px;}
+.squad-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 28px;border-bottom:1px solid #a8862f;background:linear-gradient(90deg,#1a1a1c,#291619,#1a1a1c);}
+.squad-kicker{color:#c9a24b;font:12px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;}
+.squad-muted{color:#aaa493;font-size:12px;line-height:1.6;overflow-wrap:anywhere;}
+.squad-actions{display:flex;flex-wrap:wrap;gap:8px;}
+.squad-body{padding:24px;}
+.squad-command-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch;margin-bottom:20px;}
+.squad-panel{min-width:0;padding:22px;background:#151518d9;border:1px solid #a8862f60;border-top:2px solid #a8862f;}
+#squad-root label{font-size:11px;color:#aaa493;margin-bottom:8px;}
+#squad-root select{background:#101013;color:#e6e2d8;border:1px solid #a8862f60;min-height:42px;font:14px 'Roboto Condensed',Arial,sans-serif;}
+#squad-root select option{background:#101013;color:#e6e2d8;}
+#squad-root button{border-color:#a8862f80;background:#c9a24b08;font:600 12px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.06em;min-height:36px;}
+#squad-root button:hover{background:#c9a24b18;}
+#squad-root :is(button,select):disabled{opacity:.45;cursor:default;}
+#squad-root :is(button,select):focus-visible{outline:2px solid #d6b36c;outline-offset:3px;}
+.squad-identity{padding:18px 0 10px;}
+.squad-name{font:600 22px 'Roboto Condensed',Arial,sans-serif;color:#f2ead8;overflow-wrap:anywhere;}
+.squad-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.squad-tag{color:#c9a24b;border:1px solid #a8862f60;padding:3px 7px;font:12px 'Roboto Condensed',Arial,sans-serif;overflow-wrap:anywhere;}
+.squad-tactics{padding:12px;margin-top:12px;background:#c9a24b07;border-left:3px solid #6b665d;color:#aaa493;font-size:12px;line-height:1.8;}
+.squad-tactics.confirmed{color:#8ed6a0;border-color:#6bb380;background:#6bb3800c;}
+.squad-rule-note{font-size:11px;color:#aaa493;margin-top:7px;}
+.squad-ability-desc{font:15px/1.65 'Roboto Condensed',Arial,sans-serif;color:#c8c2b6;overflow-wrap:anywhere;white-space:pre-wrap;margin-top:12px;}
+.squad-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.squad-add{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.squad-add select{flex:1;min-width:0;}
+.squad-member{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px;background:#c9a24b04;border:1px solid #a8862f35;margin-top:10px;}
+.squad-member-info{min-width:0;}
+.squad-member .squad-name{font-size:19px;}
+.squad-member-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+#squad-root .squad-mode{border-radius:18px;min-width:104px;padding:7px 14px;}
+#squad-root .squad-mode.in-squad{color:#8ed6a0;border-color:#6bb38090;background:#6bb38010;}
+#squad-root .squad-mode.solo{color:#c9a24b;}
+#squad-status{padding:12px 28px;color:#aaa493;font-size:12px;line-height:1.7;border-bottom:1px solid #a8862f30;overflow-wrap:anywhere;}
+#squad-status.error{color:#ed9f91;}
+.squad-empty{padding:28px 10px;text-align:center;color:#aaa493;font:15px 'Roboto Condensed',Arial,sans-serif;}
+#chr-squad-panel{margin-bottom:16px;}
+@media(max-width:700px){#screen-squad{padding:10px;}.squad-head{padding:20px 16px;align-items:flex-start;flex-direction:column;gap:12px;}#squad-root h1{font-size:27px;}.squad-body{padding:14px;}.squad-command-grid{grid-template-columns:1fr;gap:14px;margin-bottom:14px;}.squad-panel{padding:16px;}.squad-add{flex-direction:column;align-items:stretch;}.squad-member{align-items:flex-start;flex-direction:column;padding:12px;}.squad-member-actions{align-self:stretch;justify-content:space-between;}#squad-status{padding:12px 16px;}}
+
+</style>
 </head>
 <body data-vox-art="on" data-sheet-art="off">
 <div class="vox-art-decor" aria-hidden="true"><div class="vox-art-scale left"></div><div class="vox-art-scale right"></div><div class="vox-art-corner bl">|||||||||||| ▪ 01</div><div class="vox-art-corner br">SANCTUS ▪ ▪ |||||||</div><div class="vox-art-scan"></div></div>
@@ -2021,6 +2067,8 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
     </div>
   </div>
 
+  <div class="tpanel" id="chr-squad-panel"><div class="spread"><h2>Окно отряда</h2><button type="button" id="chr-squad-open" onclick="squadOpenTab()">Открыть лист отряда ↗</button></div><div class="desc">Командир, активная способность и состав Ликвидационной команды</div></div>
+
   <div class="grid chr-grid" style="grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:start;gap:16px">
     <div>
       <div class="tpanel">
@@ -2076,6 +2124,20 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 </div>
 
 <!-- ============ ЭКРАН 4: ЛИСТ ПЕРСОНАЖА ============ -->
+<div id="screen-squad" class="wrap hidden">
+ <div id="squad-root" class="sheet">
+  <div class="squad-head"><div><div class="squad-kicker">Караул Смерти · Командный лист</div><h1>Окно отряда</h1><div id="squad-chronicle-name" class="squad-muted"></div></div><div class="squad-actions"><button type="button" class="ghost sm" onclick="squadBack()">← Хроника</button><button type="button" class="sm" id="squad-refresh" onclick="squadLoad()">Обновить</button></div></div>
+  <div id="squad-status" role="status" aria-live="polite"></div>
+  <div class="squad-body">
+   <div class="squad-command-grid">
+    <section class="squad-panel"><h2>Командир отряда</h2><label for="squad-leader">Выберите персонажа</label><select id="squad-leader" disabled></select><div id="squad-leader-card"></div><div id="squad-tactics" class="squad-tactics"></div></section>
+    <section class="squad-panel"><h2>Активная отрядная способность</h2><label for="squad-ability">Способности членов команды</label><select id="squad-ability" disabled></select><div id="squad-ability-card"></div></section>
+   </div>
+   <section class="squad-panel squad-team"><div class="squad-section-head"><h2>Члены Ликвидационной команды</h2><span id="squad-count" class="squad-muted"></span></div><div class="squad-add"><label for="squad-add-character" class="hidden">Добавить персонажа</label><select id="squad-add-character" disabled></select><button type="button" id="squad-add-btn" disabled>+ Добавить</button></div><div id="squad-members"></div></section>
+  </div>
+ </div>
+</div>
+
 <div id="screen-sheet" class="hidden">
  <div class="sheet" id="sheet-root">
   <div id="sheet-load-error" style="display:none;padding:30px;text-align:center">
@@ -3111,9 +3173,9 @@ function closeModal(id){ $(id).classList.add('hidden'); }
 
 function showScreen(name){
   document.body.dataset.voxScreen=name;
-  document.body.dataset.voxArt=['sheet','statblock'].includes(name)?'off':'on';
-  document.body.dataset.sheetArt=['sheet','statblock'].includes(name)?'on':'off';
-  ['login','dash','chronicle','sheet','statblock'].forEach(s =>
+  document.body.dataset.voxArt=['sheet','statblock','squad'].includes(name)?'off':'on';
+  document.body.dataset.sheetArt=['sheet','statblock','squad'].includes(name)?'on':'off';
+  ['login','dash','chronicle','sheet','statblock','squad'].forEach(s =>
     $('screen-' + s).classList.toggle('hidden', s !== name));
   const loader = document.getElementById('app-loader');
   if (loader) loader.classList.add('hidden');
@@ -3142,6 +3204,7 @@ async function doLogin(){
   if (!data) return toast('Аутентификатор не найден. Зарегистрируйте его.');
   S.user = data;
   localStorage.setItem('dw_user', JSON.stringify(data));
+  if(await squadResumeTab())return;
   if(await sbResumeTab())return;
   await showDash();
 }
@@ -10322,7 +10385,8 @@ if (modsEditBtn) modsEditBtn.addEventListener('click', openSettings);
         .select('id, username').eq('id', u.id).maybeSingle();
       if (data){
         S.user = data;
-        if(await sbResumeTab())return;
+        if(await squadResumeTab())return;
+  if(await sbResumeTab())return;
         if (charId){ await openSheet(Number(charId)); return; }
         return showDash();
       }
@@ -16293,6 +16357,120 @@ if(typeof npcPresetValue==='function'){
 }
 </script>
 
+<script data-feature="squad-window">
+// A shared chronicle sheet; no mutations to character sheets or game bonuses.
+const SQUAD={state:null,characters:[],chronicle:null,user:null,busy:false,loading:false,error:'',token:0,choices:[]};
+const squadChannel=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('vox_squad_updates'):null;
+function squadArray(v){return Array.isArray(v)?v:[];}
+function squadCharacter(id){return SQUAD.characters.find(c=>String(c.id)===String(id));}
+function squadIsOpen(){return !!S.user&&S.user.id===SQUAD.user&&S.chronicle?.id===SQUAD.chronicle&&!$('screen-squad').classList.contains('hidden');}
+function squadOpenTab(){
+ if(!voxSession())return;
+ const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('squad',S.chronicle.id);
+ const child=window.open(url.href,'_blank');if(!child)toast('Разрешите открытие новых вкладок для этого сайта');
+}
+function squadMessage(error){return ({SQUAD_NO_ACCESS:'Вы больше не участвуете в этой Хронике.',SQUAD_NOT_FOUND:'Хроника не найдена.',SQUAD_CONFLICT:'Отряд изменён в другой вкладке. Загружены свежие данные — повторите своё изменение.',SQUAD_BAD_MEMBER:'Один из персонажей больше недоступен. Обновите состав.',SQUAD_BAD_ABILITY:'Способность изменилась в листе персонажа. Обновите отряд и выберите её заново.'})[error?.message]||('Не удалось сохранить отряд: '+String(error?.message||error));}
+async function squadRequest(action='read',payload=null,revision=null,context={chronicle:SQUAD.chronicle,user:SQUAD.user}){
+ const {data,error}=await sb.rpc('vox_squad_operation',{p_chronicle:context.chronicle,p_actor:context.user,p_action:action,p_revision:revision,p_payload:payload});
+ if(error)throw error;if(!data||data.chronicle_id!==context.chronicle||!data.state||!Array.isArray(data.characters))throw Error('Сервер не подтвердил данные отряда');return data;
+}
+async function squadResumeTab(){
+ const raw=new URLSearchParams(location.search).get('squad');if(raw===null)return false;
+ const id=Number(raw);if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(id)){await showDash();toast('Некорректная ссылка на отряд');return true;}
+ if(!S.user)return false;
+ const user=S.user.id;
+ try{
+  const data=await squadRequest('read',null,null,{chronicle:id,user});
+  if(S.user?.id!==user)return true;
+  S.chronicle={id,name:data.name};S.role=data.role;SQUAD.chronicle=id;SQUAD.user=user;SQUAD.state=data.state;SQUAD.characters=data.characters;SQUAD.error='';
+  showScreen('squad');document.title='Отряд — '+data.name;squadRender();
+ }catch(error){await showDash();toast(squadMessage(error));}
+ return true;
+}
+function squadTactical(c){
+ return squadArray(c?.spec_abilities).some(row=>row&&(Number(row.ability_id??row.id)===4||String(row.name||'').trim().toLowerCase()==='тактический десантник')&&
+  squadArray(row.options).some(opt=>opt?.selected===true&&(Number(opt.id)===94||String(opt.name||'').trim().toLowerCase()==='знаток тактики')));
+}
+function squadTags(c){return [c?.info?.chapter,c?.info?.specialization].filter(Boolean).map(v=>'<span class="squad-tag">'+esc(v)+'</span>').join('');}
+function squadAbilityRef(c,key,row){return {character_id:c.id,list_key:key,ability_id:row.id==null?null:String(row.id),name:String(row.name||'')};}
+function squadSameAbility(a,b){return !!a&&!!b&&String(a.character_id)===String(b.character_id)&&a.list_key===b.list_key&&String(a.ability_id??'')===String(b.ability_id??'')&&a.name===b.name;}
+function squadChoices(){
+ const choices=[];
+ for(const member of squadArray(SQUAD.state?.members)){
+  const c=squadCharacter(member.id);if(!c)continue;
+  for(const key of ['squad_chapter','squad_codex'])for(const row of squadArray(c[key]))if(row?.name){const ref=squadAbilityRef(c,key,row);if(!choices.some(x=>squadSameAbility(x.ref,ref)))choices.push({ref,c,row});}
+ }
+ return choices;
+}
+function squadPlainDescription(value){const el=document.createElement('template');el.innerHTML=String(value||'');el.content.querySelectorAll('script,style,iframe,object').forEach(n=>n.remove());el.content.querySelectorAll('p,div,li,h1,h2,h3,h4,br').forEach(n=>{n.appendChild(document.createTextNode('\n'));});return el.content.textContent.trim();}
+function squadRender(){
+ if(!squadIsOpen())return;
+ const previousAdd=$('squad-add-character').value;
+ const state=SQUAD.state,members=squadArray(state?.members),locked=SQUAD.busy||SQUAD.loading||!state||!!SQUAD.error;
+ $('squad-chronicle-name').textContent=S.chronicle.name;
+ const status=$('squad-status');status.textContent=SQUAD.error||(SQUAD.busy?'Сохранение…':SQUAD.loading?'Обновление…':'Общий лист Хроники · Изменения сохраняются автоматически');status.classList.toggle('error',!!SQUAD.error);
+ $('squad-refresh').disabled=SQUAD.busy||SQUAD.loading;
+ const leader=$('squad-leader');leader.innerHTML='<option value="">Командир не выбран</option>'+SQUAD.characters.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
+ if(state?.leader_id&&!squadCharacter(state.leader_id))leader.innerHTML+='<option value="'+esc(state.leader_id)+'">Персонаж недоступен</option>';
+ leader.value=state?.leader_id==null?'':String(state.leader_id);leader.disabled=locked;
+ const c=squadCharacter(state?.leader_id);$('squad-leader-card').innerHTML=c?'<div class="squad-identity"><div class="squad-name">'+esc(c.name)+'</div><div class="squad-tags">'+squadTags(c)+'</div></div>':'<div class="squad-empty">Назначьте командира отряда</div>';
+ const tactics=$('squad-tactics'),confirmed=squadTactical(c);tactics.classList.toggle('confirmed',confirmed);
+ tactics.innerHTML=confirmed?'Знаток тактики — подтверждено<div class="squad-rule-note">Умение выбрано в листе командира. Применение требует проверки Командования по правилам способности.</div>':c?'Знаток тактики — не выбрано в листе командира':'Знаток тактики — командир не выбран';
+ SQUAD.choices=squadChoices();const ability=$('squad-ability'),activeIndex=SQUAD.choices.findIndex(x=>squadSameAbility(x.ref,state?.ability));
+ ability.innerHTML='<option value="">Нет активной способности</option>'+SQUAD.choices.map((x,i)=>'<option value="'+i+'">'+esc(x.row.name)+' · '+esc(x.c.name)+'</option>').join('');
+ if(state?.ability&&activeIndex<0)ability.innerHTML+='<option value="missing">'+esc(state.ability.name)+' · недоступна</option>';
+ ability.value=activeIndex>=0?String(activeIndex):state?.ability?'missing':'';ability.disabled=locked;
+ const active=SQUAD.choices[activeIndex];$('squad-ability-card').innerHTML=active?'<div class="squad-identity"><div class="squad-name">'+esc(active.row.name)+'</div><div class="squad-muted">'+esc(active.c.name)+' · '+(active.ref.list_key==='squad_chapter'?'Орденская':'Кодексная')+'</div><div class="squad-ability-desc">'+esc(squadPlainDescription(active.row.desc||active.row.description))+'</div></div>':state?.ability?'<div class="squad-empty">Способность больше не найдена в составе команды. Выберите другую или снимите активную.</div>':'<div class="squad-empty">Выберите способность из листов членов команды</div>';
+ const remaining=SQUAD.characters.filter(c=>!members.some(m=>String(m.id)===String(c.id))),add=$('squad-add-character');
+ add.innerHTML='<option value="">'+(remaining.length?'Выберите персонажа для добавления':'Все персонажи уже добавлены')+'</option>'+remaining.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');if(remaining.some(c=>String(c.id)===previousAdd))add.value=previousAdd;add.disabled=locked||!remaining.length;$('squad-add-btn').disabled=locked||!add.value;
+ $('squad-count').textContent=members.length+' '+(members.length===1?'персонаж':'в составе');
+ $('squad-members').innerHTML=members.length?members.map(m=>{
+  const character=squadCharacter(m.id),isLeader=String(m.id)===String(state.leader_id),inSquad=m.mode==='squad';
+  return '<div class="squad-member"><div class="squad-member-info"><div class="squad-name">'+esc(character?.name||'Персонаж недоступен')+'</div><div class="squad-tags">'+squadTags(character)+(isLeader?'<span class="squad-tag">Командир</span>':'')+'</div></div><div class="squad-member-actions"><button type="button" class="squad-mode '+(inSquad?'in-squad':'solo')+'" data-squad-mode="'+esc(m.id)+'" aria-pressed="'+inSquad+'" aria-label="Режим персонажа '+esc(character?.name||m.id)+'" '+(locked||!character?'disabled':'')+'>'+(inSquad?'в отряде':'одиночка')+'</button><button type="button" class="ghost sm" data-squad-remove="'+esc(m.id)+'" aria-label="Убрать из отряда '+esc(character?.name||m.id)+'" '+(locked?'disabled':'')+'>Убрать</button></div></div>';
+ }).join(''):'<div class="squad-empty">Команда ещё не собрана. Добавьте персонажей Хроники.</div>';
+}
+async function squadLoad(quiet=false){
+ if(!squadIsOpen()||SQUAD.busy||SQUAD.loading)return;
+ const token=++SQUAD.token,context={chronicle:SQUAD.chronicle,user:SQUAD.user};SQUAD.loading=true;squadRender();
+ try{const data=await squadRequest('read',null,null,context);if(token!==SQUAD.token||!squadIsOpen())return;SQUAD.state=data.state;SQUAD.characters=data.characters;SQUAD.error='';S.role=data.role;S.chronicle.name=data.name;}
+ catch(error){if(token===SQUAD.token&&squadIsOpen())SQUAD.error=squadMessage(error);}
+ finally{if(token===SQUAD.token){SQUAD.loading=false;squadRender();}}
+}
+async function squadChange(change){
+ if(!squadIsOpen()||!SQUAD.state||SQUAD.busy||SQUAD.loading||SQUAD.error)return false;
+ const context={chronicle:SQUAD.chronicle,user:SQUAD.user},draft=JSON.parse(JSON.stringify(SQUAD.state)),token=++SQUAD.token;
+ // A deleted character or removed sheet ability cannot remain an active reference.
+ draft.members=squadArray(draft.members).filter(m=>squadCharacter(m.id));if(!squadCharacter(draft.leader_id))draft.leader_id=null;
+ if(draft.ability&&!squadChoices().some(x=>squadSameAbility(x.ref,draft.ability)))draft.ability=null;
+ change(draft);SQUAD.busy=true;squadRender();let conflict=false;
+ try{
+  const data=await squadRequest('save',draft,SQUAD.state.revision,context);
+  if(token!==SQUAD.token||!squadIsOpen())return false;
+  SQUAD.state=data.state;SQUAD.characters=data.characters;SQUAD.error='';
+  squadChannel?.postMessage({chronicle:context.chronicle});return true;
+ }catch(error){
+  if(token!==SQUAD.token||!squadIsOpen())return false;
+  conflict=error?.message==='SQUAD_CONFLICT';toast(squadMessage(error));
+  if(!conflict)SQUAD.error=squadMessage(error);return false;
+ }finally{
+  if(token===SQUAD.token){SQUAD.busy=false;if(conflict)await squadLoad();else squadRender();}
+ }
+}
+function squadBack(){if(SQUAD.busy)return;SQUAD.token++;SQUAD.loading=false;history.replaceState(null,'',location.pathname);enterChronicle(S.chronicle.id,S.chronicle.name,S.role);}
+$('squad-leader').addEventListener('change',e=>{const id=Number(e.target.value)||null;squadChange(d=>{d.leader_id=id;if(id&&!d.members.some(m=>String(m.id)===String(id)))d.members.push({id,mode:'squad'});});});
+$('squad-ability').addEventListener('change',e=>{const choice=e.target.value===''?null:SQUAD.choices[Number(e.target.value)];if(e.target.value!==''&&!choice)return;squadChange(d=>{d.ability=choice?.ref||null;});});
+$('squad-add-character').addEventListener('change',e=>{$('squad-add-btn').disabled=!e.target.value||SQUAD.busy||SQUAD.loading||!!SQUAD.error;});
+$('squad-add-btn').addEventListener('click',()=>{const id=Number($('squad-add-character').value);if(!id||!squadCharacter(id))return;squadChange(d=>{if(!d.members.some(m=>String(m.id)===String(id)))d.members.push({id,mode:'squad'});});});
+$('squad-members').addEventListener('click',e=>{
+ const chip=e.target.closest('[data-squad-mode]');if(chip){squadChange(d=>{const m=d.members.find(m=>String(m.id)===chip.dataset.squadMode);if(m)m.mode=m.mode==='squad'?'solo':'squad';});return;}
+ const remove=e.target.closest('[data-squad-remove]');if(remove)squadChange(d=>{const id=remove.dataset.squadRemove;d.members=d.members.filter(m=>String(m.id)!==id);if(String(d.leader_id)===id)d.leader_id=null;if(String(d.ability?.character_id)===id)d.ability=null;});
+});
+squadChannel?.addEventListener('message',e=>{if(e.data?.chronicle===SQUAD.chronicle)squadLoad(true);});
+charChannel?.addEventListener('message',()=>{if(squadIsOpen())squadLoad(true);});
+window.addEventListener('focus',()=>{if(squadIsOpen())squadLoad(true);});
+setInterval(()=>{if(squadIsOpen()&&!document.hidden)squadLoad(true);},15000);
+
+</script>
 </body>
 </html>
 
