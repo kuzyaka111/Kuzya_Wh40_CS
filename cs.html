@@ -14791,7 +14791,7 @@ Object.assign(NPC_PRESET_LABELS,Object.fromEntries(STATS.map(([k,n])=>[k,n])),{
   range_m:'Дальность, м',rate_of_fire:'Темп стрельбы',damage_type:'Тип урона',penetration:'Бронебойность',clip:'Магазин',special:'Свойства',class:'Класс',ignores_armour:'Игнорирует броню',ignores_toughness:'Игнорирует бонус Выносливости',ignores_toughness_bonus:'Игнорирует бонус Выносливости',range_formula:'Формула дальности',damage_formula:'Формула урона',radius:'Радиус',radius_m:'Радиус, м',action:'Действие',resistance_test:'Проверка сопротивления',targets:'Цели',psy_rating:'Пси-рейтинг',weight_kg:'Масса, кг',mass_kg:'Масса, кг',requisition:'Реквизиция',renown:'Слава',targeting_rule:'Правило выбора целей',two_handed:'Двуручное',strength_bonus_added:'Бонус Силы учтён',ammunition:'Боеприпасы',damage_delta:'Изменение урона',quality_added:'Добавляемое свойство',eligible_weapons:'Подходящее оружие',operator_bs:'Дальний бой оператора',attack_skill:'Проверка атаки',throw_range_formula:'Формула дальности броска',blast_radius_formula:'Формула радиуса взрыва',magnitude:'Численность',add_talents:'Добавить таланты',add_traits:'Добавить особенности',replace_weapons:'Заменить оружие',replace_weapon:'Заменить оружие',toughness_delta:'Изменение Выносливости',melee_damage_delta:'Изменение рукопашного урона',wounds_formula:'Формула ран',wounds_rounding:'Округление ран',effect:'Значение',mode:'Способ применения',timing:'Порядок применения',target:'Область',target_name:'Параметр',cond:'Ситуативные',perm:'Постоянные'
 });
 const NPC_PRESET_ENUMS={...SKILL_LEVEL_TITLE,...Object.fromEntries(STATS.map(([k,n])=>[k,n])),...Object.fromEntries(Object.keys(SB_WEAPON_TYPES).map(k=>[k,SB_WEAPON_TYPES[k]])),...SB_GEAR_KINDS,npc:'НПЦ',vehicle:'Техника',add:'Прибавить',mul:'Умножить',pre:'До расчёта',post:'После расчёта',stat:'Характеристика',indicator:'Показатель',armor:'Броня'};
-const NPC_PRESET_HIDDEN_KEYS=new Set(['id','item_id','source','sources','description_sources','source_fields','edition','catalog_stats','catalog_source','catalog_key','schema_version','canonical_english_name','raw_weapon_block','profile','book_id','damage_as_printed']);
+const NPC_PRESET_HIDDEN_KEYS=new Set(['id','item_id','source','sources','description_sources','source_fields','preset_snapshot_history','edition','catalog_stats','catalog_source','catalog_key','schema_version','canonical_english_name','raw_weapon_block','profile','book_id','damage_as_printed']);
 function npcPresetValue(v,depth=0){
   if(v==null)return '—';if(typeof v==='boolean')return v?'Да':'Нет';
   if(typeof v!=='object')return esc(NPC_PRESET_ENUMS[String(v)]||String(v));
@@ -14812,10 +14812,10 @@ function npcPresetSourceFields(value){
   return Object.keys(result).length?result:null;
 }
 function npcPresetOriginalSource(r){
-  const research=sbClone(r.research||{});delete research.localization;
+  const research=sbClone(r.research||{});delete research.localization;delete research.preset_snapshot_history;
   return {name:npcPresetLocalization(r).original_name||research.original_name||r.name,sources:sbClone(npcPresetSources(r)),research,source_fields:npcPresetSourceFields(r.statblock)};
 }
-function npcPresetOriginalHtml(value){return '<details class="npc-preset-original"><summary>Оригинал источника</summary><p>Исходные названия, цитаты и данные для сверки с книгой.</p><pre>'+esc(JSON.stringify(value,null,2))+'</pre></details>';}
+function npcPresetOriginalHtml(value){return '<details class="npc-preset-original"><summary>Оригинал источника</summary><p>Исходные названия, цитаты и данные для сверки с книгой.</p><pre>'+esc(JSON.stringify(value,(key,item)=>key==='preset_snapshot_history'?undefined:item,2))+'</pre></details>';}
 function npcPresetPreview(id){
   const r=NPC_PRESETS.rows?.find(x=>x.id===id);if(!r||SB.entry?.kind!=='preset')return;
   NPC_PRESETS.selected=id;npcPresetDrawList();const ready=npcPresetCanApply(r);
@@ -16978,10 +16978,22 @@ voxPresetBase=function(record,choices,actorType,initialMagnitude,sizeCategory){
   data.preset_metadata.original_source=npcPresetOriginalSource(record);data.preset_metadata.horde_initial_magnitude=initialMagnitude;
   if(record.statblock.schema_version===3)data.preset_metadata.horde_size_category=sizeCategory;return data;
 };
+function voxPresetSnapshot(record,revision){
+  if(record?.revision===revision)return record;
+  if(!record||!['ark-005','ark-027'].includes(record.id)||revision!==3||!Number.isSafeInteger(record.revision)||record.revision<=revision)return record;
+  const history=record.research?.preset_snapshot_history;
+  if(!Array.isArray(history))return record;
+  const matches=history.filter(row=>row?.id===record.id&&row.revision===revision);
+  if(matches.length!==1)return record;
+  const prior=matches[0],hasHistory=value=>!!value&&typeof value==='object'&&(Array.isArray(value)?value.some(hasHistory):Object.entries(value).some(([key,item])=>key==='preset_snapshot_history'||hasHistory(item)));
+  if(!npcOptionObject(prior)||!['ready','archived'].includes(prior.status)||!npcOptionName(prior.name)||prior.name.trim().length>200||!npcOptionObject(prior.research)||!Array.isArray(prior.sources)||!prior.sources.length||hasHistory(prior)||prior.statblock?.schema_version!==3||!npcHordeRequirementValid(prior.statblock))return record;
+  if(!['id','name','faction','kind','ruleset','status','sources','parent_id','variant_reference','research','statblock','revision','created_at','updated_at'].every(key=>Object.hasOwn(prior,key)))return record;
+  return prior;
+}
 voxBuildFile=async function(kind,name,actor){
   const cache=new Map(),data=voxCleanActor(actor),file={format:VOX_FILE_FORMAT,version:VOX_FILE_VERSION,kind,name:String(name),exported_at:new Date().toISOString()};
   if(kind==='statblock'&&data.preset_metadata?.id){
-    const meta=data.preset_metadata,record=await voxCatalogRow('npc_presets',meta.id,cache);
+    const meta=data.preset_metadata,current=await voxCatalogRow('npc_presets',meta.id,cache),record=voxPresetSnapshot(current,meta.revision);
     if(record.revision!==meta.revision)throw Error('Пресет обновлён с момента применения. Для точного экспорта нужна версия '+meta.revision+'; в базе сейчас '+record.revision+'.');
     const choices=voxPresetChoices(meta),base=voxPresetBase(record,choices,data.type,meta.horde_initial_magnitude,meta.horde_size_category);
     file.preset={id:record.id,revision:record.revision,choices,actor_type:data.type};
@@ -16996,7 +17008,7 @@ voxRestoreFile=async function(file){
   const cache=new Map();let data,requiredInitial=null,requiredSize=null;
   if(file.preset){
     if(file.kind!=='statblock'||file.data)throw Error('Неверный формат пресета.');
-    const preset=file.preset,record=await voxCatalogRow('npc_presets',preset.id,cache);
+    const preset=file.preset,current=await voxCatalogRow('npc_presets',preset.id,cache),record=voxPresetSnapshot(current,preset.revision);
     if(record.revision!==preset.revision)throw Error('Версия пресета не совпадает: нужна '+preset.revision+', в базе '+record.revision+'. Импорт остановлен.');
     data=voxApplyDelta(voxPresetBase(record,preset.choices,preset.actor_type,preset.horde_initial_magnitude,preset.horde_size_category),await voxUnpackDelta(file.changes,cache));
     if(npcHordeHasRequirement(record.statblock))requiredInitial=preset.horde_initial_magnitude;
