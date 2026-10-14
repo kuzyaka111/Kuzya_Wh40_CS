@@ -16668,13 +16668,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!DAMAGE.busy)$('dam
 #sb-entry-modal.npc-horde-magnitude-modal .box{width:780px;max-width:calc(100vw / 1.3 - 28px);box-sizing:border-box}
 #sb-entry-modal .npc-horde-initial{min-width:0;margin:12px 0;padding:12px;border:1px solid var(--border-gold);box-sizing:border-box}
 #sb-entry-modal .npc-horde-initial label{display:block;margin-bottom:8px;color:var(--gold);font:inherit}
-#sb-entry-modal .npc-horde-initial input{width:100%;max-width:230px;min-width:0;box-sizing:border-box;padding:8px;font:inherit;background:#101012;color:var(--text-main);border:1px solid var(--border-dark)}
-#sb-entry-modal .npc-horde-initial input:invalid{border-color:#bd756b}
+#sb-entry-modal .npc-horde-initial :is(input,select){width:100%;max-width:230px;min-width:0;box-sizing:border-box;padding:8px;font:inherit;background:#101012;color:var(--text-main);border:1px solid var(--border-dark)}
+#sb-entry-modal .npc-horde-initial :is(input,select):invalid{border-color:#bd756b}
 #sb-entry-modal .npc-horde-initial-status{margin-top:8px;font-size:13px;color:var(--text-dim)}
 </style>
 <script id="npc-horde-initial-magnitude-script">
-// Only explicitly marked, independently verified source templates use this path.
-// Source rows, existing actors and printed Magnitudes are never filled by render.
+// Source schema 3 is refused by older clients. Count and book Size are independent.
+// Source rows and printed values are never changed or inferred by render.
 const NPC_HORDE_MAGNITUDE_MAX=1000000;
 function npcHordeMagnitude(value){
   if(typeof value!=='number'&&typeof value!=='string')return null;
@@ -16682,27 +16682,95 @@ function npcHordeMagnitude(value){
   const number=Number(value);
   return Number.isSafeInteger(number)&&number>0&&number<=NPC_HORDE_MAGNITUDE_MAX?number:null;
 }
+const NPC_HORDE_SIZE_CATEGORIES=Object.freeze([
+  {category:1,label:'Крошечный',hit:-30},{category:2,label:'Маленький',hit:-20},
+  {category:3,label:'Небольшой',hit:-10},{category:4,label:'Средний',hit:0},
+  {category:5,label:'Крупный',hit:10},{category:6,label:'Большой',hit:20},
+  {category:7,label:'Огромный',hit:30},{category:8,label:'Громадный',hit:40},
+  {category:9,label:'Колоссальный',hit:50},{category:10,label:'Титанический',hit:60}
+].map(row=>Object.freeze(row)));
+function npcHordeSizeCategory(value){
+  if(typeof value!=='number'&&typeof value!=='string'||typeof value==='string'&&!value.trim())return null;
+  const number=Number(value);return Number.isSafeInteger(number)&&number>=1&&number<=10?number:null;
+}
+function npcHordeSizeRow(category){return NPC_HORDE_SIZE_CATEGORIES.find(row=>row.category===category)||null;}
+function npcHordeSigned(value){return value>0?'+'+value:String(value);}
 function npcHordeHasRequirement(block){
-  return !!block?.horde&&typeof block.horde==='object'&&Object.hasOwn(block.horde,'requires_initial_magnitude');
+  return block?.schema_version===3||!!block?.horde&&typeof block.horde==='object'&&['requires_initial_magnitude','requires_size_category'].some(key=>Object.hasOwn(block.horde,key));
+}
+const NPC_HORDE_BASE_OPTIONS_VALID=npcPresetOptionsValid;
+function npcHordeShapeValid(block){
+  return npcOptionObject(block)&&block.category==='Орда'&&npcOptionObject(block.horde)&&['npc','vehicle'].includes(block.type)&&npcOptionName(block.name)&&block.name.trim().length<=200&&npcOptionObject(block.stats)&&STATS.every(([key])=>Object.hasOwn(block.stats,key))&&npcOptionObject(block.vitals)&&npcOptionObject(block.defence)&&npcOptionObject(block.movement)&&['skills_basic','skills_adv','talents','features','traits','weapons'].every(key=>Array.isArray(block[key]));
 }
 function npcHordeRequirementValid(block){
-  return npcOptionObject(block)&&block.category==='Орда'&&npcOptionObject(block.horde)&&block.horde.requires_initial_magnitude===true&&['magnitude','initial','turn_start'].every(key=>Object.hasOwn(block.horde,key)&&block.horde[key]===null)&&[1,2].includes(block.schema_version)&&['npc','vehicle'].includes(block.type)&&npcOptionName(block.name)&&block.name.trim().length<=200&&npcOptionObject(block.stats)&&STATS.every(([key])=>Object.hasOwn(block.stats,key))&&npcOptionObject(block.vitals)&&npcOptionObject(block.defence)&&npcOptionObject(block.movement)&&['skills_basic','skills_adv','talents','features','traits','weapons'].every(key=>Array.isArray(block[key]));
+  if(!npcHordeShapeValid(block))return false;
+  const h=block.horde,own=key=>Object.hasOwn(h,key),countKeys=['magnitude','initial','turn_start'];
+  if(block.schema_version!==3)return [1,2].includes(block.schema_version)&&h.requires_initial_magnitude===true&&!own('requires_size_category')&&countKeys.every(key=>own(key)&&h[key]===null);
+  if(['requires_initial_magnitude','requires_size_category'].some(key=>own(key)&&h[key]!==true))return false;
+  if(own('requires_initial_magnitude')){if(!countKeys.every(key=>own(key)&&h[key]===null))return false;}
+  else if(!countKeys.every(key=>typeof h[key]==='number'&&npcHordeMagnitude(h[key])!=null&&h[key]===h.initial))return false;
+  if(own('requires_size_category')){if(!['size_category','size_hit_modifier'].every(key=>own(key)&&h[key]===null))return false;}
+  else if(typeof h.size_category!=='number'||npcHordeSizeCategory(h.size_category)==null||typeof h.size_hit_modifier!=='number'||h.size_hit_modifier!==npcHordeSizeRow(h.size_category).hit)return false;
+  if(!Number.isSafeInteger(h.armour)||h.armour<0||h.allow_defence!==false)return false;
+  return !Object.hasOwn(block,'choice_groups')||NPC_HORDE_BASE_OPTIONS_VALID({...block,schema_version:2});
 }
+npcPresetOptionsValid=function(block){return block?.schema_version===3?npcHordeRequirementValid(block)&&Object.hasOwn(block,'choice_groups')&&NPC_HORDE_BASE_OPTIONS_VALID({...block,schema_version:2}):NPC_HORDE_BASE_OPTIONS_VALID(block);};
 function npcHordeFillMagnitude(raw,value){
   const magnitude=npcHordeMagnitude(value);
-  if(!npcHordeRequirementValid(raw)||magnitude==null)throw Error('Перед применением Орды укажите целую начальную численность от 1 до '+NPC_HORDE_MAGNITUDE_MAX+'.');
+  if(!npcHordeRequirementValid(raw)||magnitude==null||(raw.schema_version===3&&!Object.hasOwn(raw.horde,'requires_initial_magnitude')&&magnitude!==raw.horde.initial))throw Error('Перед применением Орды укажите целую начальную численность от 1 до '+NPC_HORDE_MAGNITUDE_MAX+'; книжное значение сохраняется.');
   raw.horde.magnitude=magnitude;raw.horde.initial=magnitude;raw.horde.turn_start=magnitude;
   delete raw.horde.requires_initial_magnitude;return raw;
 }
+function npcHordeFillSize(raw,value){
+  const category=npcHordeSizeCategory(value),row=npcHordeSizeRow(category);
+  if(raw?.schema_version!==3||!npcHordeRequirementValid(raw)||!row||(!Object.hasOwn(raw.horde,'requires_size_category')&&category!==raw.horde.size_category))throw Error('Выберите книжную категорию размера Орды; напечатанная категория сохраняется.');
+  raw.horde.size_category=category;raw.horde.size_hit_modifier=row.hit;delete raw.horde.requires_size_category;
+  raw.parameters={...raw.parameters,size:row.label};
+  raw.features=raw.features.filter(feature=>feature.npc_horde_size!==true&&!/^Размер Орды(?:\s*\(|$)/i.test(String(feature.name||'')));
+  raw.features.push({name:'Размер Орды ('+row.label+')',npc_horde_size:true,size_category:category,size_hit_modifier:row.hit,description:'Книжная категория размера '+category+'. Модификатор к проверкам попадания по этой Орде: '+npcHordeSigned(row.hit)+'. Категория выбрана отдельно от численности; передвижение и собственные атаки Орды не изменяются.'});
+  return raw;
+}
+function npcHordeResolve(raw,initialMagnitude,sizeCategory){
+  if(!npcHordeRequirementValid(raw))throw Error('Шаблон Орды повреждён или не поддерживается.');
+  const source3=raw.schema_version===3;npcHordeFillMagnitude(raw,initialMagnitude);
+  if(source3)npcHordeFillSize(raw,sizeCategory);
+  raw.schema_version=Array.isArray(raw.choice_groups)&&raw.choice_groups.length?2:1;return raw;
+}
+function npcHordeIncomingHitModifier(data){
+  const h=data?.horde,row=npcHordeSizeRow(h?.size_category);
+  return data?.category==='Орда'&&row&&h.size_hit_modifier===row.hit?row.hit:null;
+}
+function npcHordeActorSizeValid(raw){
+  const h=raw?.horde,meta=raw?.preset_metadata;
+  if(!h||!['size_category','size_hit_modifier'].some(key=>Object.hasOwn(h,key))&&!Object.hasOwn(meta||{},'horde_size_category'))return true;
+  if(raw.category!=='Орда'||typeof h.size_category!=='number'||npcHordeSizeCategory(h.size_category)==null||typeof h.size_hit_modifier!=='number'||h.size_hit_modifier!==npcHordeSizeRow(h.size_category).hit)return false;
+  if(meta&&Object.hasOwn(meta,'horde_size_category')&&(typeof meta.horde_size_category!=='number'||meta.horde_size_category!==h.size_category))return false;
+  if(typeof h.initial!=='number'||npcHordeMagnitude(h.initial)==null||!['magnitude','turn_start'].every(key=>Number.isSafeInteger(h[key])&&h[key]>=0&&h[key]<=NPC_HORDE_MAGNITUDE_MAX))return false;
+  return !meta||!Object.hasOwn(meta,'horde_initial_magnitude')||(typeof meta.horde_initial_magnitude==='number'&&npcHordeMagnitude(meta.horde_initial_magnitude)!=null);
+}
 const NPC_HORDE_BASE_CAN_APPLY=npcPresetCanApply;
 npcPresetCanApply=function(record){
-  if(npcHordeHasRequirement(record?.statblock)&&!npcHordeRequirementValid(record.statblock))return false;
+  if(npcHordeHasRequirement(record?.statblock)){if(!npcHordeRequirementValid(record.statblock))return false;if(record.statblock.schema_version===3)return record.status==='ready';}
   return NPC_HORDE_BASE_CAN_APPLY(record);
+};
+const NPC_HORDE_BASE_PLAY_NORMALIZE=sbNormalizePlay;
+sbNormalizePlay=function(data,raw=data){
+  if(!npcHordeActorSizeValid(raw))throw Error('Категория размера Орды повреждена.');
+  const h=raw.horde,size=h&&Object.hasOwn(h,'size_category')?{size_category:h.size_category,size_hit_modifier:h.size_hit_modifier}:null;
+  const result=NPC_HORDE_BASE_PLAY_NORMALIZE(data,raw);if(size)Object.assign(result.horde,size);return result;
 };
 const NPC_HORDE_BASE_NORMALIZE=normalizeStatblock;
 normalizeStatblock=function(raw){
-  if(npcHordeHasRequirement(raw))throw Error('Шаблон Орды требует явно выбранной начальной численности.');
+  if(npcHordeHasRequirement(raw))throw Error('Шаблон Орды требует явного выбора численности и книжной категории размера.');
+  if(!npcHordeActorSizeValid(raw))throw Error('Категория размера Орды повреждена.');
   return NPC_HORDE_BASE_NORMALIZE(raw);
+};
+const NPC_HORDE_BASE_RULES=sbHordeRulesHtml;
+sbHordeRulesHtml=function(data){
+  const html=NPC_HORDE_BASE_RULES(data),modifier=npcHordeIncomingHitModifier(data);
+  if(modifier==null)return html;
+  const row=npcHordeSizeRow(data.horde.size_category);
+  return html.replace('<b>Правила орды</b>','<b>Правила орды</b><p data-npc-horde-size-summary>Размер Орды: '+esc(row.label)+' · к попаданию по этой Орде: '+npcHordeSigned(modifier)+'.</p>');
 };
 function npcHordeCaptureContext(entry,record){
   entry.hordeContext={entry,kind:entry.kind,recordId:entry.recordId,recordRevision:entry.recordRevision,presetId:entry.presetId,source:record,sourceFingerprint:JSON.stringify(record),snapshotFingerprint:JSON.stringify(entry.preset),actor:SB.record,actorFingerprint:JSON.stringify(SB.record),draft:SB.draft,draftFingerprint:JSON.stringify(SB.draft??null),quick:SB.quick,quickFingerprint:JSON.stringify(SB.quick??null),chronicle:S.chronicle,chronicleId:SB.chronicleId};
@@ -16713,18 +16781,33 @@ function npcHordeContext(entry=SB.entry){
 }
 function npcHordeMagnitudeValue(entry=SB.entry){
   if(!npcHordeContext(entry))return null;
+  const block=entry.preset.statblock;if(block.horde.requires_initial_magnitude!==true)return block.horde.initial;
   const inputs=$('sb-entry-fields').querySelectorAll('[data-npc-horde-initial]');
   if(inputs.length!==1||inputs[0].type!=='number'||!inputs[0].checkValidity())return null;
   return npcHordeMagnitude(inputs[0].value);
 }
-function npcHordeInitialFields(){
-  return '<fieldset class="npc-horde-initial"><legend>Численность Орды</legend><p class="sb-description">В книге начальная численность не указана. Выберите её для этой карточки. Готового значения по умолчанию нет.</p><label for="npc-horde-initial-magnitude">Начальная численность</label><input id="npc-horde-initial-magnitude" name="npc_horde_initial_magnitude" data-npc-horde-initial="1" type="number" min="1" max="'+NPC_HORDE_MAGNITUDE_MAX+'" step="1" required value="" placeholder="Укажите число"><div class="npc-horde-initial-status" data-npc-horde-status role="status" aria-live="polite">Укажите целое число от 1 до '+NPC_HORDE_MAGNITUDE_MAX+'.</div></fieldset>';
+function npcHordeSizeValue(entry=SB.entry){
+  if(!npcHordeContext(entry))return null;
+  const block=entry.preset.statblock;if(block.schema_version!==3)return null;
+  if(block.horde.requires_size_category!==true)return block.horde.size_category;
+  const inputs=$('sb-entry-fields').querySelectorAll('[data-npc-horde-size]');
+  if(inputs.length!==1||inputs[0].tagName!=='SELECT'||!inputs[0].checkValidity())return null;
+  return npcHordeSizeCategory(inputs[0].value);
+}
+function npcHordeInitialFields(block){
+  const h=block.horde,count=h.requires_initial_magnitude===true,size=block.schema_version===3;
+  let html='<fieldset class="npc-horde-initial"><legend>Численность и размер Орды</legend>';
+  html+=count?'<p class="sb-description">В книге начальная численность не указана. Выберите её для этой карточки. Готового значения по умолчанию нет.</p><label for="npc-horde-initial-magnitude">Начальная численность</label><input id="npc-horde-initial-magnitude" name="npc_horde_initial_magnitude" data-npc-horde-initial="1" type="number" min="1" max="'+NPC_HORDE_MAGNITUDE_MAX+'" step="1" required value="" placeholder="Укажите число">':'<p>Начальная численность по книге: <b>'+h.initial+'</b>.</p>';
+  if(size){
+    html+=h.requires_size_category===true?'<p class="sb-description">Выберите размер Орды по книжной таблице. Размер не вычисляется из численности. Бонус действует на попадание по этой Орде.</p><label for="npc-horde-size-category">Книжная категория размера</label><select id="npc-horde-size-category" name="npc_horde_size_category" data-npc-horde-size="1" required><option value="">Выберите категорию</option>'+NPC_HORDE_SIZE_CATEGORIES.map(row=>'<option value="'+row.category+'">'+esc(row.label)+' · '+npcHordeSigned(row.hit)+' к попаданию по Орде</option>').join('')+'</select>':'<p>Размер Орды по книге: <b>'+esc(npcHordeSizeRow(h.size_category).label)+'</b> · '+npcHordeSigned(h.size_hit_modifier)+' к попаданию по Орде.</p>';
+  }
+  return html+'<div class="npc-horde-initial-status" data-npc-horde-status role="status" aria-live="polite"></div></fieldset>';
 }
 function npcHordeRefresh(){
   const entry=SB.entry;if(!npcHordeHasRequirement(entry?.preset?.statblock))return;
-  const magnitude=npcHordeMagnitudeValue(entry),submit=$('sb-entry-form').querySelector('[type="submit"]'),status=$('sb-entry-fields').querySelector('[data-npc-horde-status]');
-  if(submit){if(entry.kind==='preset-horde')submit.disabled=magnitude==null;else if(magnitude==null)submit.disabled=true;}
-  if(status)status.textContent=magnitude==null?'Укажите целое число от 1 до '+NPC_HORDE_MAGNITUDE_MAX+'.':'Начальная, текущая и численность в начале хода будут равны '+magnitude+'.';
+  const magnitude=npcHordeMagnitudeValue(entry),size=npcHordeSizeValue(entry),needsSize=entry.preset.statblock.schema_version===3,valid=magnitude!=null&&(!needsSize||size!=null),submit=$('sb-entry-form').querySelector('[type="submit"]'),status=$('sb-entry-fields').querySelector('[data-npc-horde-status]');
+  if(submit){if(entry.kind==='preset-horde')submit.disabled=!valid;else if(!valid)submit.disabled=true;}
+  if(status)status.textContent=!npcHordeContext(entry)?'Карточка или источник изменились. Закройте окно и выберите пресет заново.':!valid?'Укажите целую начальную численность от 1 до '+NPC_HORDE_MAGNITUDE_MAX+(needsSize?' и книжную категорию размера.':'.'):'Начальная, текущая и численность в начале хода будут равны '+magnitude+'.'+(needsSize?' Размер: '+npcHordeSizeRow(size).label+'; к попаданию по Орде: '+npcHordeSigned(npcHordeSizeRow(size).hit)+'.':'');
 }
 const NPC_HORDE_BASE_OPTIONS_CONTEXT=npcPresetOptionsContext;
 npcPresetOptionsContext=function(entry=SB.entry){
@@ -16736,20 +16819,20 @@ npcPresetOptionsRefresh=function(){NPC_HORDE_BASE_OPTIONS_REFRESH();npcHordeRefr
 const NPC_HORDE_BASE_OPEN_OPTIONS=npcPresetOpenOptions;
 function npcHordeOpen(record){
   if(!sbAllowed()||SB.busy||!SB.record||S.chronicle?.id!==SB.chronicleId||!npcHordeRequirementValid(record?.statblock)||!npcPresetCanApply(record))return false;
-  if(record.statblock.schema_version===2){
+  if(Array.isArray(record.statblock.choice_groups)&&record.statblock.choice_groups.length){
     NPC_HORDE_BASE_OPEN_OPTIONS(record);
-    $('sb-entry-fields').insertAdjacentHTML('afterbegin',npcHordeInitialFields());
+    $('sb-entry-fields').insertAdjacentHTML('afterbegin',npcHordeInitialFields(record.statblock));
   }else{
     const entry={presetId:record.id,preset:sbClone(record),presetFingerprint:npcPresetOptionsFingerprint(record),recordRevision:SB.record.revision,chronicleId:SB.chronicleId,draftFingerprint:JSON.stringify(SB.draft??null)};
-    sbModal('preset-horde','Численность Орды',npcHordeInitialFields(),entry);
+    sbModal('preset-horde','Численность и размер Орды',npcHordeInitialFields(record.statblock),entry);
   }
   npcHordeCaptureContext(SB.entry,record);
   $('sb-entry-modal').classList.remove('npc-preset-modal');$('sb-entry-modal').classList.add('npc-horde-magnitude-modal');
   if(SB.entry.kind==='preset-options')npcPresetOptionsRefresh();else npcHordeRefresh();
-  $('npc-horde-initial-magnitude')?.focus();return true;
+  ($('npc-horde-initial-magnitude')||$('npc-horde-size-category'))?.focus();return true;
 }
 function npcHordeConfirm(){
-  const entry=SB.entry,magnitude=npcHordeMagnitudeValue(entry);if(magnitude==null)return false;
+  const entry=SB.entry,magnitude=npcHordeMagnitudeValue(entry),size=npcHordeSizeValue(entry);if(magnitude==null||entry?.preset?.statblock?.schema_version===3&&size==null)return false;
   const selected=entry.kind==='preset-options'?npcPresetOptionsSelections(entry):[];
   if(!selected||selected.some(item=>item.options.length<item.group.min))return false;
   const record=entry.preset,raw=sbClone(record.statblock),violations=[];
@@ -16760,10 +16843,11 @@ function npcHordeConfirm(){
   });
   try{
     for(const item of selected)for(const option of item.options)for(const effect of option.effects)npcPresetAppendChoice(raw,effect);
-    npcHordeFillMagnitude(raw,magnitude);delete raw.choice_groups;raw.schema_version=1;raw.id=SB.record.id;raw.revision=SB.record.revision;raw.type=SB.record.type;raw.type_choice_migrated=true;
+    npcHordeResolve(raw,magnitude,size);delete raw.choice_groups;raw.schema_version=1;raw.id=SB.record.id;raw.revision=SB.record.revision;raw.type=SB.record.type;raw.type_choice_migrated=true;
     if(record.statblock.type==='vehicle')raw.race='Техника';raw.discord_rolls=sbData().discord_rolls===true;
     raw.preset_metadata={id:record.id,name:record.name,revision:record.revision,ruleset:record.ruleset,sources:sbClone(npcPresetSources(record)),applied_at:new Date().toISOString(),layout_version:2,original_source:npcPresetOriginalSource(record),horde_initial_magnitude:magnitude};
-    if(record.statblock.schema_version===2)Object.assign(raw.preset_metadata,{choice_schema_version:2,choices,rule_violations:violations});
+    if(record.statblock.schema_version===3)raw.preset_metadata.horde_size_category=size;
+    if(Array.isArray(record.statblock.choice_groups)&&record.statblock.choice_groups.length)Object.assign(raw.preset_metadata,{choice_schema_version:2,choices,rule_violations:violations});
     if(violations.length)(raw.notes??=[]).push({name:'Нарушение книжного ограничения при выборе пресета',description:violations.join(' ')});
     if(new TextEncoder().encode(JSON.stringify(raw)).length>=1048576)throw Error('Выбранный профиль слишком велик для сохранения.');
     const draft=normalizeStatblock(raw);if(!draft.name.trim()||!npcHordeContext(entry))return false;
@@ -16797,57 +16881,63 @@ sbModal=function(kind,...args){
 const NPC_HORDE_BASE_PREVIEW=npcPresetPreview;
 npcPresetPreview=function(id){
   NPC_HORDE_BASE_PREVIEW(id);const record=NPC_PRESETS.rows?.find(row=>row.id===id);
-  if(SB.entry?.kind==='preset'&&npcHordeRequirementValid(record?.statblock))$('npc-preset-preview').querySelector('[data-npc-preset-apply]')?.insertAdjacentHTML('beforebegin','<p class="npc-preset-limit">Перед применением потребуется указать начальную численность Орды. В книге её значение не задано.</p>');
+  if(SB.entry?.kind==='preset'&&npcHordeRequirementValid(record?.statblock))$('npc-preset-preview').querySelector('[data-npc-preset-apply]')?.insertAdjacentHTML('beforebegin','<p class="npc-preset-limit">Перед применением подтвердите численность и размер Орды. Неуказанные в книге значения нужно выбрать; напечатанные сохраняются. Размер не вычисляется из численности.</p>');
 };
-$('sb-entry-fields').addEventListener('input',event=>{if(event.target.matches('[data-npc-horde-initial]')){if(SB.entry?.kind==='preset-options')npcPresetOptionsRefresh();else npcHordeRefresh();}});
-$('sb-entry-fields').addEventListener('change',event=>{if(event.target.matches('[data-npc-horde-initial]')){if(SB.entry?.kind==='preset-options')npcPresetOptionsRefresh();else npcHordeRefresh();}});
+$('sb-entry-fields').addEventListener('input',event=>{if(event.target.matches('[data-npc-horde-initial],[data-npc-horde-size]')){if(SB.entry?.kind==='preset-options')npcPresetOptionsRefresh();else npcHordeRefresh();}});
+$('sb-entry-fields').addEventListener('change',event=>{if(event.target.matches('[data-npc-horde-initial],[data-npc-horde-size]')){if(SB.entry?.kind==='preset-options')npcPresetOptionsRefresh();else npcHordeRefresh();}});
 $('sb-entry-modal').addEventListener('click',event=>{if(event.target===$('sb-entry-modal')&&SB.entry?.kind==='preset-horde')closeModal('sb-entry-modal');});
 document.addEventListener('keydown',event=>{
-  if(SB.entry?.kind!=='preset-horde'||$('sb-entry-modal').classList.contains('hidden'))return;
+  if(!npcHordeHasRequirement(SB.entry?.preset?.statblock)||!['preset-horde','preset-options'].includes(SB.entry?.kind)||$('sb-entry-modal').classList.contains('hidden'))return;
   if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeModal('sb-entry-modal');return;}
   if(event.key==='Tab'){
-    const fields=[...$('sb-entry-modal').querySelectorAll('input,button')].filter(element=>!element.disabled&&!element.hidden),first=fields[0],last=fields.at(-1);
+    event.stopImmediatePropagation();
+    const fields=[...$('sb-entry-modal').querySelectorAll('input,select,button')].filter(element=>!element.disabled&&!element.hidden),first=fields[0],last=fields.at(-1);
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
   }
 },true);
-if(typeof NPC_PRESET_LABELS!=='undefined')NPC_PRESET_LABELS.horde_initial_magnitude='Выбранная начальная численность';
-if(typeof NPC_PRESET_HIDDEN_KEYS!=='undefined')NPC_PRESET_HIDDEN_KEYS.add('requires_initial_magnitude');
+if(typeof NPC_PRESET_LABELS!=='undefined')Object.assign(NPC_PRESET_LABELS,{horde_initial_magnitude:'Выбранная начальная численность',horde_size_category:'Выбранная категория размера Орды',size_category:'Категория размера Орды',size_hit_modifier:'Модификатор попадания по Орде'});
+if(typeof NPC_PRESET_HIDDEN_KEYS!=='undefined')['requires_initial_magnitude','requires_size_category','npc_horde_size'].forEach(key=>NPC_PRESET_HIDDEN_KEYS.add(key));
 // Portable actor files carry the chosen initial Magnitude as an explicit typed
 // parameter of their referenced preset. No array side channels or globals.
 const NPC_HORDE_BASE_VOX_PRESET=voxPresetBase;
-voxPresetBase=function(record,choices,actorType,initialMagnitude){
+voxPresetBase=function(record,choices,actorType,initialMagnitude,sizeCategory){
   if(!npcHordeHasRequirement(record?.statblock))return NPC_HORDE_BASE_VOX_PRESET(record,choices,actorType);
   if(!npcHordeRequirementValid(record.statblock)||!npcPresetCanApply(record)||typeof initialMagnitude!=='number'||npcHordeMagnitude(initialMagnitude)==null)throw Error('В файле не указана корректная начальная численность Орды.');
-  const source=voxClone(record);npcHordeFillMagnitude(source.statblock,initialMagnitude);
+  if(record.statblock.schema_version===3&&(typeof sizeCategory!=='number'||npcHordeSizeCategory(sizeCategory)==null))throw Error('В файле не указана корректная книжная категория размера Орды.');
+  const source=voxClone(record);npcHordeResolve(source.statblock,initialMagnitude,sizeCategory);
   const data=NPC_HORDE_BASE_VOX_PRESET(source,choices,actorType);
-  data.preset_metadata.original_source=npcPresetOriginalSource(record);data.preset_metadata.horde_initial_magnitude=initialMagnitude;return data;
+  data.preset_metadata.original_source=npcPresetOriginalSource(record);data.preset_metadata.horde_initial_magnitude=initialMagnitude;
+  if(record.statblock.schema_version===3)data.preset_metadata.horde_size_category=sizeCategory;return data;
 };
 voxBuildFile=async function(kind,name,actor){
   const cache=new Map(),data=voxCleanActor(actor),file={format:VOX_FILE_FORMAT,version:VOX_FILE_VERSION,kind,name:String(name),exported_at:new Date().toISOString()};
   if(kind==='statblock'&&data.preset_metadata?.id){
     const meta=data.preset_metadata,record=await voxCatalogRow('npc_presets',meta.id,cache);
     if(record.revision!==meta.revision)throw Error('Пресет обновлён с момента применения. Для точного экспорта нужна версия '+meta.revision+'; в базе сейчас '+record.revision+'.');
-    const choices=voxPresetChoices(meta),base=voxPresetBase(record,choices,data.type,meta.horde_initial_magnitude);
+    const choices=voxPresetChoices(meta),base=voxPresetBase(record,choices,data.type,meta.horde_initial_magnitude,meta.horde_size_category);
     file.preset={id:record.id,revision:record.revision,choices,actor_type:data.type};
     if(npcHordeHasRequirement(record.statblock))file.preset.horde_initial_magnitude=meta.horde_initial_magnitude;
+    if(record.statblock.schema_version===3){if(!npcHordeActorSizeValid(data)||data.horde.size_category!==meta.horde_size_category)throw Error('Категория размера Орды повреждена.');file.preset.horde_size_category=meta.horde_size_category;}
     file.changes=await voxPackDelta(voxDelta(base,data),cache);
   }else file.data=await voxEncode(data,cache);
   return file;
 };
 voxRestoreFile=async function(file){
   if(!file||file.format!==VOX_FILE_FORMAT||file.version!==VOX_FILE_VERSION||!['character','statblock'].includes(file.kind)||typeof file.name!=='string'||!file.name.trim()||file.name.length>200)throw Error('Это не поддерживаемый файл персонажа Deathwatch.');
-  const cache=new Map();let data,requiredInitial=null;
+  const cache=new Map();let data,requiredInitial=null,requiredSize=null;
   if(file.preset){
     if(file.kind!=='statblock'||file.data)throw Error('Неверный формат пресета.');
     const preset=file.preset,record=await voxCatalogRow('npc_presets',preset.id,cache);
     if(record.revision!==preset.revision)throw Error('Версия пресета не совпадает: нужна '+preset.revision+', в базе '+record.revision+'. Импорт остановлен.');
-    data=voxApplyDelta(voxPresetBase(record,preset.choices,preset.actor_type,preset.horde_initial_magnitude),await voxUnpackDelta(file.changes,cache));
+    data=voxApplyDelta(voxPresetBase(record,preset.choices,preset.actor_type,preset.horde_initial_magnitude,preset.horde_size_category),await voxUnpackDelta(file.changes,cache));
     if(npcHordeHasRequirement(record.statblock))requiredInitial=preset.horde_initial_magnitude;
+    if(record.statblock.schema_version===3)requiredSize=preset.horde_size_category;
   }else data=await voxDecode(file.data,cache);
   if(!data||typeof data!=='object'||Array.isArray(data))throw Error('В файле нет данных листа.');
   data=voxCleanActor(data);
   if(requiredInitial!=null&&data.preset_metadata?.horde_initial_magnitude!==requiredInitial)throw Error('Начальная численность Орды повреждена в файле.');
+  if(requiredSize!=null&&(data.preset_metadata?.horde_size_category!==requiredSize||data.horde?.size_category!==requiredSize||!npcHordeActorSizeValid(data)))throw Error('Категория размера Орды повреждена в файле.');
   if(file.kind==='statblock'){
     if(!['npc','vehicle'].includes(data.type)||data.schema_version!==1||!data.stats||!data.vitals)throw Error('Повреждён статблок.');
     normalizeStatblock(data);
