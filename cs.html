@@ -1955,49 +1955,47 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 <style data-feature="npc-menu-center">#sb-root .sb-toolbar-right:has(.npc-roll-tools){position:absolute;left:50%;transform:translateX(-50%);justify-content:center}
 #sb-root .npc-roll-tools .toolbar-menu{left:50%;right:auto;transform:translateX(-50%)}</style>
 <style data-feature="squad-window">
-/* Squad sheet follows the existing character sheet's charcoal, red and gold. */
-#screen-squad{position:relative;z-index:1;max-width:none;padding:24px;color:#e6e2d8;font-family:'Unbounded',Arial,sans-serif;}
-#squad-root{--bg-panel:#1a1a1c;--border-gold:#a8862f;--border-dark:#3a3a3d;padding-top:0;background:linear-gradient(110deg,#18181b,#201516 52%,#18181b);border:1px solid #a8862f;border-image:var(--sheet-frame) 8 / 7px stretch;}
-#squad-root h1,#squad-root h2{font-family:'Roboto Condensed',Arial,sans-serif;text-transform:uppercase;letter-spacing:.06em;}
-#squad-root h1{color:#f2ead8;font-size:30px;margin:5px 0;}
-#squad-root h2{color:#c9a24b;font-size:19px;margin:0 0 18px;}
-.squad-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 28px;border-bottom:1px solid #a8862f;background:linear-gradient(90deg,#1a1a1c,#291619,#1a1a1c);}
-.squad-kicker{color:#c9a24b;font:12px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;}
-.squad-muted{color:#aaa493;font-size:12px;line-height:1.6;overflow-wrap:anywhere;}
-.squad-actions{display:flex;flex-wrap:wrap;gap:8px;}
-.squad-body{padding:24px;}
-.squad-command-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch;margin-bottom:20px;}
-.squad-panel{min-width:0;padding:22px;background:#151518d9;border:1px solid #a8862f60;border-top:2px solid #a8862f;}
-#squad-root label{font-size:11px;color:#aaa493;margin-bottom:8px;}
-#squad-root select{background:#101013;color:#e6e2d8;border:1px solid #a8862f60;min-height:42px;font:14px 'Roboto Condensed',Arial,sans-serif;}
-#squad-root select option{background:#101013;color:#e6e2d8;}
-#squad-root button{border-color:#a8862f80;background:#c9a24b08;font:600 12px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.06em;min-height:36px;}
-#squad-root button:hover{background:#c9a24b18;}
-#squad-root :is(button,select):disabled{opacity:.45;cursor:default;}
-#squad-root :is(button,select):focus-visible{outline:2px solid #d6b36c;outline-offset:3px;}
-.squad-identity{padding:18px 0 10px;}
-.squad-name{font:600 22px 'Roboto Condensed',Arial,sans-serif;color:#f2ead8;overflow-wrap:anywhere;}
-.squad-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.squad-tag{color:#c9a24b;border:1px solid #a8862f60;padding:3px 7px;font:12px 'Roboto Condensed',Arial,sans-serif;overflow-wrap:anywhere;}
-.squad-tactics{padding:12px;margin-top:12px;background:#c9a24b07;border-left:3px solid #6b665d;color:#aaa493;font-size:12px;line-height:1.8;}
-.squad-tactics.confirmed{color:#8ed6a0;border-color:#6bb380;background:#6bb3800c;}
-.squad-rule-note{font-size:11px;color:#aaa493;margin-top:7px;}
-.squad-ability-desc{font:15px/1.65 'Roboto Condensed',Arial,sans-serif;color:#c8c2b6;overflow-wrap:anywhere;white-space:pre-wrap;margin-top:12px;}
-.squad-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.squad-add{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
-.squad-add select{flex:1;min-width:0;}
-.squad-member{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px;background:#c9a24b04;border:1px solid #a8862f35;margin-top:10px;}
-.squad-member-info{min-width:0;}
-.squad-member .squad-name{font-size:19px;}
-.squad-member-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
-#squad-root .squad-mode{border-radius:18px;min-width:104px;padding:7px 14px;}
-#squad-root .squad-mode.in-squad{color:#8ed6a0;border-color:#6bb38090;background:#6bb38010;}
-#squad-root .squad-mode.solo{color:#c9a24b;}
-#squad-status{padding:12px 28px;color:#aaa493;font-size:12px;line-height:1.7;border-bottom:1px solid #a8862f30;overflow-wrap:anywhere;}
-#squad-status.error{color:#ed9f91;}
-.squad-empty{padding:28px 10px;text-align:center;color:#aaa493;font:15px 'Roboto Condensed',Arial,sans-serif;}
-#chr-squad-panel{margin-bottom:16px;}
-@media(max-width:700px){#screen-squad{padding:10px;}.squad-head{padding:20px 16px;align-items:flex-start;flex-direction:column;gap:12px;}#squad-root h1{font-size:27px;}.squad-body{padding:14px;}.squad-command-grid{grid-template-columns:1fr;gap:14px;margin-bottom:14px;}.squad-panel{padding:16px;}.squad-add{flex-direction:column;align-items:stretch;}.squad-member{align-items:flex-start;flex-direction:column;padding:12px;}.squad-member-actions{align-self:stretch;justify-content:space-between;}#squad-status{padding:12px 16px;}}
+#screen-squad{position:relative;z-index:1;max-width:none;padding:24px;color:#ddd8ce;font-family:'Roboto Condensed',Arial,sans-serif;}
+#squad-root{--sq-gold:#c9a24b;--sq-line:#8d7338;--sq-dim:#a49e92;padding-top:0;position:relative;background:linear-gradient(115deg,#19191dbf,#25181bc7 52%,#19191dbf);border:1px solid transparent;border-image:var(--sheet-frame) 8 / 9px stretch;box-shadow:0 18px 80px #0007;}
+#squad-root::before{content:"";position:absolute;inset:8px;pointer-events:none;border:1px solid #c9a24b24;clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);}
+#squad-root h1,#squad-root h2,#squad-root h3,.sq-dialog h2{text-transform:uppercase;letter-spacing:.075em;font-family:'Roboto Condensed',Arial,sans-serif;}
+#squad-root h1{font-size:32px;line-height:1.15;color:#e9dfc9;margin:5px 0 8px;}
+#squad-root h2{font-size:19px;color:#c9a24b;margin:0;}
+#squad-root h3{font-size:12px;color:#bcb3a0;margin:0 0 10px;}
+.squad-head{display:flex;align-items:center;gap:22px;position:relative;padding:30px 32px 26px;background:linear-gradient(95deg,#19191b80,#4d20252e,#19191b80);border-bottom:1px solid #ad893f;}
+.squad-head::after{content:"";position:absolute;bottom:-4px;left:32px;right:32px;height:1px;background:#c9a24b4a;}
+.squad-emblem{width:68px;height:76px;padding:8px;display:grid;place-items:center;border:1px solid #8d733840;background:#c9a24b08;clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);flex-shrink:0;}
+.squad-emblem svg{width:46px;fill:none;stroke:#b69752;stroke-width:1.2;}
+.squad-kicker{font-size:11px;letter-spacing:.22em;color:#c9a24b;text-transform:uppercase;}
+#squad-chronicle-name{font-size:14px;color:#aba394;overflow-wrap:anywhere;}
+.squad-heading{min-width:0;flex:1;}.squad-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.squad-body{padding:28px;}.squad-command-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:24px;margin-bottom:24px;align-items:stretch;}
+.squad-panel{position:relative;min-width:0;padding:24px;background:linear-gradient(120deg,#17171ac4,#211b1dc4);border:1px solid transparent;border-image:var(--sheet-frame) 8 / 8px stretch;}
+.squad-panel::before{content:"";position:absolute;top:6px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,#c9a24b85,transparent 60%);pointer-events:none;}
+.squad-panel::after{content:"";position:absolute;bottom:8px;right:15px;width:35px;height:4px;border-right:2px solid #c9a24b9a;border-bottom:1px solid #c9a24b6a;pointer-events:none;}
+.sq-section{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap;}.sq-number{font-size:12px;color:#a28a53;border:1px solid #8d733865;padding:4px 7px;line-height:1;}.sq-rule{height:1px;flex:1;min-width:20px;background:linear-gradient(90deg,#8d73386a,transparent);}
+#squad-root .sq-btn,.sq-dialog .sq-btn{font:600 13px 'Roboto Condensed',Arial,sans-serif;min-height:36px;color:#baa369;border:1px solid #8d733875;background:#c9a24b07;padding:8px 13px;letter-spacing:.05em;cursor:pointer;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);}
+#squad-root .sq-btn:hover,.sq-dialog .sq-btn:hover{background:#c9a24b17;color:#ead199;}
+#squad-root .sq-chip{max-width:100%;display:inline-flex;align-items:center;gap:10px;padding:13px 16px;background:linear-gradient(105deg,#a8862f17,#7b272715);border:1px solid #b28c4380;position:relative;clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);font:600 18px/1.35 'Roboto Condensed',Arial,sans-serif;text-transform:none;letter-spacing:.025em;white-space:normal;text-align:left;color:#e2d5b9;}
+#squad-root .sq-chip:hover{background:#c9a24b19;border-color:#d1aa53;}.sq-chip::after{content:"⌄";font-size:15px;color:#b69a62;flex-shrink:0;}.sq-chip-name{overflow-wrap:anywhere;}
+#squad-root .sq-leader-chip{display:inline-block;line-height:1.8;}.sq-leader-chip .sq-chip-name{overflow-wrap:normal;}.sq-leader-chip::after{margin-left:10px;}.sq-tactics{font:400 12px 'Roboto Condensed',Arial,sans-serif;color:#87847c;white-space:nowrap;margin-left:10px;}.sq-tactics.confirmed{color:#8acb9d;}
+.sq-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}.sq-tag{padding:3px 7px;border:1px solid #8d73384a;background:#c9a24b04;color:#b3a17c;font-size:12px;line-height:1.3;overflow-wrap:anywhere;}
+.sq-command-decoration{display:flex;align-items:center;gap:16px;margin-top:38px;color:#8d733876;font-size:19px;}.sq-command-decoration i{height:1px;background:linear-gradient(90deg,#8d73385b,transparent);flex:1;}
+.sq-option+.sq-option{margin-top:20px;padding-top:20px;border-top:1px solid #8d73384a;position:relative;}.sq-option+.sq-option::before{content:"";position:absolute;top:-2px;left:0;width:20px;height:3px;background:#9f7838;}
+.sq-desc{font-size:14px;line-height:1.65;color:#b9b2a5;margin-top:12px;overflow-wrap:anywhere;white-space:pre-line;}.sq-source{font-size:11px;color:#8e887c;margin-top:6px;}.sq-note{font-size:13px;line-height:1.6;color:#a6a091;}
+.sq-ability-rule{margin-top:12px;}.sq-ability-rule summary{font-size:12px;color:#9e926f;cursor:pointer;}.sq-member-actions .sq-btn{max-width:100%;white-space:normal;line-height:1.35;}
+.sq-empty{padding:20px 8px;color:#8e887c;text-align:center;font-size:15px;}
+#squad-count{font-size:12px;color:#aaa18e;}.sq-member{position:relative;display:flex;align-items:center;gap:18px;justify-content:space-between;padding:18px 20px;margin-top:12px;border:1px solid #8d733851;border-left:3px solid #8d7338;background:linear-gradient(105deg,#c9a24b06,#c9a24b01);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);}.sq-member.active{border-left-color:#79b38b;background:linear-gradient(105deg,#47755613,#c9a24b02);}
+.sq-member-info{min-width:0;flex:1;}.sq-member-name{font:600 21px 'Roboto Condensed',Arial,sans-serif;color:#e6ddcc;overflow-wrap:anywhere;}.sq-member .sq-tags{margin-top:6px;}.sq-member-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;max-width:50%;}
+#squad-root .sq-mode{min-width:102px;border-radius:18px;clip-path:none;padding:7px 13px;font-size:12px;}.sq-mode.in-squad{color:#9ac9a7!important;border-color:#6c9e7b80!important;background:#6c9e7b0c!important;}
+#squad-root .sq-activation.on{color:#a5ddaf;border-color:#78b788;background:#78b78818;box-shadow:inset 0 0 15px #78b78809;}.sq-effects{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}.sq-effect{font-size:12px;color:#9fceab;border:1px solid #6c9e7b60;background:#6c9e7b0b;padding:5px 8px;cursor:pointer;}.sq-effect.off{color:#87847c;border-color:#7773;background:transparent;}.sq-activation-details{font-size:11px;padding:5px 9px!important;min-height:29px!important;}
+.sq-add{margin-top:20px;}.sq-footer{display:flex;align-items:center;gap:18px;margin:0 30px;padding:4px 0 24px;color:#82734e;font-size:10px;letter-spacing:.16em;text-transform:uppercase;}.sq-footer i{flex:1;height:1px;background:#8d73383d;}
+#squad-status:empty{display:none;}#squad-status{margin:18px 28px 0;padding:10px 13px;color:#b9aa82;font-size:13px;border-left:2px solid #a8862f;background:#c9a24b05;line-height:1.6;}#squad-status.error{color:#db9e91;border-color:#ba6e5d;}
+#squad-root :is(button,select):disabled,.sq-dialog button:disabled{opacity:.4;cursor:default;}#squad-root button:focus-visible,.sq-dialog :is(button,input):focus-visible{outline:2px solid #d4b36c;outline-offset:3px;}
+.sq-dialog{padding:24px;width:min(720px,calc(100% - 28px));max-height:85vh;overflow:auto;color:#ddd8ce;background:#19191deb;border:1px solid transparent;border-image:var(--sheet-frame) 8 / 8px stretch;box-shadow:0 20px 80px #0009;font-family:'Roboto Condensed',Arial,sans-serif;}.sq-dialog::backdrop{background:#060608cc;backdrop-filter:blur(3px);}.sq-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #8d733872;padding-bottom:14px;margin-bottom:12px;}.sq-dialog h2{font-size:21px;color:#c9a24b;margin:0;}.sq-dialog input[type=search]{font:14px 'Roboto Condensed',Arial,sans-serif;background:#111114;border:1px solid #8d733862;color:#ddd8ce;margin:12px 0;padding:10px;}
+.sq-choice{display:block;width:100%;text-align:left;white-space:normal;font:15px/1.5 'Roboto Condensed',Arial,sans-serif;color:#d4c6a6;background:#c9a24b03;border:1px solid #8d73384d;border-left:2px solid #8d733876;padding:12px 14px;margin:8px 0;cursor:pointer;text-transform:none;letter-spacing:0;}.sq-choice:hover,.sq-choice.selected{border-color:#b79953;background:#c9a24b14;}.sq-choice-name{display:flex;justify-content:space-between;gap:10px;font-size:17px;font-weight:600;}.sq-choice .sq-note{margin-top:5px;}.sq-choice.unavailable{opacity:.45;}.sq-choice-desc{font-size:13px;color:#a6a091;margin-top:7px;}.sq-dialog-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;border-top:1px solid #8d73383f;padding-top:15px;}
+.sq-character-effects{padding:9px 12px;border-left:2px solid #7ba785;margin:8px 0;background:#6c9e7b08;font:13px/1.5 'Roboto Condensed',Arial,sans-serif;color:#b6ccb8;}.sq-roll-notes{font:13px/1.55 'Roboto Condensed',Arial,sans-serif;color:#adbbab;margin-top:10px;padding:10px;border-top:1px solid #8d73384a;}
+@media(max-width:760px){#screen-squad{padding:10px;}.squad-head{padding:22px 18px;gap:12px;flex-wrap:wrap;}.squad-emblem{width:48px;height:58px;padding:5px;}.squad-emblem svg{width:34px;}#squad-root h1{font-size:27px;}.squad-actions{width:100%;padding-top:7px;}.squad-body{padding:16px;}.squad-command-grid{grid-template-columns:1fr;gap:16px;margin-bottom:16px;}.squad-panel{padding:18px;}.sq-command-decoration{margin-top:22px;}.sq-member{flex-direction:column;align-items:stretch;padding:15px;gap:14px;}.sq-member-actions{max-width:none;justify-content:flex-start;}.sq-section{gap:8px;}#squad-root h2{font-size:17px;}.sq-footer{margin:0 20px;}.sq-dialog{padding:18px;}.sq-member-name{font-size:20px;}}
 
 </style>
 </head>
@@ -2126,17 +2124,16 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 <!-- ============ ЭКРАН 4: ЛИСТ ПЕРСОНАЖА ============ -->
 <div id="screen-squad" class="wrap hidden">
  <div id="squad-root" class="sheet">
-  <div class="squad-head"><div><div class="squad-kicker">Караул Смерти · Командный лист</div><h1>Окно отряда</h1><div id="squad-chronicle-name" class="squad-muted"></div></div><div class="squad-actions"><button type="button" class="ghost sm" onclick="squadBack()">← Хроника</button><button type="button" class="sm" id="squad-refresh" onclick="squadLoad()">Обновить</button></div></div>
+  <header class="squad-head"><div class="squad-emblem" aria-hidden="true"><svg viewBox="0 0 60 60"><path d="M30 3 53 13v18L30 57 7 31V13Z M30 12v32 M18 23h24 M20 36l10-9 10 9"/></svg></div><div class="squad-heading"><div class="squad-kicker">Караул Смерти</div><h1>Окно отряда</h1><div id="squad-chronicle-name"></div></div><div class="squad-actions"><button type="button" class="sq-btn" onclick="squadBack()">← Хроника</button><button type="button" class="sq-btn" id="squad-refresh" onclick="squadLoad()" aria-label="Обновить отряд">↻ Обновить</button></div></header>
   <div id="squad-status" role="status" aria-live="polite"></div>
-  <div class="squad-body">
-   <div class="squad-command-grid">
-    <section class="squad-panel"><h2>Командир отряда</h2><label for="squad-leader">Выберите персонажа</label><select id="squad-leader" disabled></select><div id="squad-leader-card"></div><div id="squad-tactics" class="squad-tactics"></div></section>
-    <section class="squad-panel"><h2>Активная отрядная способность</h2><label for="squad-ability">Способности членов команды</label><select id="squad-ability" disabled></select><div id="squad-ability-card"></div></section>
-   </div>
-   <section class="squad-panel squad-team"><div class="squad-section-head"><h2>Члены Ликвидационной команды</h2><span id="squad-count" class="squad-muted"></span></div><div class="squad-add"><label for="squad-add-character" class="hidden">Добавить персонажа</label><select id="squad-add-character" disabled></select><button type="button" id="squad-add-btn" disabled>+ Добавить</button></div><div id="squad-members"></div></section>
-  </div>
+  <div class="squad-body"><div class="squad-command-grid">
+   <section class="squad-panel squad-command"><div class="sq-section"><span class="sq-number">I</span><h2>Командир отряда</h2><span class="sq-rule"></span></div><div id="squad-leader-card"></div><div class="sq-command-decoration" aria-hidden="true"><span>✦</span><i></i><span>✦</span></div></section>
+   <section class="squad-panel squad-regime"><div class="sq-section"><span class="sq-number">II</span><h2>Режим отряда</h2><span class="sq-rule"></span></div><div class="sq-option"><h3>Данный Обет</h3><div id="squad-oath-card"></div></div><div class="sq-option"><h3>Активная отрядная способность</h3><div id="squad-ability-card"></div></div></section>
+  </div><section class="squad-panel squad-team"><div class="sq-section"><span class="sq-number">III</span><h2>Члены Ликвидационной команды</h2><span class="sq-rule"></span><span id="squad-count"></span></div><div id="squad-members"></div><button type="button" class="sq-btn sq-add" id="squad-add-btn" onclick="squadOpenPicker('member')">＋ Добавить персонажа</button></section></div>
+  <footer class="sq-footer"><i></i><span>Ликвидационная команда</span><i></i></footer>
  </div>
 </div>
+<dialog id="squad-picker" class="sq-dialog" aria-labelledby="sq-picker-title"><div class="sq-dialog-head"><h2 id="sq-picker-title"></h2><button type="button" class="sq-btn" onclick="squadClosePicker()" aria-label="Закрыть">×</button></div><div id="sq-picker-note"></div><input id="sq-picker-search" type="search" placeholder="Поиск…" aria-label="Поиск в списке"><div id="sq-picker-list"></div><div id="sq-picker-description"></div><div class="sq-dialog-foot"><button type="button" id="sq-picker-clear" class="sq-btn">Снять выбор</button><button type="button" id="sq-picker-apply" class="sq-btn" hidden>Применить</button><button type="button" class="sq-btn" onclick="squadClosePicker()">Закрыть</button></div></dialog>
 
 <div id="screen-sheet" class="hidden">
  <div class="sheet" id="sheet-root">
@@ -16358,117 +16355,107 @@ if(typeof npcPresetValue==='function'){
 </script>
 
 <script data-feature="squad-window">
-// A shared chronicle sheet; no mutations to character sheets or game bonuses.
-const SQUAD={state:null,characters:[],chronicle:null,user:null,busy:false,loading:false,error:'',token:0,choices:[]};
+// Shared squad controls. Background reads never replace focused controls.
+const SQUAD={state:null,characters:[],chronicle:null,user:null,busy:false,reading:false,error:'',token:0,choices:[],picker:null};
+const SQ_CATALOG={solo:[],squad:[],loaded:false,flight:null};
 const squadChannel=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('vox_squad_updates'):null;
+const SQ_OATHS=[
+ {id:'astartes',name:'Обет Астартес',specs:[3,4,6],abilities:[72,68,84],desc:'+2 единицы Сплочённости на время операции.',source:'ОКП, стр. 258'},
+ {id:'loyalty',name:'Обет верности',specs:[1,4],abilities:[84,82,83],desc:'+1 к испытаниям Сплочённости. Командир получает +10 к проверкам против урона Сплочённости.',source:'ОКП, стр. 258'},
+ {id:'knowledge',name:'Обет знания',specs:[1,2,5],abilities:[80,81,85],desc:'Выберите вид врага: команда получает +10 к Ближнему и Дальнему бою при атаках оружием против него. Библиарий может вместо этого выбрать переброс Психических феноменов на время операции.',source:'ОКП, стр. 258–259'},
+ {id:'emperor',name:'Обет Императору',specs:[1,2,4],abilities:[69,82,85],desc:'+10 к проверкам Силы воли всем членам команды на время операции.',source:'ОКП, стр. 259'},
+ {id:'weapons',name:'Обет оружия',specs:[3,5],abilities:[70,69,73],desc:'Можно игнорировать последствия Осечек личного оружия и перебрасывать проверки Ближнего боя для подтверждения Праведного гнева при атаках холодным оружием.',source:'ОКП, стр. 259'},
+ {id:'glory',name:'Обет славы',specs:[4,6],abilities:[72,68,71],desc:'+1 очко Славы за каждую выполненную первостепенную и второстепенную задачу при личном участии персонажа.',source:'ОКП, стр. 259'}
+];
 function squadArray(v){return Array.isArray(v)?v:[];}
 function squadCharacter(id){return SQUAD.characters.find(c=>String(c.id)===String(id));}
 function squadIsOpen(){return !!S.user&&S.user.id===SQUAD.user&&S.chronicle?.id===SQUAD.chronicle&&!$('screen-squad').classList.contains('hidden');}
-function squadOpenTab(){
- if(!voxSession())return;
- const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('squad',S.chronicle.id);
- const child=window.open(url.href,'_blank');if(!child)toast('Разрешите открытие новых вкладок для этого сайта');
+function sqRank(c){return rankFromXp(calcTotalXpSpent(c?.effect_data||c||{}));}
+function sqSpec(c){return Number(c?.info?.specialization_id)||({'Апотекарий':1,'Библиарий':2,'Опустошитель':3,'Тактический десантник':4,'Технодесантник':5,'Штурмовой десантник':6})[c?.info?.specialization]||0;}
+function sqOath(state=SQUAD.state){return SQ_OATHS.find(o=>o.id===state?.oath);}
+function sqOathAllowed(o,c=squadCharacter(SQUAD.state?.leader_id)){return !!c&&o.specs.includes(sqSpec(c));}
+function squadOpenTab(){if(!voxSession())return;const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('squad',S.chronicle.id);if(!window.open(url.href,'_blank'))toast('Разрешите открытие новых вкладок для этого сайта');}
+function squadMessage(error){return ({SQUAD_NO_ACCESS:'Нет доступа к этой Хронике.',SQUAD_NOT_FOUND:'Хроника не найдена.',SQUAD_CONFLICT:'Отряд изменён другим участником. Загружена свежая версия — повторите своё изменение.',SQUAD_BAD_MEMBER:'Персонаж больше недоступен. Обновите отряд.',SQUAD_BAD_ABILITY:'Способность больше недоступна. Обновите выбор.',SQUAD_BAD_OATH:'Этот обет недоступен выбранному командиру.',SQUAD_BAD_RANK:'Ранг персонажа не позволяет использовать способность.',SQUAD_CLIENT_OUTDATED:'Обновите страницу: используется новая версия листа отряда.'})[error?.message]||('Не удалось сохранить: '+String(error?.message||error));}
+async function squadCatalog(){
+ if(SQ_CATALOG.loaded)return;if(SQ_CATALOG.flight)return SQ_CATALOG.flight;
+ SQ_CATALOG.flight=(async()=>{const [a,b]=await Promise.all([sb.from('solo_abilities').select('id,name,ability_type,requirements,description,scope,sustained'),sb.from('squad_abilities').select('id,name,description,scope,sustained,cost,category')]);if(a.error)throw a.error;if(b.error)throw b.error;SQ_CATALOG.solo=a.data||[];SQ_CATALOG.squad=b.data||[];SQ_CATALOG.loaded=true;})();
+ try{await SQ_CATALOG.flight;}finally{SQ_CATALOG.flight=null;}
 }
-function squadMessage(error){return ({SQUAD_NO_ACCESS:'Вы больше не участвуете в этой Хронике.',SQUAD_NOT_FOUND:'Хроника не найдена.',SQUAD_CONFLICT:'Отряд изменён в другой вкладке. Загружены свежие данные — повторите своё изменение.',SQUAD_BAD_MEMBER:'Один из персонажей больше недоступен. Обновите состав.',SQUAD_BAD_ABILITY:'Способность изменилась в листе персонажа. Обновите отряд и выберите её заново.'})[error?.message]||('Не удалось сохранить отряд: '+String(error?.message||error));}
-async function squadRequest(action='read',payload=null,revision=null,context={chronicle:SQUAD.chronicle,user:SQUAD.user}){
- const {data,error}=await sb.rpc('vox_squad_operation',{p_chronicle:context.chronicle,p_actor:context.user,p_action:action,p_revision:revision,p_payload:payload});
- if(error)throw error;if(!data||data.chronicle_id!==context.chronicle||!data.state||!Array.isArray(data.characters))throw Error('Сервер не подтвердил данные отряда');return data;
-}
+function sqState(raw){return {version:2,revision:Number(raw?.revision)||0,leader_id:raw?.leader_id??null,oath:raw?.oath??null,ability:raw?.ability??null,members:squadArray(raw?.members).map(m=>({id:m.id,mode:m.mode==='squad'?'squad':'solo',active:m.active===true,solo:squadArray(m.solo)}))};}
+async function squadRequest(action='read',payload=null,revision=null,context={chronicle:SQUAD.chronicle,user:SQUAD.user}){const {data,error}=await sb.rpc('vox_squad_operation',{p_chronicle:context.chronicle,p_actor:context.user,p_action:action,p_revision:revision,p_payload:payload});if(error)throw error;if(!data||data.chronicle_id!==context.chronicle||!data.state||!Array.isArray(data.characters))throw Error('Сервер не подтвердил данные отряда');return data;}
+function sqAccept(data){SQUAD.state=sqState(data.state);SQUAD.characters=data.characters;SQUAD.error='';S.role=data.role;S.chronicle.name=data.name;sqEffectCache(data,SQUAD.user);}
 async function squadResumeTab(){
- const raw=new URLSearchParams(location.search).get('squad');if(raw===null)return false;
- const id=Number(raw);if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(id)){await showDash();toast('Некорректная ссылка на отряд');return true;}
- if(!S.user)return false;
- const user=S.user.id;
- try{
-  const data=await squadRequest('read',null,null,{chronicle:id,user});
-  if(S.user?.id!==user)return true;
-  S.chronicle={id,name:data.name};S.role=data.role;SQUAD.chronicle=id;SQUAD.user=user;SQUAD.state=data.state;SQUAD.characters=data.characters;SQUAD.error='';
-  showScreen('squad');document.title='Отряд — '+data.name;squadRender();
- }catch(error){await showDash();toast(squadMessage(error));}
- return true;
+ const raw=new URLSearchParams(location.search).get('squad');if(raw===null)return false;const id=Number(raw);
+ if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(id)){await showDash();toast('Некорректная ссылка на отряд');return true;}if(!S.user)return false;
+ const user=S.user.id;try{await squadCatalog();const data=await squadRequest('read',null,null,{chronicle:id,user});if(S.user?.id!==user)return true;S.chronicle={id,name:data.name};SQUAD.chronicle=id;SQUAD.user=user;sqAccept(data);showScreen('squad');document.title='Отряд — '+data.name;squadRender();}catch(error){await showDash();toast(squadMessage(error));}return true;
 }
-function squadTactical(c){
- return squadArray(c?.spec_abilities).some(row=>row&&(Number(row.ability_id??row.id)===4||String(row.name||'').trim().toLowerCase()==='тактический десантник')&&
-  squadArray(row.options).some(opt=>opt?.selected===true&&(Number(opt.id)===94||String(opt.name||'').trim().toLowerCase()==='знаток тактики')));
-}
-function squadTags(c){return [c?.info?.chapter,c?.info?.specialization].filter(Boolean).map(v=>'<span class="squad-tag">'+esc(v)+'</span>').join('');}
+function squadTactical(c){return squadArray(c?.spec_abilities).some(row=>row&&(Number(row.ability_id??row.id)===4||String(row.name||'').trim().toLowerCase()==='тактический десантник')&&squadArray(row.options).some(o=>o?.selected===true&&(Number(o.id)===94||String(o.name||'').trim().toLowerCase()==='знаток тактики')));}
+function squadTags(c){return [c?.info?.chapter,c?.info?.specialization].filter(Boolean).map(v=>'<span class="sq-tag">'+esc(v)+'</span>').join('');}
 function squadAbilityRef(c,key,row){return {character_id:c.id,list_key:key,ability_id:row.id==null?null:String(row.id),name:String(row.name||'')};}
-function squadSameAbility(a,b){return !!a&&!!b&&String(a.character_id)===String(b.character_id)&&a.list_key===b.list_key&&String(a.ability_id??'')===String(b.ability_id??'')&&a.name===b.name;}
-function squadChoices(){
- const choices=[];
- for(const member of squadArray(SQUAD.state?.members)){
-  const c=squadCharacter(member.id);if(!c)continue;
-  for(const key of ['squad_chapter','squad_codex'])for(const row of squadArray(c[key]))if(row?.name){const ref=squadAbilityRef(c,key,row);if(!choices.some(x=>squadSameAbility(x.ref,ref)))choices.push({ref,c,row});}
- }
- return choices;
-}
-function squadPlainDescription(value){const el=document.createElement('template');el.innerHTML=String(value||'');el.content.querySelectorAll('script,style,iframe,object').forEach(n=>n.remove());el.content.querySelectorAll('p,div,li,h1,h2,h3,h4,br').forEach(n=>{n.appendChild(document.createTextNode('\n'));});return el.content.textContent.trim();}
+function squadSameAbility(a,b){return !!a&&!!b&&String(a.character_id??'')===String(b.character_id??'')&&a.list_key===b.list_key&&String(a.ability_id??'')===String(b.ability_id??'')&&a.name===b.name;}
+function sqSameSolo(a,b){return !!a&&!!b&&a.list_key===b.list_key&&String(a.ability_id??'')===String(b.ability_id??'')&&a.name===b.name;}
+function sqSoloChoices(c){const out=[];for(const key of ['solo_chapter','solo_codex'])for(const row of squadArray(c?.[key])){if(!row?.name)continue;const db=SQ_CATALOG.solo.find(a=>String(a.id)===String(row.id));if(db&&db.ability_type!=='Активная')continue;const req=Number(String(db?.requirements||'').match(/ранг\s*:\s*(\d+)/i)?.[1]||1);out.push({row,db,ref:{list_key:key,ability_id:row.id==null?null:String(row.id),name:row.name},available:sqRank(c)>=req,required:req});}return out;}
+function squadChoices(state=SQUAD.state,chars=SQUAD.characters){const choices=[],o=sqOath(state);for(const m of squadArray(state?.members)){const c=chars.find(c=>String(c.id)===String(m.id));if(!c)continue;for(const key of ['squad_chapter','squad_codex'])for(const row of squadArray(c[key]))if(row?.name){const db=SQ_CATALOG.squad.find(a=>String(a.id)===String(row.id));if((db?.scope==='common'||!db&&key==='squad_codex')&&(!o||!o.abilities.includes(Number(row.id))))continue;const ref=squadAbilityRef(c,key,row);if(!choices.some(x=>squadSameAbility(x.ref,ref)))choices.push({ref,c,row,db});}}return choices;}
+function squadPlainDescription(value){const el=document.createElement('template');el.innerHTML=String(value||'').replace(/\\n/g,'\n');el.content.querySelectorAll('script,style,iframe,object').forEach(n=>n.remove());el.content.querySelectorAll('p,div,li,h1,h2,h3,h4,br').forEach(n=>n.appendChild(document.createTextNode('\n')));return el.content.textContent.trim();}
+function sqSetHTML(id,html){const el=$(id);if(el.dataset.sqHtml!==html){el.innerHTML=html;el.dataset.sqHtml=html;}}
+function sqChip(text,action,extra=''){return '<button type="button" class="sq-chip'+(action==='leader'?' sq-leader-chip':'')+'" data-sq-picker="'+action+'"><span class="sq-chip-name">'+esc(text)+'</span>'+extra+'</button>';}
 function squadRender(){
- if(!squadIsOpen())return;
- const previousAdd=$('squad-add-character').value;
- const state=SQUAD.state,members=squadArray(state?.members),locked=SQUAD.busy||SQUAD.loading||!state||!!SQUAD.error;
- $('squad-chronicle-name').textContent=S.chronicle.name;
- const status=$('squad-status');status.textContent=SQUAD.error||(SQUAD.busy?'Сохранение…':SQUAD.loading?'Обновление…':'Общий лист Хроники · Изменения сохраняются автоматически');status.classList.toggle('error',!!SQUAD.error);
- $('squad-refresh').disabled=SQUAD.busy||SQUAD.loading;
- const leader=$('squad-leader');leader.innerHTML='<option value="">Командир не выбран</option>'+SQUAD.characters.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
- if(state?.leader_id&&!squadCharacter(state.leader_id))leader.innerHTML+='<option value="'+esc(state.leader_id)+'">Персонаж недоступен</option>';
- leader.value=state?.leader_id==null?'':String(state.leader_id);leader.disabled=locked;
- const c=squadCharacter(state?.leader_id);$('squad-leader-card').innerHTML=c?'<div class="squad-identity"><div class="squad-name">'+esc(c.name)+'</div><div class="squad-tags">'+squadTags(c)+'</div></div>':'<div class="squad-empty">Назначьте командира отряда</div>';
- const tactics=$('squad-tactics'),confirmed=squadTactical(c);tactics.classList.toggle('confirmed',confirmed);
- tactics.innerHTML=confirmed?'Знаток тактики — подтверждено<div class="squad-rule-note">Умение выбрано в листе командира. Применение требует проверки Командования по правилам способности.</div>':c?'Знаток тактики — не выбрано в листе командира':'Знаток тактики — командир не выбран';
- SQUAD.choices=squadChoices();const ability=$('squad-ability'),activeIndex=SQUAD.choices.findIndex(x=>squadSameAbility(x.ref,state?.ability));
- ability.innerHTML='<option value="">Нет активной способности</option>'+SQUAD.choices.map((x,i)=>'<option value="'+i+'">'+esc(x.row.name)+' · '+esc(x.c.name)+'</option>').join('');
- if(state?.ability&&activeIndex<0)ability.innerHTML+='<option value="missing">'+esc(state.ability.name)+' · недоступна</option>';
- ability.value=activeIndex>=0?String(activeIndex):state?.ability?'missing':'';ability.disabled=locked;
- const active=SQUAD.choices[activeIndex];$('squad-ability-card').innerHTML=active?'<div class="squad-identity"><div class="squad-name">'+esc(active.row.name)+'</div><div class="squad-muted">'+esc(active.c.name)+' · '+(active.ref.list_key==='squad_chapter'?'Орденская':'Кодексная')+'</div><div class="squad-ability-desc">'+esc(squadPlainDescription(active.row.desc||active.row.description))+'</div></div>':state?.ability?'<div class="squad-empty">Способность больше не найдена в составе команды. Выберите другую или снимите активную.</div>':'<div class="squad-empty">Выберите способность из листов членов команды</div>';
- const remaining=SQUAD.characters.filter(c=>!members.some(m=>String(m.id)===String(c.id))),add=$('squad-add-character');
- add.innerHTML='<option value="">'+(remaining.length?'Выберите персонажа для добавления':'Все персонажи уже добавлены')+'</option>'+remaining.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');if(remaining.some(c=>String(c.id)===previousAdd))add.value=previousAdd;add.disabled=locked||!remaining.length;$('squad-add-btn').disabled=locked||!add.value;
- $('squad-count').textContent=members.length+' '+(members.length===1?'персонаж':'в составе');
- $('squad-members').innerHTML=members.length?members.map(m=>{
-  const character=squadCharacter(m.id),isLeader=String(m.id)===String(state.leader_id),inSquad=m.mode==='squad';
-  return '<div class="squad-member"><div class="squad-member-info"><div class="squad-name">'+esc(character?.name||'Персонаж недоступен')+'</div><div class="squad-tags">'+squadTags(character)+(isLeader?'<span class="squad-tag">Командир</span>':'')+'</div></div><div class="squad-member-actions"><button type="button" class="squad-mode '+(inSquad?'in-squad':'solo')+'" data-squad-mode="'+esc(m.id)+'" aria-pressed="'+inSquad+'" aria-label="Режим персонажа '+esc(character?.name||m.id)+'" '+(locked||!character?'disabled':'')+'>'+(inSquad?'в отряде':'одиночка')+'</button><button type="button" class="ghost sm" data-squad-remove="'+esc(m.id)+'" aria-label="Убрать из отряда '+esc(character?.name||m.id)+'" '+(locked?'disabled':'')+'>Убрать</button></div></div>';
- }).join(''):'<div class="squad-empty">Команда ещё не собрана. Добавьте персонажей Хроники.</div>';
+ if(!squadIsOpen())return;const state=SQUAD.state;if(!state)return;
+ $('squad-chronicle-name').textContent=S.chronicle.name;const status=$('squad-status');status.textContent=SQUAD.error;status.classList.toggle('error',!!SQUAD.error);
+ const leader=squadCharacter(state.leader_id),tactics=leader?'<span class="sq-tactics'+(squadTactical(leader)?' confirmed':'')+'">Знаток тактики</span>':'';
+ sqSetHTML('squad-leader-card',sqChip(leader?.name||'Выбрать командира','leader',tactics)+(leader?'<div class="sq-tags">'+squadTags(leader)+'</div>':''));
+ const oath=sqOath();sqSetHTML('squad-oath-card',sqChip(oath?.name||'Выбрать обет','oath')+(oath?'<div class="sq-desc">'+esc(oath.desc)+'</div><div class="sq-source">'+esc(oath.source)+'</div>':''));
+ SQUAD.choices=squadChoices();const ability=SQUAD.choices.find(x=>squadSameAbility(x.ref,state.ability));
+ sqSetHTML('squad-ability-card',sqChip(ability?.row.name||'Выбрать способность','ability')+(ability?'<details class="sq-ability-rule"><summary>Описание способности</summary><div class="sq-desc">'+esc(squadPlainDescription(ability.row.desc||ability.db?.description||ability.row.description))+'</div></details>':state.ability?'<div class="sq-note">Прежняя способность недоступна при текущем обете. Выберите подходящую.</div>':''));
+ $('squad-count').textContent=state.members.length+' в составе';
+ sqSetHTML('squad-members',state.members.length?state.members.map(m=>{const c=squadCharacter(m.id),isLeader=String(m.id)===String(state.leader_id),on=m.active&&(m.mode==='solo'?m.solo.length>0:!!ability);const tags=squadTags(c)+(isLeader?'<span class="sq-tag">Командир</span>':'');
+  const effects=m.mode==='solo'?(m.active?m.solo:[]).map(r=>'<button type="button" class="sq-effect" data-sq-detail="'+esc(m.id)+'" data-sq-detail-name="'+esc(r.name)+'">'+esc(r.name)+'</button>').join(''):on?'<button type="button" class="sq-effect" data-sq-detail="'+esc(m.id)+'">'+esc(ability.row.name)+'</button>':'';
+  return '<article class="sq-member'+(on?' active':'')+'" data-sq-member="'+esc(m.id)+'"><div class="sq-member-info"><div class="sq-member-name">'+esc(c?.name||'Персонаж недоступен')+'</div><div class="sq-tags">'+tags+'</div>'+(effects?'<div class="sq-effects">'+effects+'</div>':'')+'</div><div class="sq-member-actions"><button type="button" class="sq-btn sq-mode '+(m.mode==='squad'?'in-squad':'')+'" data-squad-mode="'+esc(m.id)+'" aria-pressed="'+(m.mode==='squad')+'">'+(m.mode==='squad'?'в отряде':'одиночка')+'</button><button type="button" class="sq-btn sq-activation'+(on?' on':'')+'" data-sq-activate="'+esc(m.id)+'" aria-pressed="'+on+'" '+(!c||m.mode==='squad'&&!ability?'disabled':'')+'>Активировать способность</button>'+(m.mode==='solo'?'<button type="button" class="sq-btn sq-activation-details" data-sq-picker="solo" data-sq-id="'+esc(m.id)+'">Выбрать</button>':'')+'<button type="button" class="sq-btn" data-squad-remove="'+esc(m.id)+'" aria-label="Убрать '+esc(c?.name||m.id)+'">×</button></div></article>';
+ }).join(''):'<div class="sq-empty">Добавьте персонажей в Ликвидационную команду</div>');
+ $('squad-refresh').disabled=SQUAD.busy;for(const b of $('squad-root').querySelectorAll('button')){if(SQUAD.busy){b.dataset.sqBusy='1';b.disabled=true;}else if(b.dataset.sqBusy){delete b.dataset.sqBusy;b.disabled=b.hasAttribute('data-sq-activate')&&!squadCharacter(b.dataset.sqActivate)||b.hasAttribute('data-sq-activate')&&state.members.find(m=>String(m.id)===b.dataset.sqActivate)?.mode==='squad'&&!ability;}}
 }
 async function squadLoad(quiet=false){
- if(!squadIsOpen()||SQUAD.busy||SQUAD.loading)return;
- const token=++SQUAD.token,context={chronicle:SQUAD.chronicle,user:SQUAD.user};SQUAD.loading=true;squadRender();
- try{const data=await squadRequest('read',null,null,context);if(token!==SQUAD.token||!squadIsOpen())return;SQUAD.state=data.state;SQUAD.characters=data.characters;SQUAD.error='';S.role=data.role;S.chronicle.name=data.name;}
- catch(error){if(token===SQUAD.token&&squadIsOpen())SQUAD.error=squadMessage(error);}
- finally{if(token===SQUAD.token){SQUAD.loading=false;squadRender();}}
+ if(!squadIsOpen()||SQUAD.busy||SQUAD.reading)return;const token=++SQUAD.token,context={chronicle:SQUAD.chronicle,user:SQUAD.user};SQUAD.reading=true;
+ try{await squadCatalog();const data=await squadRequest('read',null,null,context);if(token!==SQUAD.token||!squadIsOpen()||SQUAD.busy)return;const hadError=!!SQUAD.error,changed=JSON.stringify(SQUAD.state)!==JSON.stringify(sqState(data.state))||JSON.stringify(SQUAD.characters)!==JSON.stringify(data.characters);sqAccept(data);if(changed||hadError||!quiet)squadRender();}
+ catch(error){if(token===SQUAD.token&&squadIsOpen()){SQUAD.error=squadMessage(error);if(!quiet)squadRender();}}
+ finally{if(token===SQUAD.token)SQUAD.reading=false;}
 }
+function sqCleanDraft(d){d.members=d.members.filter(m=>squadCharacter(m.id));if(!squadCharacter(d.leader_id))d.leader_id=null;const o=sqOath(d);if(o&&!sqOathAllowed(o,squadCharacter(d.leader_id)))d.oath=null;if(d.ability&&!squadChoices(d).some(x=>squadSameAbility(x.ref,d.ability))){d.ability=null;d.members.forEach(m=>{if(m.mode==='squad')m.active=false;});}for(const m of d.members){const c=squadCharacter(m.id);m.solo=m.solo.filter(r=>sqSoloChoices(c).some(x=>x.available&&sqSameSolo(x.ref,r)));if(m.mode==='solo'&&!m.solo.length)m.active=false;}}
 async function squadChange(change){
- if(!squadIsOpen()||!SQUAD.state||SQUAD.busy||SQUAD.loading||SQUAD.error)return false;
- const context={chronicle:SQUAD.chronicle,user:SQUAD.user},draft=JSON.parse(JSON.stringify(SQUAD.state)),token=++SQUAD.token;
- // A deleted character or removed sheet ability cannot remain an active reference.
- draft.members=squadArray(draft.members).filter(m=>squadCharacter(m.id));if(!squadCharacter(draft.leader_id))draft.leader_id=null;
- if(draft.ability&&!squadChoices().some(x=>squadSameAbility(x.ref,draft.ability)))draft.ability=null;
- change(draft);SQUAD.busy=true;squadRender();let conflict=false;
- try{
-  const data=await squadRequest('save',draft,SQUAD.state.revision,context);
-  if(token!==SQUAD.token||!squadIsOpen())return false;
-  SQUAD.state=data.state;SQUAD.characters=data.characters;SQUAD.error='';
-  squadChannel?.postMessage({chronicle:context.chronicle});return true;
- }catch(error){
-  if(token!==SQUAD.token||!squadIsOpen())return false;
-  conflict=error?.message==='SQUAD_CONFLICT';toast(squadMessage(error));
-  if(!conflict)SQUAD.error=squadMessage(error);return false;
- }finally{
-  if(token===SQUAD.token){SQUAD.busy=false;if(conflict)await squadLoad();else squadRender();}
- }
+ if(!squadIsOpen()||!SQUAD.state||SQUAD.busy)return false;const context={chronicle:SQUAD.chronicle,user:SQUAD.user},draft=JSON.parse(JSON.stringify(SQUAD.state));++SQUAD.token;SQUAD.reading=false;sqCleanDraft(draft);change(draft);sqCleanDraft(draft);SQUAD.busy=true;SQUAD.error='';squadRender();let conflict=false;
+ try{const data=await squadRequest('save',draft,SQUAD.state.revision,context);if(!squadIsOpen()||SQUAD.user!==context.user||SQUAD.chronicle!==context.chronicle)return false;sqAccept(data);squadChannel?.postMessage({chronicle:context.chronicle});return true;}
+ catch(error){if(squadIsOpen()){conflict=error?.message==='SQUAD_CONFLICT';SQUAD.error=squadMessage(error);toast(SQUAD.error);}return false;}
+ finally{SQUAD.busy=false;if(conflict)await squadLoad();else squadRender();}
 }
-function squadBack(){if(SQUAD.busy)return;SQUAD.token++;SQUAD.loading=false;history.replaceState(null,'',location.pathname);enterChronicle(S.chronicle.id,S.chronicle.name,S.role);}
-$('squad-leader').addEventListener('change',e=>{const id=Number(e.target.value)||null;squadChange(d=>{d.leader_id=id;if(id&&!d.members.some(m=>String(m.id)===String(id)))d.members.push({id,mode:'squad'});});});
-$('squad-ability').addEventListener('change',e=>{const choice=e.target.value===''?null:SQUAD.choices[Number(e.target.value)];if(e.target.value!==''&&!choice)return;squadChange(d=>{d.ability=choice?.ref||null;});});
-$('squad-add-character').addEventListener('change',e=>{$('squad-add-btn').disabled=!e.target.value||SQUAD.busy||SQUAD.loading||!!SQUAD.error;});
-$('squad-add-btn').addEventListener('click',()=>{const id=Number($('squad-add-character').value);if(!id||!squadCharacter(id))return;squadChange(d=>{if(!d.members.some(m=>String(m.id)===String(id)))d.members.push({id,mode:'squad'});});});
-$('squad-members').addEventListener('click',e=>{
- const chip=e.target.closest('[data-squad-mode]');if(chip){squadChange(d=>{const m=d.members.find(m=>String(m.id)===chip.dataset.squadMode);if(m)m.mode=m.mode==='squad'?'solo':'squad';});return;}
- const remove=e.target.closest('[data-squad-remove]');if(remove)squadChange(d=>{const id=remove.dataset.squadRemove;d.members=d.members.filter(m=>String(m.id)!==id);if(String(d.leader_id)===id)d.leader_id=null;if(String(d.ability?.character_id)===id)d.ability=null;});
+function squadBack(){if(SQUAD.busy)return;squadClosePicker();++SQUAD.token;SQUAD.reading=false;history.replaceState(null,'',location.pathname);enterChronicle(S.chronicle.id,S.chronicle.name,S.role);}
+function squadClosePicker(){if($('squad-picker').open)$('squad-picker').close();SQUAD.picker=null;}
+function squadOpenPicker(kind,id=null){
+ if(!squadIsOpen()||SQUAD.busy)return;const c=squadCharacter(id),member=SQUAD.state.members.find(m=>String(m.id)===String(id));
+ if(kind==='solo'&&!c)return;const titles={leader:'Командир отряда',oath:'Данный Обет',ability:'Активная отрядная способность',member:'Добавить персонажа',solo:'Способности одиночки'};
+ SQUAD.picker={kind,id,choices:SQUAD.choices.slice(),soloChoices:sqSoloChoices(c),solo:member?JSON.parse(JSON.stringify(member.solo)):[]};$('sq-picker-title').textContent=titles[kind];$('sq-picker-search').hidden=false;$('sq-picker-search').value='';$('sq-picker-description').innerHTML='';$('sq-picker-apply').hidden=kind!=='solo';$('sq-picker-clear').hidden=kind==='member';
+ $('sq-picker-note').textContent=kind==='oath'?'Доступность определяется специализацией командира':kind==='solo'?'Выберите активные способности. Их применение включается кнопкой персонажа.':kind==='ability'?'Кодексные способности определяются обетом. Орденские — листами членов команды.':'';
+ sqRenderPicker();$('squad-picker').showModal();$('sq-picker-search').focus();
+}
+function sqPickerItems(){const p=SQUAD.picker;if(!p)return [];
+ if(['leader','member'].includes(p.kind))return SQUAD.characters.filter(c=>p.kind==='leader'||!SQUAD.state.members.some(m=>String(m.id)===String(c.id))).map(c=>({value:String(c.id),name:c.name,note:[c.info?.chapter,c.info?.specialization].filter(Boolean).join(' · '),available:true}));
+ if(p.kind==='oath')return SQ_OATHS.map(o=>({value:o.id,name:o.name,note:o.source,desc:o.desc,available:sqOathAllowed(o),selected:SQUAD.state.oath===o.id}));
+ if(p.kind==='ability')return p.choices.map((x,i)=>({value:String(i),name:x.row.name,note:x.c.name+' · '+(x.db?.scope==='common'||!x.db&&x.ref.list_key==='squad_codex'?'Кодексная':'Орденская'),desc:squadPlainDescription(x.row.desc||x.db?.description),available:true,selected:squadSameAbility(x.ref,SQUAD.state.ability)}));
+ if(p.kind==='solo')return p.soloChoices.map((x,i)=>({value:String(i),name:x.row.name,note:'Ранг '+x.required,desc:squadPlainDescription(x.row.desc||x.db?.description),available:x.available,selected:p.solo.some(r=>sqSameSolo(r,x.ref))}));return [];
+}
+function sqRenderPicker(){const q=$('sq-picker-search').value.toLowerCase(),p=SQUAD.picker;if(!p)return;const items=sqPickerItems().filter(x=>(x.name+' '+x.note).toLowerCase().includes(q));$('sq-picker-list').innerHTML=items.map(x=>'<button type="button" class="sq-choice'+(x.selected?' selected':'')+(x.available?'':' unavailable')+'" data-sq-choice="'+esc(x.value)+'" '+(x.available?'':'disabled')+'><span class="sq-choice-name">'+esc(x.name)+(p.kind==='solo'?'<span>'+(x.selected?'✓':'＋')+'</span>':'')+'</span><div class="sq-note">'+esc(x.note||'')+(x.available?'':' · Недоступно')+'</div>'+(x.desc?'<div class="sq-choice-desc">'+esc(x.desc)+'</div>':'')+'</button>').join('')||'<div class="sq-empty">Подходящих вариантов нет</div>';}
+$('sq-picker-search').addEventListener('input',sqRenderPicker);
+$('sq-picker-list').addEventListener('click',async e=>{const b=e.target.closest('[data-sq-choice]'),p=SQUAD.picker;if(!b||!p)return;const value=b.dataset.sqChoice;
+ if(p.kind==='solo'){const x=p.soloChoices[Number(value)];if(!x?.available)return;const found=p.solo.findIndex(r=>sqSameSolo(r,x.ref));if(found<0)p.solo.push(x.ref);else p.solo.splice(found,1);sqRenderPicker();return;}
+ const kind=p.kind,ref=p.choices[Number(value)]?.ref;squadClosePicker();await squadChange(d=>{if(kind==='leader'){const id=Number(value);d.leader_id=id;if(!d.members.some(m=>String(m.id)===value))d.members.push({id,mode:'solo',active:false,solo:[]});}if(kind==='member')d.members.push({id:Number(value),mode:'solo',active:false,solo:[]});if(kind==='oath'){d.oath=value;d.ability=null;d.members.forEach(m=>{if(m.mode==='squad')m.active=false;});}if(kind==='ability'){d.ability=ref||null;d.members.forEach(m=>{if(m.mode==='squad')m.active=false;});}});
 });
-squadChannel?.addEventListener('message',e=>{if(e.data?.chronicle===SQUAD.chronicle)squadLoad(true);});
+$('sq-picker-apply').addEventListener('click',async()=>{const p=SQUAD.picker;if(p?.kind!=='solo')return;const refs=p.solo,id=p.id;squadClosePicker();await squadChange(d=>{const m=d.members.find(m=>String(m.id)===String(id));if(m){m.solo=refs;m.active=refs.length>0;}});});
+$('sq-picker-clear').addEventListener('click',async()=>{const p=SQUAD.picker;if(!p)return;if(p.kind==='solo'){p.solo=[];sqRenderPicker();return;}squadClosePicker();await squadChange(d=>{if(p.kind==='leader')d.leader_id=null;if(p.kind==='oath')d.oath=null;if(p.kind==='ability'){d.ability=null;d.members.forEach(m=>{if(m.mode==='squad')m.active=false;});}});});
+$('squad-picker').addEventListener('click',e=>{if(e.target===$('squad-picker')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)squadClosePicker();}});
+$('squad-root').addEventListener('click',e=>{const picker=e.target.closest('[data-sq-picker]');if(picker){squadOpenPicker(picker.dataset.sqPicker,picker.dataset.sqId);return;}const chip=e.target.closest('[data-squad-mode]');if(chip){squadChange(d=>{const m=d.members.find(m=>String(m.id)===chip.dataset.squadMode);if(m){m.mode=m.mode==='solo'?'squad':'solo';m.active=false;}});return;}const activation=e.target.closest('[data-sq-activate]');if(activation){const id=activation.dataset.sqActivate,m=SQUAD.state.members.find(m=>String(m.id)===id);if(m?.mode==='solo'&&!m.solo.length){squadOpenPicker('solo',id);return;}squadChange(d=>{const member=d.members.find(m=>String(m.id)===id);if(member)member.active=!member.active;});return;}const detail=e.target.closest('[data-sq-detail]');if(detail){const m=SQUAD.state.members.find(m=>String(m.id)===detail.dataset.sqDetail);if(m?.mode==='solo')squadOpenPicker('solo',m.id);else squadOpenPicker('ability');return;}const remove=e.target.closest('[data-squad-remove]');if(remove)squadChange(d=>{d.members=d.members.filter(m=>String(m.id)!==remove.dataset.squadRemove);if(String(d.leader_id)===remove.dataset.squadRemove)d.leader_id=null;if(String(d.ability?.character_id)===remove.dataset.squadRemove)d.ability=null;});});
+squadChannel?.addEventListener('message',e=>{if(e.data?.chronicle===SQUAD.chronicle)squadLoad(true);sqRefreshCharacter(true);});
 charChannel?.addEventListener('message',()=>{if(squadIsOpen())squadLoad(true);});
-window.addEventListener('focus',()=>{if(squadIsOpen())squadLoad(true);});
-setInterval(()=>{if(squadIsOpen()&&!document.hidden)squadLoad(true);},15000);
+window.addEventListener('focus',()=>{if(squadIsOpen())squadLoad(true);sqRefreshCharacter(true);});
+setInterval(()=>{if(document.hidden)return;if(squadIsOpen())squadLoad(true);sqRefreshCharacter(true);},15000);
 
 </script>
 <script data-feature="weapon-damage">
@@ -17198,6 +17185,127 @@ if(typeof damageResolve==='function'){
 }
 </script>
 
+<script data-feature="squad-effects-v2">
+// Effects are derived from shared squad state. Character JSON is never augmented.
+const SQ_EFFECT={cache:new Map(),flight:null,rollOn:{},damageOn:{},conditions:{},lastKey:'',refreshPending:false,lastRoll:null,rerolling:false,lastDamage:null,damageRerolling:false};
+const SQ_ORIG={permMods,modsMul,statBonus,effSpeed,skillBadgeInfo,armourApMod,rollMods,rollModRows,rollModRowHtml,openRoll,rollBaseTarget,openSheet,renderSheet,damageDefaults,renderDamageRoll,openDamageRoll,showRollResult,doRoll,doDamageRoll,gearEffWeapon,conditionRollModifiers};
+function sqCacheKey(user,chronicle){return String(user)+':'+String(chronicle);}
+function sqEffectCache(data,user){const key=sqCacheKey(user,data.chronicle_id),old=SQ_EFFECT.cache.get(key);const signature=JSON.stringify([data.state,data.characters]);SQ_EFFECT.cache.set(key,{data,time:Date.now(),signature});if(old?.signature!==signature){SQ_EFFECT.conditions={};SQ_EFFECT.rollOn={};SQ_EFFECT.damageOn={};sqUpdateCharacterView();}}
+function sqActorCache(d){if(!S.character||S.character._statblock||sbActorActive()||d!==S.character.character_data)return null;return SQ_EFFECT.cache.get(sqCacheKey(S.user?.id,S.character.chronicle_id))?.data||null;}
+function sqMember(d){const data=sqActorCache(d);if(!data)return null;const state=sqState(data.state),m=state.members.find(m=>String(m.id)===String(S.character.id));return m?{data,state,m}:null;}
+function sqActive(d){const ctx=sqMember(d);if(!ctx?.m.active)return [];
+ const c=ctx.data.characters.find(c=>String(c.id)===String(ctx.m.id));if(!c)return [];
+ if(ctx.m.mode==='solo')return ctx.m.solo.map(ref=>{const row=squadArray(c[ref.list_key]).find(r=>String(r.id??'')===String(ref.ability_id??'')&&r.name===ref.name),db=SQ_CATALOG.solo.find(a=>String(a.id)===String(ref.ability_id));return row&&(!db||db.ability_type==='Активная')?{ref,row,db,c,kind:'solo',rank:rankFromXp(calcTotalXpSpent(d))}:null;}).filter(a=>a&&a.rank>=Number(String(a.db?.requirements||'').match(/ранг\s*:\s*(\d+)/i)?.[1]||1));
+ const ref=ctx.state.ability;if(!ref)return [];const choice=squadChoices(ctx.state,ctx.data.characters).find(x=>squadSameAbility(x.ref,ref));return choice?[{...choice,kind:'squad',rank:sqRank(choice.c)}]:[];
+}
+function sqBaseBonus(d,key){const mods=SQ_ORIG.permMods(d||{}).filter(m=>m.target==='stat'&&[key,'all'].includes(m.target_name));const base=Number(d?.stats?.[key]||0)+5*Number(d?.stat_adv?.[key]||0);const pre=mods.filter(m=>m.mode!=='mul'&&(m.timing||'pre')==='pre').reduce((n,m)=>n+Number(m.effect||0),0),mult=mods.filter(m=>m.mode==='mul').reduce((n,m)=>n*Number(m.effect||1),1);return Math.floor(Math.floor((base+pre)/10)*mult)+(key==='sil'?Math.floor(mods.filter(m=>m.mode!=='mul'&&m.timing==='post').reduce((n,m)=>n+Number(m.effect||0),0)/10):0);}
+function sqRule(a,type,key,value,condition='',extra={}){return {id:a.kind+':'+String(a.ref.ability_id||a.ref.name)+':'+type+':'+key+':'+condition,name:a.row.name,type,key,value,condition,source:'squad-effect:'+a.kind+':'+String(a.ref.ability_id||a.ref.name),...extra};}
+function sqRules(d){
+ const rules=[];for(const a of sqActive(d)){const id=Number(a.ref.ability_id),r=a.rank,source=a.c.effect_data||a.c;
+  const add=(type,key,value,condition='',extra={})=>{if(value)rules.push(sqRule(a,type,key,value,condition,extra));};
+  const check=(key,value,condition='',extra={})=>add('check',key,value,condition,extra);
+  const skill=(name,value,condition='')=>add('skill',name,value,condition);
+  if(a.kind==='solo')switch(id){
+   case 233:if(r>=3){check('bb',10,'Цель обладает психическими способностями',{attack:true});add('damage','weapon_melee',2,'Цель обладает психическими способностями');}break;
+   case 235:check('bb',10,'Поединок с целью Громового зова; союзники её не атакуют',{attack:true});break;
+   case 237:if(r>=3)add('pen','weapon_melee',r>=5?4:2);add('fury','weapon_melee',r>=7?8:9);break;
+   case 238:add('initiative_die','all',10);break;
+   case 239:add('temp_wounds','all',r>=7?18:r>=3?12:6);add('movement_cap','all',r>=5?sqBaseBonus(d,'lov'):Math.ceil(sqBaseBonus(d,'lov')/2));break;
+   case 242:check('bb',10,'Сага о прирождённом воине: за каждого убитого врага в предыдущий ход',{count:true,attack:true});check('bb',1,'Сага о прирождённом воине: за каждую снятую единицу Численности в предыдущий ход',{count:true,attack:true});break;
+   case 244:add('mulstep','wyn',r>=7?2:1);if(r>=5){skill('Уклонение',10);check('bb',10,'Парирование',{action:'parry'});}break;
+   case 250:if(r>=3){check('all',10,'Цель ошеломлена или неподготовлена',{attack:true});add('damage','all',2,'Цель ошеломлена или неподготовлена');}if(r>=5)add('speed_bonus','all',1);break;
+   case 251:check('all',r>=3?20:10,'Успешная Встречная проверка Интеллекта: проверки против выбранной цели');break;
+   case 252:skill('Бдительность',10,'Порча цели больше 30; бонус разрешён Мастером');break;
+   case 253:check('all',1,'Штраф за космические условия',{environment:true,rank:r});break;
+   case 254:check('bb',10,'Натиск на кровоточащую цель',{action:'charge'});if(r>=4)add('damage','all',2,'В этом ходу был совершён Натиск');add('charge_extra','all',r>=7?7:5,'Натиск на кровоточащую цель');break;
+   case 255:if(r>=5)add('pen','all',4,'Цель — орк');break;
+   case 256:if(r>=5)check('all',10,'Цель — противник, с которым обменялись Инициативой');break;
+   case 257:skill('Знание',10,'Нужное знание и группа уже освоены',{knowledge:true});break;
+   case 258:check('db',r>=4?20:10,'Одиночный выстрел на Дальнюю/Сверхдальнюю дистанцию',{single:true});if(r>=6)add('range','bolter',20);break;
+   case 259:add('damage','weapon_melee',r>=3?Math.floor((Number(d.stats?.sv||0)+5*Number(d.stat_adv?.sv||0))/10):Math.floor(sqBaseBonus(d,'sv')/2));add('damage','weapon_ranged',r>=3?Math.floor((Number(d.stats?.sv||0)+5*Number(d.stat_adv?.sv||0))/10):Math.floor(sqBaseBonus(d,'sv')/2),'Стрельба в упор');break;
+   case 291:add('bonus','lov',r>=5?4:2);if(r>=3)check('lov',10,'Проверка Ловкости, связанная с движением');break;
+   case 292:if(r>=7)check('sv',20,'Переброс сопротивления психосиле/подчинению воли');break;
+   case 294:add('mulstep','sil',r>=7?2:1);if(r>=3)check('sil',10);break;
+   case 296:if(r>=7)check('wyn',20,'Переброс проверки Выносливости');break;
+  }
+  else switch(id){
+   case 70:check('db',20,'', {actions:['suppressing_fire','overwatch'],cancelActionPenalty:true});break;
+   case 73:check('db',r>=4?10:5,'Атака тяжёлым оружием/взрывчаткой по бронетехнике или укреплению: за каждого поддерживающего',{count:true,attack:true});break;
+   case 75:for(const k of ['bb','sil','wyn'])add('stat',k,r>=4?20:10);break;
+   case 77:check('bb',r>=4?20:10,'Численное превосходство',{attack:true});skill('Уклонение',r>=4?20:10,'Атака в ближнем бою');check('bb',10,'Парирование атаки в ближнем бою',{action:'parry'});break;
+   case 79:check('all',sqBaseBonus(source,'obsh')*(r>=4?2:1));break;
+   case 85:check('bb',20,'Цель назначена неподвижным центром Форпоста',{attack:true});check('db',20,'Цель назначена неподвижным центром Форпоста',{attack:true});break;
+   case 86:check('all',r>=5?20:10,'Сопротивление психосиле');break;
+   case 88:check('db',r>=4?20:10,'Персонаж остаётся неподвижным');skill('Уклонение',r>=4?20:10,'Персонаж остаётся неподвижным');add('armor','all',4,'Персонаж остаётся неподвижным',{persistentCondition:true});break;
+   case 89:if(r>=3)check('bb',10,'Цель отвлечена Стайной тактикой',{attack:true});break;
+   case 90:if(r>=5)check('bb',20,'Парирование',{action:'parry'});break;
+   case 93:check('sv',r>=4?20:10,'Сопротивление Страху/урону Сплочённости');break;
+   case 95:if(r<3)check('sv',20,'Проверка против Подавления огнём');break;
+   case 97:add('bonus','wyn',2);if(r<5)add('speed_half','all',1);break;
+   case 100:if(r>=4)add('charge_mult','all',4);break;
+   case 108:add('damage','all',r>=4?5:2,'Врага уже поразил член команды во время Скоординированного удара');break;
+   case 112:if(r>=3&&String(S.character?.id)!==String(a.ref.character_id))check('db',10,'',{bolter:true,attack:true});break;
+   case 114:if(String(S.character?.id)!==String(a.ref.character_id))add('damage','all',sqBaseBonus(source,'sv'),'Цель — осуждённый враг');break;
+   case 115:add('damage','all',1,'Немедленное возмездие: за каждого поддерживающего',{count:true});break;
+   case 117:if(r>=4)check('lov',30,'Встречная проверка при Выжидании');break;
+   case 119:check('all',r>=4?20:10,'Сопротивление Порче или Встречная проверка против Демона');break;
+   case 122:if(r>=4)check('bb',10,'',{action:'charge'});if(r>=7)add('extra_dice','weapon_melee',1,'Первая атака Безрассудного натиска');break;
+   case 126:if(r>=4)check('all',10,'Передано право хода: '+(r>=7?'любая проверка':'первая проверка'));break;
+   case 127:skill('Уклонение',10,'Против стрелковой атаки; прикрывает видимый товарищ');check('bb',r>=5?20:10,'Парирование при численном превосходстве',{action:'parry'});break;
+   case 128:check('bb',10,'Дополнительное численное превосходство',{attack:true});check('all',r>=4?20:10,'Точечная атака',{action:'called_shot'});break;
+   case 132:add('damage','all',r>=4?10:5,'Получен бонус к попаданию за численное превосходство');break;
+   case 133:if(r>=4)add('stat','lov',20);break;
+  }
+ }return rules;
+}
+function sqUnconditional(d,type,key){return sqRules(d).filter(r=>r.type===type&&(!key||[key,'all'].includes(r.key))&&(!r.condition||r.persistentCondition&&SQ_EFFECT.conditions[r.id]));}
+permMods=function(d){const base=SQ_ORIG.permMods(d),rules=sqRules(d);const extra=rules.filter(r=>['stat','armor','damage','pen'].includes(r.type)&&(!r.condition||r.persistentCondition&&SQ_EFFECT.conditions[r.id])).map(r=>({name:r.name,target:({stat:'stat',armor:'armor',damage:'weapon_damage',pen:'armor_penetration'})[r.type],target_name:r.key,effect:r.value,mode:'add',timing:'pre',source:r.source}));const steps=rules.filter(r=>r.type==='mulstep'&&!r.condition);const norm=s=>String(s||'').trim().toLowerCase();const clean=base.filter(m=>{if(extra.some(a=>norm(a.name)===norm(m.name)&&a.target===m.target&&a.target_name===m.target_name&&m.mode!=='mul'&&Number(m.effect)===a.effect&&(m.timing||'pre')==='pre'))return false;for(const r of steps){if(m.target==='stat'&&m.target_name===r.key&&m.mode==='mul'&&norm(m.name)===norm(r.name)){const initial=base.filter(b=>b!==m&&b.target==='stat'&&[r.key,'all'].includes(b.target_name)&&b.mode==='mul').reduce((n,b)=>n*Number(b.effect||1),1);if(Math.abs(Number(m.effect)-(initial+r.value)/initial)<1e-9)return false;}}return true;});return extra.length||clean.length!==base.length?clean.concat(extra):base;};
+modsMul=function(d,target,name){const n=SQ_ORIG.modsMul(d,target,name);return target==='stat'?n+sqUnconditional(d,'mulstep',name).reduce((s,r)=>s+r.value,0):n;};
+statBonus=function(d,key){return SQ_ORIG.statBonus(d,key)+sqUnconditional(d,'bonus',key).reduce((s,r)=>s+r.value,0);};
+effSpeed=function(d,mult){let n=SQ_ORIG.effSpeed(d,mult)+sqUnconditional(d,'speed_bonus').reduce((s,r)=>s+r.value,0)*(mult||1);if(sqUnconditional(d,'speed_half').length)n=Math.ceil(n/2);const cap=sqUnconditional(d,'movement_cap')[0];if(cap)n=Math.min(n,cap.value);if(mult===3){const cm=sqUnconditional(d,'charge_mult')[0];if(cm)n=SQ_ORIG.effSpeed(d,1)*cm.value;}return n;};
+skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){const result=SQ_ORIG.skillBadgeInfo(d,row,level,basicish,chName,groupName);if(result.value==null)return result;const key=CH_KEY[chName||row.characteristic||''],addStat=sqUnconditional(d,'stat',key).reduce((s,r)=>s+r.value,0);let add=addStat;if((level||'untrained')==='untrained'&&basicish){const base=charBase(d,key);add=Math.ceil((base+addStat)/2)-Math.ceil(base/2);}add+=sqUnconditional(d,'skill',row.name).reduce((s,r)=>s+r.value,0);return add?{...result,value:result.value+add,text:String(result.value+add),title:result.title+' · Активная способность '+(add>=0?'+':'')+add}:result;};
+function sqRuleForRoll(r){const key=rollCharKey(),a=ROLL.action?.code||'',name=ROLL.sel?.name||'';if(r.type==='stat')return r.key===key&&ROLL.sel?.kind!=='skill';if(r.type==='skill')return ROLL.sel?.kind==='skill'&&(r.knowledge?/знани/i.test(name):name.toLowerCase().startsWith(r.key.toLowerCase()));if(r.type!=='check'||![key,'all'].includes(r.key))return false;if(r.action&&r.action!==a)return false;if(r.actions&&!r.actions.includes(a))return false;if(r.attack&&!actionAttackCheck())return false;if(r.single&&a&&['semi_auto','full_auto','suppressing_fire'].includes(a))return false;if(r.bolter&&!/болт/i.test(ROLL.action?.weapon_name||''))return false;return true;}
+rollModRows=function(){let rows=SQ_ORIG.rollModRows();const d=S.character?.character_data;if(!d)return rows;for(const r of sqRules(d).filter(sqRuleForRoll)){if(r.type==='skill'&&!r.condition)continue;const on=!r.condition||!!SQ_EFFECT.rollOn[r.id];let value=r.count?r.value*Number(SQ_EFFECT.rollOn[r.id+':count']||1):r.environment?(Number(SQ_EFFECT.rollOn[r.id+':penalty']||0)*(r.rank>=4?1:.5)):r.value;if(r.cancelActionPenalty){value=-rows.filter(x=>x.on&&x.value===-20&&/Огонь на подавление|Контроль сектора/i.test(x.label)).reduce((n,x)=>n+x.value,0);if(!value)continue;}if(on)rows=rows.filter(x=>x.sqRule||String(x.label||'').trim().toLowerCase()!==r.name.trim().toLowerCase()||Number(x.value)!==value);rows.push({label:r.name,value,locked:!r.condition,on,sqRule:r.id,scope:r.condition||'Активная способность',count:r.count,environment:r.environment});}return rows;};
+rollModRowHtml=function(r){if(!r.sqRule||r.locked)return SQ_ORIG.rollModRowHtml(r);return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope)+'</span></span>'+(r.count?'<input type="number" min="1" max="200" value="'+Number(SQ_EFFECT.rollOn[r.sqRule+':count']||1)+'" data-sq-roll-count="'+esc(r.sqRule)+'" aria-label="Количество поддерживающих или целей">':r.environment?'<input type="number" min="0" max="100" value="'+Number(SQ_EFFECT.rollOn[r.sqRule+':penalty']||0)+'" data-sq-roll-penalty="'+esc(r.sqRule)+'" aria-label="Величина штрафа за условия">':'')+'<span class="vl">'+(r.on&&r.value>0?'+':'')+r.value+'</span><input type="checkbox" data-sq-roll="'+esc(r.sqRule)+'" '+(r.on?'checked':'')+' aria-label="Подтверждены условия '+esc(r.label)+'"></div>';};
+openRoll=function(...args){SQ_EFFECT.rollOn={};SQ_EFFECT.lastRoll=null;SQ_EFFECT.rerolling=false;return SQ_ORIG.openRoll(...args);};
+rollBaseTarget=function(){if(ROLL.sel?.kind==='skill'){const latest=rollOptions().find(r=>r.id===ROLL.sel.id);if(latest)return latest.value;}return SQ_ORIG.rollBaseTarget();};
+damageDefaults=function(w){const c=SQ_ORIG.damageDefaults(w),d=S.character?.character_data;if(!d)return c;const melee=['weapon_melee','shield','unarmed'].includes(w.type),matches=r=>r.key==='all'||r.key===(melee?'weapon_melee':'weapon_ranged');for(const r of sqRules(d).filter(matches)){
+ if(melee&&w.type!=='weapon_melee'&&r.key==='weapon_melee'&&!r.condition){if(r.type==='damage')c.bonus+=r.value;if(r.type==='pen')c.pen+=r.value;}
+ if(r.type==='fury'&&!r.condition)c.trigger=Math.min(c.trigger,r.value);
+ if(['damage','pen','extra_dice'].includes(r.type)&&r.condition&&SQ_EFFECT.damageOn[r.id]){const value=r.value*(r.count?Number(SQ_EFFECT.damageOn[r.id+':count']||1):1);if(r.type==='damage')c.bonus+=value;if(r.type==='pen')c.pen+=value;if(r.type==='extra_dice')c.sqExtraDice=(c.sqExtraDice||0)+value;c.notes.push(r.name+': '+r.condition);}
+ }return c;};
+renderDamageRoll=function(){const result=SQ_ORIG.renderDamageRoll(),d=S.character?.character_data,w=damageWeapons().find(w=>w.id===DAMAGE.weapon);if(!d||!w)return result;const melee=['weapon_melee','shield','unarmed'].includes(w.type);const rules=sqRules(d).filter(r=>['damage','pen','extra_dice'].includes(r.type)&&r.condition&&(r.key==='all'||r.key===(melee?'weapon_melee':'weapon_ranged')));if(rules.length)$('damage-params').insertAdjacentHTML('beforeend','<div class="sq-roll-notes">'+rules.map(r=>'<label><input type="checkbox" data-sq-damage="'+esc(r.id)+'" '+(SQ_EFFECT.damageOn[r.id]?'checked':'')+'> '+esc(r.name)+' · '+esc(r.condition)+' ('+(r.value>0?'+':'')+r.value+(r.type==='pen'?' ББ':r.type==='extra_dice'?'к10':' урона')+')'+(r.count?'<input type="number" min="1" max="200" data-sq-damage-count="'+esc(r.id)+'" value="'+Number(SQ_EFFECT.damageOn[r.id+':count']||1)+'">':'')+'</label>').join('')+'</div>');const c=damageDefaults(w),extra=c.sqExtraDice||0;if(extra)$('damage-extra').value=Number($('damage-extra').value||0)+extra;if(!c.attack){const key=melee?'bb':'db',bonus=sqRules(d).filter(r=>!r.condition&&['stat','check'].includes(r.type)&&[key,'all'].includes(r.key)&&!r.action&&!r.actions&&(!r.bolter||/болт/i.test(w.name))).reduce((n,r)=>n+r.value,0);$('damage-confirm').value=Number($('damage-confirm').value||0)+bonus;}return result;};
+openDamageRoll=function(...args){SQ_EFFECT.damageOn={};SQ_EFFECT.lastDamage=null;SQ_EFFECT.damageRerolling=false;SQ_EFFECT.damageSignature=SQ_EFFECT.cache.get(sqCacheKey(S.user?.id,S.character?.chronicle_id))?.signature;return SQ_ORIG.openDamageRoll(...args);};
+function sqChangeDamageCondition(change){const w=damageWeapons().find(w=>w.id===DAMAGE.weapon);if(!w)return;const before=damageDefaults(w),values={};for(const id of ['damage-expression','damage-confirm','damage-degrees','damage-trigger'])if($(id))values[id]=$(id).value;const bonusDelta=Number($('damage-bonus')?.value||0)-before.bonus,extraBase=Number($('damage-extra')?.value||0)-(before.sqExtraDice||0),checks={};$('damage-params')?.querySelectorAll('input[type=checkbox][id]').forEach(el=>checks[el.id]=el.checked);change();renderDamageRoll();const after=damageDefaults(w);if($('damage-bonus'))$('damage-bonus').value=after.bonus+bonusDelta;if($('damage-extra'))$('damage-extra').value=extraBase+(after.sqExtraDice||0);for(const [id,value] of Object.entries(values))if($(id))$(id).value=value;for(const [id,value] of Object.entries(checks))if($(id))$(id).checked=value;}
+document.addEventListener('change',e=>{const el=e.target;if(el.dataset.sqRoll){const id=el.dataset.sqRoll,on=el.checked;SQ_EFFECT.rollOn[id]=on;renderRollMods();renderRollTotal();}if(el.dataset.sqRollCount||el.dataset.sqRollPenalty){const key=el.dataset.sqRollCount||el.dataset.sqRollPenalty;SQ_EFFECT.rollOn[key+(el.dataset.sqRollCount?':count':':penalty')]=Math.max(0,Math.min(200,Number(el.value)||0));renderRollMods();renderRollTotal();}if(el.dataset.sqDamage){const id=el.dataset.sqDamage,on=el.checked;sqChangeDamageCondition(()=>{SQ_EFFECT.damageOn[id]=on;});}if(el.dataset.sqDamageCount){const id=el.dataset.sqDamageCount,value=Math.max(1,Math.min(200,Number(el.value)||1));sqChangeDamageCondition(()=>{SQ_EFFECT.damageOn[id+':count']=value;});}if(el.dataset.sqCondition){SQ_EFFECT.conditions[el.dataset.sqCondition]=el.checked;sqUpdateCharacterView();}});
+function sqCharacterBanner(){if(!S.character||S.character._statblock||sbActorActive())return;const header=$('sheet-root')?.querySelector('.header');if(!header)return;let banner=$('sq-character-effects');if(!banner){banner=document.createElement('div');banner.id='sq-character-effects';banner.className='sq-character-effects';header.insertAdjacentElement('afterend',banner);}const d=S.character.character_data,active=sqActive(d);banner.hidden=!active.length;const markers=sqRules(d).filter(r=>['temp_wounds','initiative_die'].includes(r.type)).map(r=>'<span class="sq-tag">'+(r.type==='temp_wounds'?'Временные раны: +'+r.value:'Инициатива: 10 + '+statBonus(d,'lov'))+'</span>');const html=active.map(a=>'<button type="button" class="sq-effect" data-sq-sheet-effect="'+esc(a.ref.name)+'">'+esc(a.row.name)+'</button>').concat(markers).join(' ');if(banner.dataset.sqHtml!==html){banner.innerHTML=html;banner.dataset.sqHtml=html;}}
+function sqUpdateCharacterView(){const d=S.character?.character_data;if(!d||S.character._statblock||sbActorActive())return;sqCharacterBanner();if(editMode||document.activeElement?.matches('#sheet-root input,#sheet-root textarea,[contenteditable=true]')){SQ_EFFECT.refreshPending=true;return;}SQ_EFFECT.refreshPending=false;for(const [key] of STATS){const b=$('bx-'+key);if(b)b.textContent=statBonus(d,key);const n=document.querySelector('#sheet-root [data-roll="'+key+'"]');if(n)n.textContent=effStat(d,key);}updateDerived();updateArmour();if($('roll-modal').classList.contains('active')&&!ROLL.busy){renderRollMods();renderRollTotal();}if($('damage-modal').classList.contains('active')&&!DAMAGE.busy)SQ_EFFECT.refreshPending=true;}
+async function sqRefreshCharacter(quiet=false){const actor=S.character,user=S.user?.id;if(!actor||actor._statblock||sbActorActive()||!actor.chronicle_id||!user)return;const key=sqCacheKey(user,actor.chronicle_id);if(SQ_EFFECT.flight)return;SQ_EFFECT.flight=key;try{await squadCatalog();const data=await squadRequest('read',null,null,{chronicle:actor.chronicle_id,user});if(S.user?.id!==user||S.character!==actor)return;sqEffectCache(data,user);if(!quiet)sqUpdateCharacterView();}catch(error){if(!quiet&&S.character===actor)toast(squadMessage(error));}finally{SQ_EFFECT.flight=null;}}
+openSheet=async function(...args){const result=await SQ_ORIG.openSheet(...args);if(S.character&&!S.character._statblock)await sqRefreshCharacter();return result;};
+renderSheet=function(...args){const result=SQ_ORIG.renderSheet(...args);sqCharacterBanner();return result;};
+document.addEventListener('focusout',()=>{if(SQ_EFFECT.refreshPending)queueMicrotask(()=>sqUpdateCharacterView());});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-sq-sheet-effect]');if(!b||!S.character)return;const d=S.character.character_data,a=sqActive(d).find(a=>a.ref.name===b.dataset.sqSheetEffect);if(!a)return;SQUAD.picker=null;$('sq-picker-title').textContent=a.row.name;$('sq-picker-note').textContent='Активная способность · '+(a.kind==='solo'?'Режим одиночки':'Режим отряда');$('sq-picker-search').hidden=true;$('sq-picker-list').innerHTML='';$('sq-picker-description').innerHTML='<div class="sq-desc">'+esc(squadPlainDescription(a.row.desc||a.db?.description))+'</div>'+sqRules(d).filter(r=>r.name===a.row.name&&r.persistentCondition).map(r=>'<label><input type="checkbox" data-sq-condition="'+esc(r.id)+'" '+(SQ_EFFECT.conditions[r.id]?'checked':'')+'> '+esc(r.condition)+'</label>').join('');$('sq-picker-apply').hidden=true;$('sq-picker-clear').hidden=true;$('squad-picker').showModal();});
+$('squad-picker').addEventListener('close',()=>{$('sq-picker-search').hidden=false;});
+gearEffWeapon=function(row,profile){const w=SQ_ORIG.gearEffWeapon(row,profile);if(!w||!S.character)return w;const range=sqUnconditional(S.character.character_data,'range').filter(r=>r.key==='bolter'&&/болт/i.test(w.class||w.name||row?.name||'')).reduce((n,r)=>n+r.value,0);return range&&Number.isFinite(Number(w.range))?{...w,range:Number(w.range)+range}:w;};
+conditionRollModifiers=function(d,key,sel){const rules=SQ_ORIG.conditionRollModifiers(d,key,sel),active=sqActive(d),ids=new Set(active.filter(a=>a.kind==='squad').map(a=>Number(a.ref.ability_id)));return rules.filter(r=>!(ids.has(103)&&r.id==='condition:fatigue')&&!(active.some(a=>a.kind==='squad'&&Number(a.ref.ability_id)===95&&a.rank>=3)&&r.id==='condition:pinned'));};
+function sqRollRerolls(result){const key=rollCharKey(),name=ROLL.sel?.name||'',action=ROLL.action?.code||'';return sqActive(S.character?.character_data).map(a=>{
+ const id=Number(a.ref.ability_id);let condition='';
+ if(a.kind==='solo'&&id===292&&!result.success&&key==='sv')condition='Провалено сопротивление психосиле или подчинению воли';
+ if(a.kind==='solo'&&id===296&&key==='wyn')condition='Переброс проверки Выносливости';
+ if(a.kind==='solo'&&id===235&&a.rank>=3&&(/Уклонен|Парир/i.test(name)||action==='parry'))condition='Атака цели Громового зова';
+ if(a.kind==='solo'&&id===243&&a.rank>=5&&key==='db'&&!result.success)condition='Цель находится в укрытии';
+ if(a.kind==='squad'&&id===79)condition='Командир выбрал этого персонажа для одного переброса в раунде';
+ if(a.kind==='squad'&&id===118&&(key==='bb'||key==='db'||/Уклонен|Парир/i.test(name)))condition='В общем резерве команды остался переброс';
+ if(a.kind==='squad'&&id===130&&key==='db')condition='Дальняя/Сверхдальняя дистанция; одиночный выстрел'+(a.rank>=4?', короткая очередь':'')+(a.rank>=6?' или длинная очередь':'');
+ return condition?{a,condition}:null;
+ }).filter(Boolean);}
+showRollResult=function(r){const result=SQ_ORIG.showRollResult(r),owner=S.character;if(!owner||!r)return result;const used=SQ_EFFECT.rerolling;SQ_EFFECT.lastRoll={owner,sel:ROLL.sel,action:ROLL.action,result:r,used};SQ_EFFECT.rerolling=false;const available=used?[]:sqRollRerolls(r);if(available.length)$('roll-result').insertAdjacentHTML('beforeend','<div class="sq-roll-notes">'+available.map((x,i)=>'<div>'+esc(x.condition)+'</div><button type="button" class="btn" data-sq-reroll="'+i+'">Перебросить · '+esc(x.a.row.name)+'</button>').join('')+'<div>Используется второй результат. Проверьте оставшиеся применения способности.</div></div>');return result;};
+function sqDamageRerolls(){const w=damageWeapons().find(w=>w.id===DAMAGE.weapon),melee=w&&['weapon_melee','shield','unarmed'].includes(w.type);return sqActive(S.character?.character_data).filter(a=>a.kind==='solo'&&Number(a.ref.ability_id)===237&&melee||a.kind==='squad'&&[71,94,85].includes(Number(a.ref.ability_id))).map(a=>({a,condition:a.kind==='solo'?'Урон атаки холодным оружием':Number(a.ref.ability_id)===71?'Урон атаки Громового натиска':Number(a.ref.ability_id)===94?'Урон по выделенной цели':'Урон по назначенной цели Форпоста'}));}
+doDamageRoll=async function(...args){const owner=S.character,weapon=DAMAGE.weapon,used=SQ_EFFECT.damageRerolling,current=SQ_EFFECT.cache.get(sqCacheKey(S.user?.id,owner?.chronicle_id))?.signature;if(SQ_EFFECT.damageSignature!==current){SQ_EFFECT.damageSignature=current;SQ_EFFECT.damageRerolling=false;renderDamageRoll();$('damage-error').textContent='Изменились активные способности. Проверьте обновлённые бонусы перед броском.';return;}await SQ_ORIG.doDamageRoll(...args);SQ_EFFECT.damageRerolling=false;if(S.character!==owner||!$('damage-result').textContent.trim())return;SQ_EFFECT.lastDamage={owner,weapon,used};const available=used?[]:sqDamageRerolls();if(available.length)$('damage-result').insertAdjacentHTML('beforeend','<div class="sq-roll-notes">'+available.map((x,i)=>'<div>'+esc(x.condition)+'</div><button type="button" class="btn" data-sq-damage-reroll="'+i+'">Перебросить урон · '+esc(x.a.row.name)+'</button>').join('')+'<div>Перебрасываются все кубики; используется второй результат.</div></div>');};
+$('damage-go').onclick=()=>doDamageRoll();
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-sq-reroll]');if(b){const last=SQ_EFFECT.lastRoll,choice=last&&sqRollRerolls(last.result)[Number(b.dataset.sqReroll)];if(!last||last.used||last.owner!==S.character||last.sel!==ROLL.sel||last.action!==ROLL.action||ROLL.busy||!choice)return;last.used=true;SQ_EFFECT.rerolling=true;if(choice.a.kind==='solo'&&choice.a.rank>=7&&[292,296].includes(Number(choice.a.ref.ability_id))){const rule=sqRules(S.character.character_data).find(r=>r.name===choice.a.row.name&&r.type==='check');if(rule)SQ_EFFECT.rollOn[rule.id]=true;}await SQ_ORIG.doRoll();if(SQ_EFFECT.rerolling){SQ_EFFECT.rerolling=false;last.used=false;}return;}const damage=e.target.closest('[data-sq-damage-reroll]');if(damage){const last=SQ_EFFECT.lastDamage;if(!last||last.used||last.owner!==S.character||last.weapon!==DAMAGE.weapon||DAMAGE.busy||!sqDamageRerolls()[Number(damage.dataset.sqDamageReroll)])return;last.used=true;SQ_EFFECT.damageRerolling=true;await doDamageRoll();}});
+
+</script>
 </body>
 </html>
 
