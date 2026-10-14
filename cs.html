@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -8818,7 +8818,7 @@ function showRollResult(r){
     + '<div class="roll-eq">' + esc(rollThresholds(r.target, mod, threshold)) + '</div>'
     + '<div class="roll-verdict ' + (ok ? 'ok' : 'fail') + '">' + (ok ? 'Успех' : 'Провал')
     + (deg ? ' · ' + deg : '') + '</div>'
-    + (location ? '<div class="roll-hit-location" style="text-align:center;margin-top:10px">Зона попадания: <b>' + esc(location.name) + '</b> (' + esc(String(r.d100).padStart(2,'0')) + ' → ' + esc(location.value===100 ? '00' : String(location.value).padStart(2,'0')) + ')</div>' : '')
+    + (location ? '<div class="roll-hit-location" style="text-align:center;margin-top:10px">Зона попадания: <b>' + esc(location.name) + '</b> (' + esc(String(r.location_d100 ?? r.d100).padStart(2,'0')) + ' → ' + esc(location.value===100 ? '00' : String(location.value).padStart(2,'0')) + ')</div>' : '')
     + (lines ? '<div class="roll-lines">' + esc(lines) + '</div>' : '')
     + '<div class="desc" style="text-align:center;margin-top:10px">'
     + (r.delivered ? 'Отправлено в Discord' : rollSkipText(r.skip)) + '</div>'
@@ -17017,7 +17017,7 @@ async function warpStart(continuing){
  const row={code:'focus_power',requires_weapon:false,subtypes:variant.attack?['attack']:[],check_targets:[{kind:'stat',key:'sv'}],modifiers:[]};
  openRoll({kind:'stat',action:{name:'Использование Варпа · '+power.name+' · '+variant.label,row,owner:S.character,warp:context,action_type:'variable'}});
 }
-async function warpAutomatic(context){
+async function warpAutomatic(context,attackResult=null){
  if(S.character!==context.owner)throw Error('Персонаж изменился. Откройте силу заново.');
  const v=context.variant;
  if(v.hit==='bs'){
@@ -17026,10 +17026,10 @@ async function warpAutomatic(context){
  const body={action:'roll-location',character_id:S.character.id,chronicle_id:S.chronicle?.id,stat_label:context.power.name+' · '+v.label,target:100,mod:0,is_attack:true,zone_mode:v.zone||'reverse'};
  const r=await callRollApi(body);if(S.character!==context.owner)return;
  closeSheetModal('warp-modal');
- openRoll({kind:'stat',sel:{kind:'stat',statKey:'db',name:context.power.name}});ROLL.action=null;showRollResult(r);
+ openRoll({kind:'stat',sel:{kind:'stat',statKey:'db',name:context.power.name}});ROLL.action=null;showRollResult(attackResult?{...attackResult,hit_location:r.hit_location,location_d100:r.d100}:r);
  const replaceButton=id=>{const old=$(id);if(!old)return null;const fresh=old.cloneNode(true);old.replaceWith(fresh);return fresh;};
  const again=replaceButton('roll-again'),reset=replaceButton('roll-reset');
- if(again)again.onclick=()=>warpAutomatic(context).catch(e=>toast(e.message));
+ if(again)again.onclick=()=>warpAutomatic(context,attackResult).catch(e=>toast(e.message));
  if(reset)reset.onclick=()=>warpOpen().then(()=>{if(S.character!==context.owner)return;WARP.power=context.power;WARP.variant=warpVariants(context.power)[0];WARP.turns=context.turns||0;warpDraw();});
 }
 function warpActivate(context){
@@ -17085,9 +17085,9 @@ showRollResult=function(r){
  warpActivate(w);
  if(w.variant.attack&&w.variant.hit!=='focus'){
   const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.textContent=w.variant.hit==='bs'?'Проверка ДБ':'Определить зону';$('roll-result').append(b);
-  b.onclick=async()=>{if(b.disabled)return;b.disabled=true;try{await warpAutomatic(w);}catch(e){rollErr(e.message);b.disabled=false;}};
+  b.onclick=async()=>{if(b.disabled)return;b.disabled=true;try{await warpAutomatic(w,r);}catch(e){rollErr(e.message);b.disabled=false;}};
  }
- if(w.power.id===25){const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.textContent='Вторичный эффект: зона';$('roll-result').append(b);b.onclick=()=>warpAutomatic({...w,variant:{key:'secondary',label:'Вторичный эффект',attack:true,hit:'automatic',zone:'weakest'}}).catch(e=>rollErr(e.message));}
+ if(w.power.id===25){const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.textContent='Вторичный эффект: зона';$('roll-result').append(b);b.onclick=()=>warpAutomatic({...w,variant:{key:'secondary',label:'Вторичный эффект',attack:true,hit:'automatic',zone:'weakest'}},r).catch(e=>rollErr(e.message));}
  if(w.power.sustained&&w.power.combat_rules.continuation?.length){const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.textContent='Атаковать поддерживаемой силой';$('roll-result').append(b);b.onclick=()=>{WARP.owner=w.owner;WARP.power=w.power;WARP.turns=w.turns;warpMount();$('warp-error').textContent='';openSheetModal('warp-modal');if(w.power.id===67)warpDraw();else warpContinuation();};}
 };
 const warpRenderSupported=renderPsySupported;
@@ -17096,7 +17096,7 @@ const warpDoRoll=doRoll;
 doRoll=async function(){
  const w=ROLL.action?.warp;WARP.lastResponse=null;await warpDoRoll();const r=WARP.lastResponse;
  if(!w||w.stage==='bs'||!r?.success||!w.variant.attack||w.variant.hit==='focus'||S.character!==w.owner)return;
- try{await warpAutomatic(w);}catch(e){const note=document.createElement('p');note.className='desc';note.textContent='Сила применена, но следующий этап не выполнен: '+e.message;$('roll-result').append(note);}
+ try{await warpAutomatic(w,r);}catch(e){const note=document.createElement('p');note.className='desc';note.textContent='Сила применена, но следующий этап не выполнен: '+e.message;$('roll-result').append(note);}
 };
 // Existing buttons captured their original function when the sheet was bound.
 // Intercept only psychic applications; other actions keep their original handlers.
