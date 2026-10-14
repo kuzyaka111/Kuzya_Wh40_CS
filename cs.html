@@ -14775,7 +14775,7 @@ async function npcLoadPresets(force=false){
 }
 function npcPresetFiltered(rows,q='',faction='',book='',status=''){
   const text=q.trim().toLocaleLowerCase('ru');
-  return rows.filter(r=>(!faction||npcPresetFaction(r)===faction)&&(!status||r.status===status)&&(!book||npcPresetSources(r).some(s=>npcPresetBook(s,r)===book))&&(!text||[npcPresetDisplayName(r),r.name,npcPresetLocalization(r).original_name,npcPresetFaction(r),npcPresetKind(r),npcPresetLocalization(r).variant_reference_label,...npcPresetSources(r).map(s=>npcPresetSourceText(s,r))].filter(Boolean).join(' ').toLocaleLowerCase('ru').includes(text)));
+  return rows.filter(r=>r.status!=='archived'&&(!faction||npcPresetFaction(r)===faction)&&(!status||r.status===status)&&(!book||npcPresetSources(r).some(s=>npcPresetBook(s,r)===book))&&(!text||[npcPresetDisplayName(r),r.name,npcPresetLocalization(r).original_name,npcPresetFaction(r),npcPresetKind(r),npcPresetLocalization(r).variant_reference_label,...npcPresetSources(r).map(s=>npcPresetSourceText(s,r))].filter(Boolean).join(' ').toLocaleLowerCase('ru').includes(text)));
 }
 function npcPresetDrawList(){
   if(SB.entry?.kind!=='preset')return;
@@ -14842,7 +14842,7 @@ async function npcOpenPresets(force=false){
     const options=values=>values.map(v=>'<option value="'+escAttr(v)+'">'+esc(v)+'</option>').join('');
     const factions=[...new Set(rows.map(npcPresetFaction).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
     const sources=[...new Set(rows.flatMap(r=>npcPresetSources(r).map(s=>npcPresetBook(s,r))))].sort((a,b)=>a.localeCompare(b,'ru'));
-    $('sb-entry-fields').innerHTML='<div class="sb-wide"><div class="npc-preset-filters"><label>Поиск<input id="npc-preset-search" placeholder="Название, фракция или источник"></label><label>Фракция<select id="npc-preset-faction"><option value="">Все фракции</option>'+options(factions)+'</select></label><label>Источник<select id="npc-preset-source"><option value="">Все книги</option>'+options(sources)+'</select></label><label>Готовность<select id="npc-preset-status"><option value="">Все записи</option>'+Object.entries(NPC_PRESET_STATUS).map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></label></div><div id="npc-preset-count" class="npc-preset-count" role="status"></div><div class="npc-preset-layout"><div id="npc-preset-results" class="npc-preset-results"></div><div id="npc-preset-preview" class="npc-preset-preview"><p>Выберите запись, чтобы увидеть источник, параметры и ограничения.</p></div></div></div>';
+    $('sb-entry-fields').innerHTML='<div class="sb-wide"><div class="npc-preset-filters"><label>Поиск<input id="npc-preset-search" placeholder="Название, фракция или источник"></label><label>Фракция<select id="npc-preset-faction"><option value="">Все фракции</option>'+options(factions)+'</select></label><label>Источник<select id="npc-preset-source"><option value="">Все книги</option>'+options(sources)+'</select></label><label>Готовность<select id="npc-preset-status"><option value="">Все записи</option>'+Object.entries(NPC_PRESET_STATUS).filter(([k])=>k!=='archived').map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></label></div><div id="npc-preset-count" class="npc-preset-count" role="status"></div><div class="npc-preset-layout"><div id="npc-preset-results" class="npc-preset-results"></div><div id="npc-preset-preview" class="npc-preset-preview"><p>Выберите запись, чтобы увидеть источник, параметры и ограничения.</p></div></div></div>';
     npcPresetDrawList();$('npc-preset-search').focus();
   }catch(error){if(SB.entry===entry)$('sb-entry-fields').innerHTML='<div class="sb-wide sb-error">'+esc(NPC_PRESETS.error||error.message)+' <button type="button" data-npc-preset-retry>Повторить</button></div>';}
 }
@@ -16971,7 +16971,7 @@ if(typeof NPC_PRESET_HIDDEN_KEYS!=='undefined')['requires_initial_magnitude','re
 const NPC_HORDE_BASE_VOX_PRESET=voxPresetBase;
 voxPresetBase=function(record,choices,actorType,initialMagnitude,sizeCategory){
   if(!npcHordeHasRequirement(record?.statblock))return NPC_HORDE_BASE_VOX_PRESET(record,choices,actorType);
-  if(!npcHordeRequirementValid(record.statblock)||!npcPresetCanApply(record)||typeof initialMagnitude!=='number'||npcHordeMagnitude(initialMagnitude)==null)throw Error('В файле не указана корректная начальная численность Орды.');
+  if(!npcHordeRequirementValid(record.statblock)||!(record.statblock.schema_version===3?['ready','archived'].includes(record.status):npcPresetCanApply(record))||typeof initialMagnitude!=='number'||npcHordeMagnitude(initialMagnitude)==null)throw Error('В файле не указана корректная начальная численность Орды.');
   if(record.statblock.schema_version===3&&(typeof sizeCategory!=='number'||npcHordeSizeCategory(sizeCategory)==null))throw Error('В файле не указана корректная книжная категория размера Орды.');
   const source=voxClone(record);npcHordeResolve(source.statblock,initialMagnitude,sizeCategory);
   const data=NPC_HORDE_BASE_VOX_PRESET(source,choices,actorType);
