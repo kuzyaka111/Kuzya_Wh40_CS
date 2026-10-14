@@ -4897,7 +4897,7 @@ function effStat(d, k){
 function statBonus(d, k){
   const base = (Number(d.stats[k]) || 0) + 5 * (((d.stat_adv || {})[k] || 0));
   const b = bonusOf(base + modsAdd(d, 'stat', k, 'pre'));
-  return Math.floor(b * modsMul(d, 'stat', k));
+  return Math.floor(b * modsMul(d, 'stat', k)) + (k === 'sil' ? bonusOf(modsAdd(d, 'stat', k, 'post')) : 0);
 }
 function effSpeed(d, mult){
   const base = statBonus(d, 'lov');
