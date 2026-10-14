@@ -16534,15 +16534,16 @@ function damageResolve(input,die){
   const extra=damageInteger(input.extra_dice??0,0,20,'дополнительные к10');
   const accurate=damageInteger(input.accurate_dice??0,0,2,'Точное');
   const proven=damageInteger(input.proven??0,0,10,'Проверенное');
-  const trigger=damageInteger(input.fury_trigger??10,8,10,'порог ярости');
+  const trigger=damageInteger(input.fury_trigger??10,1,10,'порог ярости');
   const degrees=damageInteger(input.degrees??0,0,1998,'степени успеха');
   const threshold=damageInteger(input.confirm_target??0,-1998,1998,'порог подтверждения');
   const natural=()=>damageInteger(die(10),1,10,'кубик');
-  const dice=Array.from({length:p.count+(input.tearing===true?1:0)},()=>{const raw=natural();return {raw,value:Math.max(proven,p.sides===5?Math.ceil(raw/2):raw),discarded:false};});
+  const discard=(input.tearing===true?1:0)+(input.tearing===true&&input.flesh_render===true?1:0);
+  const dice=Array.from({length:p.count+discard},()=>{const raw=natural();return {raw,value:Math.max(proven,p.sides===5?Math.ceil(raw/2):raw),discarded:false};});
   const horde=Array.from({length:extra},()=>{const raw=natural();return {raw,value:raw};});
   const precision=Array.from({length:accurate},()=>{const raw=natural();return {raw,value:raw};});
   const pool=[...dice,...horde,...precision];
-  if(input.tearing===true){const lowest=pool.reduce((a,b)=>a.value<=b.value?a:b);lowest.discarded=true;}
+  for(let i=0;i<discard;i++){const lowest=pool.filter(d=>!d.discarded).reduce((a,b)=>a.value<=b.value?a:b);lowest.discarded=true;}
   const kept=pool.filter(d=>!d.discarded);
   // A single damage die may be replaced by attack degrees; replacement is not natural.
   if(input.hit===true&&input.replace_degrees===true&&degrees>0){const d=kept.reduce((a,b)=>a.value<=b.value?a:b);if(degrees>d.value){d.before=d.value;d.value=degrees;d.replaced=true;}}
@@ -16685,6 +16686,7 @@ async function doDamageRoll(){
   const c=damageDefaults(w),read=id=>$(id)?.checked===true;
   const input={expression:$('damage-expression').value,bonus:$('damage-bonus').value,extra_dice:$('damage-extra').value,confirm_target:$('damage-confirm').value,degrees:$('damage-degrees').value,hit:read('damage-hit'),fury_allowed:read('damage-fury'),tearing:c.tearing,proven:c.proven,fury_trigger:$('damage-trigger').value,volatile:c.volatile,accurate_dice:read('damage-accurate')?Math.min(2,Math.floor(Number($('damage-degrees').value)/2)):0,replace_degrees:read('damage-replace'),auto_confirm:(c.deathwatch&&read('damage-xenos'))||(c.eye&&read('damage-eye')),notes:[...c.notes,'ББ: '+c.pen+(w.profile.dmg_type?' · '+w.profile.dmg_type:'')]};
   input.notes[input.notes.length-1]='ББ: '+c.pen+(c.dmgType?' · '+c.dmgType:'');
+  dm2ApplyDamageInput(input,c);
   for(const [i,m]of c.situation.entries())if(read('damage-situation-'+i)){input.bonus=Number(input.bonus)+Number(m.effect);input.notes.push((m.name||'Ситуативный бонус')+': '+m.effect);}
   DAMAGE.busy=true;$('damage-go').disabled=true;$('damage-error').textContent='';$('damage-result').textContent='';
   try{
@@ -17523,6 +17525,151 @@ function mwDeliveryText(r){
 }
 const MW_SHOW_RESULT=showRollResult;
 showRollResult=function(r){const out=MW_SHOW_RESULT(r),text=mwDeliveryText(r),note=$('roll-result')?.querySelector('.desc');if(text&&note)note.textContent=text;return out;};
+
+</script>
+<script data-feature="damage-modifiers-v2">
+// Approved damage modifiers: per-roll choices, never written into catalogue rows.
+const DM2={on:{},hand:new WeakSet(),frenzy:new WeakSet(),owner:null,rows:[],force:null};
+function dm2Has(d,id,pattern){return (d?.talents||[]).some(t=>Number(t?.id??t?.talent_id)===id||pattern.test(typeof t==='string'?t:t?.name||''));}
+function dm2Named(m,id,pattern){return new RegExp('(?:^|[-:])talent:'+id+'(?:$|:)').test(String(m.source||''))||pattern.test(String(m.name||''));}
+function dm2On(row){return Object.hasOwn(DM2.on,row.id)?DM2.on[row.id]:row.defaultOn;}
+function dm2ModRows(w,c){
+ const d=S.character.character_data,melee=['weapon_melee','shield','unarmed'].includes(w.type),rows=[];
+ const add=(id,name,defaultOn,effect,kind='bonus',note='',included=0)=>rows.push({id,name,defaultOn,effect,kind,note,included});
+ const flat=(id,name,pattern,effect,defaultOn=true,note='')=>{if(!dm2Has(d,id,pattern))return;const existing=permMods(d).filter(m=>m.target==='weapon_damage'&&m.mode==='add'&&['all','gear',w.type,w.profile.class].includes(m.target_name)&&dm2Named(m,id,pattern)).reduce((n,m)=>n+Number(m.effect||0),0);add('talent:'+id,name,defaultOn,effect,'bonus',note,existing);};
+ if(melee)flat(138,'Сокрушительный удар',/Сокрушительный удар|Crushing Blow/i,2);
+ if(w.type==='weapon_ranged')flat(137,'Сокрушительный выстрел',/Сокрушительный выстрел|Mighty Shot/i,2);
+ if(melee){flat(18,'Бич еретиков',/Бич еретиков|Scourge of Heretics/i,2,false,'Против еретика');flat(106,'Охотник на чужаков',/Охотник на чужаков|Hunter of Aliens/i,2,false,'Против ксеноса');flat(148,'Убийца демонов',/Убийца демонов|Slayer of Daemons/i,2,false,'Против демона');}
+ flat(178,'Отвращение',/Отвращение|Abhorrence/i,Math.ceil(charRankNow()/3),false,'Против врага, на которого действует Ненависть; ранг Брата меча / 3 вверх');
+ if(c.deathwatch)add('training','Подготовка караульного',false,0,'confirm','Против ксеноса: ярость подтверждается автоматически');
+ if(c.eye&&(!c.attack||c.attack.single))add('eye','Глаз мстителя',false,0,'confirm','Объявленный одиночный выстрел; не для Взрывного/Зажигательного оружия и очередей');
+ if(c.tearing)add('tearing','Разрывающее',true,0,'tearing','Дополнительный кубик; меньший отбрасывается');
+ if(c.tearing&&melee&&dm2Has(d,117,/Потрошитель|Flesh Render/i))add('render','Потрошитель',true,0,'render','Ещё один кубик: для базового 1к10 выбирается лучший из 3к10');
+ if(c.proven)add('proven','Проверенное ('+c.proven+')',true,c.proven,'proven','Минимальное значение кубика; натуральный результат сохраняется');
+ if(c.volatile)add('volatile','Яростное',true,0,'volatile','Натуральная 10 автоматически подтверждает ярость');
+ const pr=gearPsyDamageBonus(w.profile,d)||(w.profile.force_weapon?dwPsyRating(d):0);
+ if(pr>0)add('psy','Психосиловое оружие',true,pr,'psy','+'+pr+' к урону и ББ; без психосилового всплеска',pr);
+ if(c.accurate)add('accurate','Точное',!!(c.attack?.single&&c.attack?.aimed),0,'accurate','Одиночный прицельный выстрел из Лёгкого оружия: +1к10 за 2 степени, максимум +2к10');
+ if(melee&&dm2Has(d,135,/Смерть с небес|Death From Above/i))add('descent','Смерть с небес',false,0,'descent','Натиск с прыжковым ранцем: +1к10 за 2 степени, максимум +2к10');
+ if(melee&&dm2Has(d,172,/Штурм Крыла Смерти|Deathwing Assault/i))add('deathwing','Штурм Крыла Смерти',false,3,'proven','Цель застигнута врасплох или не подозревает об атаке');
+ if(melee&&dm2Has(d,177,/Честь или смерть|Honour or Death/i))add('honour','Честь или смерть',false,3,'honour','Один раз за бой против Элиты/Босса; выберите одно свойство');
+ if(DM2.hand.has(d)&&dm2Has(d,52,/Длань Омниссии|Hand of the Omnissiah/i)&&/Плазм|Силов|Экзот|Мельт|Plasma|Power|Exotic|Melta/i.test(w.profile.class||''))add('hand','Длань Омниссии',true,statBonus(d,'int'),'hand','На один раунд, один раз за бой: бонус Интеллекта к урону и ББ');
+ if(w.type==='unarmed'){
+  if(dm2Has(d,70,/Кулачный боец|Unarmed Warrior/i))add('warrior','Кулачный боец',true,0,'warrior','Урон 1к10−3 + бонус Силы');
+  if(dm2Has(d,77,/Мастер кулачного боя|Unarmed Master/i))add('master','Мастер кулачного боя',true,0,'master','Урон 1к10 + бонус Силы; заменяет Кулачного бойца');
+ }
+ for(const [i,m]of c.situation.entries())if(!rows.some(r=>r.id==='talent:'+Number(String(m.source||'').split(':').at(-1))))add('manual:'+i,m.name||'Ситуативный модификатор',false,Number(m.effect)||0,'bonus','Ручной ситуативный модификатор');
+ return rows;
+}
+const dm2BaseDefaults=damageDefaults;
+damageDefaults=function(w){
+ const c=dm2BaseDefaults(w),rows=dm2ModRows(w,c);c.dm2Rows=rows;
+ const active=id=>rows.some(r=>r.id===id&&dm2On(r));
+ const psy=rows.find(r=>r.id==='psy');if(psy&&!w.profile.damage_bonuses_included)c.pen+=psy.effect;
+ for(const r of rows){const on=dm2On(r);if(r.kind==='bonus')c.bonus+=(on?r.effect:0)-r.included;if(r.kind==='hand'&&on){c.bonus+=r.effect;c.pen+=r.effect;}if(r.kind==='psy'&&!on){c.bonus-=r.included;c.pen=Math.max(0,c.pen-r.effect);}}
+ // The previous force-weapon damage bonus did not add its Penetration bonus.
+ c.tearing=active('tearing');c.fleshRender=c.tearing&&active('render');
+ c.volatile=active('volatile');c.proven=rows.filter(r=>r.kind==='proven'&&dm2On(r)).reduce((n,r)=>Math.max(n,r.effect),0);
+ const honour=rows.find(r=>r.id==='honour');if(honour&&dm2On(honour)){const choice=DM2.honourChoice||'proven';if(choice==='proven')c.proven=Math.max(3,c.proven);if(choice==='razor'&&Number($('damage-degrees')?.value||c.attack?.degrees)>=2)c.pen*=2;c.notes.push('Честь или смерть: '+({proven:'Проверенное (3)',felling:'Разящее (1)',razor:'Бритвенной остроты'})[choice]);}
+ if(w.type==='unarmed')c.expression=active('master')?'1d10':active('warrior')?'1d10-3':'1d5-3';
+ c.dm2Confirm=active('training')||active('eye');c.dm2Accurate=active('accurate');c.dm2Descent=active('descent');
+ return c;
+};
+function dm2DrawList(){
+ const host=$('damage-modifiers');if(!host)return;
+ const list=[...host.children].filter(x=>x.matches('.dm2-mod'));list.sort((a,b)=>Number(b.querySelector('input[type=checkbox]')?.checked)-Number(a.querySelector('input[type=checkbox]')?.checked));for(const row of list)host.append(row);
+}
+const dm2OldRender=renderDamageRoll;
+renderDamageRoll=function(){
+ dm2OldRender();const w=damageWeapons().find(w=>w.id===DAMAGE.weapon);if(!w)return;
+ const c=damageDefaults(w),rows=c.dm2Rows;DM2.rows=rows;
+ for(const id of ['damage-hit','damage-xenos','damage-eye','damage-accurate'])$(id)?.closest('label')?.remove();
+ const fury=$('damage-fury'),oldTrigger=$('damage-trigger'),value=oldTrigger?.value||c.trigger;oldTrigger?.closest('label')?.remove();
+ if(fury&&c.attack&&!c.attack.success)fury.checked=false;
+ const label=fury?.closest('label');if(label){label.lastChild.textContent=' Праведная ярость ';label.insertAdjacentHTML('beforeend','<input id="damage-trigger" class="dm2-trigger" type="number" min="1" max="10" step="1" value="'+escAttr(value)+'" aria-label="Порог Праведной ярости">');}
+ const replace=$('damage-replace')?.closest('label');if(replace)replace.lastChild.textContent=' Заменить кубик степенями успеха';
+ // Existing situational, squad and chapter controls are relocated, not discarded.
+ const manualLabels=rows.filter(r=>r.id.startsWith('manual:'));for(const r of manualLabels)$('damage-situation-'+r.id.slice(7))?.closest('label')?.remove();
+ const section=document.createElement('section');section.id='damage-modifiers';section.className='dm2-section';section.innerHTML='<h4>Модификаторы урона</h4>';
+ replace?.insertAdjacentElement('afterend',section);
+ for(const r of rows){const el=document.createElement('div');el.className='dm2-mod';el.innerHTML='<label class="damage-check"><input type="checkbox" data-dm2-mod="'+escAttr(r.id)+'"'+(dm2On(r)?' checked':'')+'> <span>'+esc(r.name)+(r.effect&&['bonus','psy','hand'].includes(r.kind)?' <b>+'+r.effect+'</b>':'')+'</span></label><div class="dm2-note">'+esc(r.note)+'</div>'+(r.kind==='honour'?'<select id="dm2-honour" aria-label="Свойство Чести или смерти"><option value="proven">Проверенное (3)</option><option value="felling">Разящее (1)</option><option value="razor">Бритвенной остроты</option></select>':'');section.append(el);if(r.kind==='honour')el.querySelector('select').value=DM2.honourChoice||'proven';}
+ for(const selector of ['[data-sq-damage]','#ea-fury-bonus'])for(const cb of $('damage-params').querySelectorAll(selector)){const row=document.createElement('div');row.className='dm2-mod';row.append(cb.closest('label'));section.append(row);}
+ dm2DrawList();
+ // Drop the obsolete hit requirement in the explanatory footer.
+ for(const el of $('damage-params').querySelectorAll('.desc'))if(el.textContent.includes('После промаха ярость применяется только если попадание засчитано.'))el.textContent=el.textContent.replace('После промаха ярость применяется только если попадание засчитано.','Праведная ярость применяется, если включена её галочка.');
+};
+function dm2RefreshPreserving(){
+ const w=damageWeapons().find(w=>w.id===DAMAGE.weapon);if(!w)return;const before=damageDefaults(w);
+ const fields={};for(const id of ['damage-expression','damage-confirm','damage-degrees','damage-trigger','damage-extra'])if($(id))fields[id]=$(id).value;
+ const delta=Number($('damage-bonus')?.value||0)-before.bonus;const flags={};for(const cb of $('damage-params').querySelectorAll('input[type=checkbox][id]'))flags[cb.id]=cb.checked;
+ return ()=>{renderDamageRoll();const after=damageDefaults(w);for(const [id,v]of Object.entries(fields))if($(id)&&id!=='damage-expression')$(id).value=v;if(w.type!=='unarmed'&&$('damage-expression'))$('damage-expression').value=fields['damage-expression'];if($('damage-bonus'))$('damage-bonus').value=after.bonus+delta;for(const [id,v]of Object.entries(flags))if($(id))$(id).checked=v;dm2DrawList();};
+}
+document.addEventListener('change',e=>{
+ const el=e.target;if(el.dataset.dm2Mod){if(DAMAGE.busy){el.checked=!el.checked;return;}const restore=dm2RefreshPreserving();DM2.on[el.dataset.dm2Mod]=el.checked;restore?.();}
+ if(el.id==='dm2-honour'){const restore=dm2RefreshPreserving();DM2.honourChoice=el.value;restore?.();}
+ if(el.dataset.sqDamage||el.id==='ea-fury-bonus')dm2DrawList();
+});
+const dm2OldOpen=openDamageRoll;
+openDamageRoll=function(...args){DM2.on={};DM2.honourChoice='proven';DM2.owner=S.character;return dm2OldOpen(...args);};
+const dm2OldWeaponChange=$('damage-weapon').onchange;
+$('damage-weapon').onchange=e=>{if(!DAMAGE.busy){DM2.on={};DM2.honourChoice='proven';}return dm2OldWeaponChange(e);};
+function dm2ApplyDamageInput(input,c){
+ input.hit=true;input.fury_allowed=$('damage-fury')?.checked===true;
+ input.tearing=c.tearing;input.flesh_render=c.fleshRender;input.proven=c.proven;input.volatile=c.volatile;input.auto_confirm=c.dm2Confirm;
+ input.accurate_dice=c.dm2Accurate?Math.min(2,Math.floor(Number(input.degrees)/2)):0;
+ if(c.dm2Descent)input.extra_dice=Number(input.extra_dice)+Math.min(2,Math.floor(Number(input.degrees)/2));
+ // Lists explain modifiers in both the sheet result and the webhook.
+ input.notes=[...input.notes,...c.dm2Rows.filter(dm2On).map(r=>r.name+(r.effect?' +'+r.effect:''))];
+ return input;
+}
+// Permanent implant bonuses are derived. Existing explicit named bonuses win.
+const dm2BasePerm=permMods;
+permMods=function(d){
+ const mods=dm2BasePerm(d).slice();const add=(id,pattern,name,key,effect,timing)=>{if(mods.some(m=>m.target==='stat'&&m.target_name===key&&dm2Named(m,id,pattern)))return;mods.push({name,target:'stat',target_name:key,mode:'add',effect,timing,source:'talent:'+id});};
+ if(dm2Has(d,82,/Машинное облачение|Machinator Array/i))for(const [key,value]of [['sil',10],['wyn',10],['lov',-5],['obsh',-5]])add(82,/Машинное облачение|Machinator Array/i,'Машинное облачение',key,value,'post');
+ if(DM2.frenzy.has(d)&&dm2Has(d,95,/Неистовство|Frenzy/i))for(const [key,value]of [['bb',10],['sil',10],['wyn',10],['sv',10],['db',-20],['int',-20]])add(95,/Неистовство|Frenzy/i,'Неистовство',key,value,'pre');
+ return mods;
+};
+const dm2BaseBonus=statBonus;
+statBonus=function(d,key){const n=dm2BaseBonus(d,key);if(key==='sil'||dwActive(d)||!dm2Has(d,82,/Машинное облачение|Machinator Array/i))return n;const m=permMods(d).find(m=>m.target==='stat'&&m.target_name===key&&dm2Named(m,82,/Машинное облачение|Machinator Array/i));if(!m||!['wyn','lov','obsh'].includes(key))return n;const pre=charBase(d,key)+modsAdd(d,'stat',key,'pre');return n+Math.floor((pre+Number(m.effect))/10)-Math.floor(pre/10);};
+const dm2OldActionRows=actionRows;
+actionRows=function(){const d=S.character?.character_data;const rows=dm2OldActionRows().filter(r=>!['hand_omni','frenzy','force_surge'].includes(r.code));
+ const row=(code,name,description)=>({key:'dm2:'+code,code,name,description,requires_weapon:false,action_types:['free'],subtypes:[],modifiers:[]});
+ if(dm2Has(d,52,/Длань Омниссии|Hand of the Omnissiah/i))rows.push(row('hand_omni','Длань Омниссии','Включает бонус Интеллекта к урону и ББ подходящего оружия. Один раунд, один раз за бой. Повторное нажатие завершает эффект; новый бой разрешает новое применение.'));
+ if(dm2Has(d,95,/Неистовство|Frenzy/i))rows.push({...row('frenzy','Неистовство','Полный раунд подготовки; затем состояние активно до окончания боя. Повторное нажатие снимает состояние.'),action_types:['full']});
+ return rows;};
+const dm2OldChoices=renderActionChoices;
+renderActionChoices=function(){dm2OldChoices();const d=S.character?.character_data,host=$('action-choices');
+ for(const code of ['hand_omni','frenzy'])for(const b of host.querySelectorAll('[data-action="dm2:'+code+'"]')){const on=(code==='hand_omni'?DM2.hand:DM2.frenzy).has(d);b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on));}
+ if(dwPsyRating(d)>0){host.insertAdjacentHTML('beforeend','<div class="action-group dm2-force-action"><div class="action-chips"><button type="button" class="action-chip" id="dm2-force-action">Психосиловой всплеск · Варп</button></div></div>');$('dm2-force-action').onclick=dm2OpenForce;}
+};
+const dm2OldSelect=selectAction;
+selectAction=function(key,type){if(['dm2:hand_omni','dm2:frenzy'].includes(key)&&actionOwnerValid()){
+ const d=S.character.character_data,state=key.endsWith('hand_omni')?DM2.hand:DM2.frenzy;if(state.has(d))state.delete(d);else state.add(d);if(key.endsWith('hand_omni'))DM2.on.hand=state.has(d);renderActionChoices();if(typeof sqUpdateCharacterView==='function')sqUpdateCharacterView();return;
+}return dm2OldSelect(key,type);};
+function dm2OpenForce(){
+ if(!actionOwnerValid())return;const d=S.character.character_data;if(DM2.frenzy.has(d)&&!dm2Has(d,85,/Ментальная ярость|Mental Rage/i))return toast('Неистовство запрещает психосилы без таланта Ментальная ярость.');const weapons=damageWeapons().filter(w=>w.profile.force_weapon||(w.profile.qualities||[]).some(q=>Number(q?.qid??q)===87));
+ if(!weapons.length)return toast('Для всплеска нужно психосиловое оружие.');DM2.force={owner:S.character,weapons};closeActionModal();
+ showInfo('Психосиловой всплеск','Свободное действие после нанесения урона психосиловым оружием. Проверка Использования Варпа проводится как встречная проверка Силы воли против цели. При победе — дополнительные 1к10 энергетического урона за каждую степень успеха; броня и бонус Выносливости не защищают.');
+ $('info-desc').insertAdjacentHTML('beforeend','<label>Оружие<select id="dm2-force-weapon">'+weapons.map(w=>'<option value="'+escAttr(w.id)+'">'+esc(w.name)+'</option>').join('')+'</select></label><p>Используется выбранный на листе уровень психической мощи. Феномены и прорывы Варпа разрешаются по общим правилам.</p><button type="button" class="modal-confirm" id="dm2-force-check">Проверка Варпа</button>');
+ $('dm2-force-check').onclick=()=>{if(S.character!==DM2.force.owner)return;const weapon=weapons.find(w=>w.id===$('dm2-force-weapon').value);closeSheetModal('info-modal');openRoll({kind:'stat',sel:{kind:'stat',statKey:'sv',name:'Использование Варпа'},action:{owner:S.character,name:'Психосиловой всплеск · '+weapon.name,row:{code:'force_surge',requires_weapon:false,subtypes:[],check_targets:[{kind:'stat',key:'sv'}],modifiers:[]},forceSurge:weapon}});};
+}
+const dm2OldApi=callRollApi;
+callRollApi=function(body){return dm2OldApi(body.action==='roll'&&ROLL.action?.forceSurge?{...body,psychic_test:true,is_attack:false}:body);};
+const dm2OldRollMods=rollModRows;
+rollModRows=function(){const rows=dm2OldRollMods(),d=S.character?.character_data,key=rollCharKey();if(d)for(const m of permMods(d)){if(!['talent:82','talent:95'].includes(m.source)||m.target!=='stat'||![key,'all'].includes(m.target_name))continue;if(rows.some(r=>r.label===m.name&&Number(r.value)===Number(m.effect)))continue;rows.push({label:m.name,value:Number(m.effect),locked:true,on:true});}if(ROLL.action?.forceSurge){const pr=warpUsedPr({id:null});rows.push({label:'Пси-рейтинг: 5 × '+pr,value:5*pr,locked:true,on:true});}return rows;};
+const dm2OldShowResult=showRollResult;
+showRollResult=function(r){dm2OldShowResult(r);if(!ROLL.action?.forceSurge)return;$('roll-damage')?.remove();const weapon=ROLL.action.forceSurge,owner=S.character;
+ $('roll-result').insertAdjacentHTML('beforeend','<div class="dm2-force-result"><p>Сравните результат с проверкой Силы воли цели. Дополнительный урон применяется только после победы во встречной проверке.</p>'+(!r.success?'<p>Проверка Варпа провалена.</p>':'<label><input type="checkbox" id="dm2-force-won"> Встречная проверка выиграна, оружие нанесло урон</label><label>Степени успеха разрешённой встречной проверки<input type="number" id="dm2-force-degrees" min="1" max="20" step="1" value="'+Math.max(1,r.degrees||1)+'"></label><button type="button" class="modal-confirm" id="dm2-force-damage">Бросить дополнительный урон</button><div id="dm2-force-output" role="status"></div>')+'</div>');
+ if($('dm2-force-damage'))$('dm2-force-damage').onclick=async()=>{
+  if(owner!==S.character||!$('dm2-force-won').checked)return toast('Сначала разрешите встречную проверку.');const n=Number($('dm2-force-degrees').value);if(!Number.isInteger(n)||n<1||n>20)return toast('Укажите от 1 до 20 степеней успеха.');const button=$('dm2-force-damage');button.disabled=true;
+  try{const body={action:'roll-damage',character_id:owner.id,chronicle_id:S.chronicle?.id,weapon_name:'Психосиловой всплеск · '+weapon.name,damage:{expression:n+'d10',hit:true,fury_allowed:false,notes:['Энергетический урон; игнорирует броню и бонус Выносливости.','Встречная проверка разрешена: '+n+' степеней.','Возможная Праведная ярость требует отдельного повторного разрешения встречной проверки.']}};let out;
+   if(sbActorActive()&&!await mwNpcSend())out=damageResolve(body.damage,sbRandomDie);else {if(sbActorActive()){body.statblock_id=SB.record.id;body.chronicle_id=SB.chronicleId;delete body.character_id;}out=await sbOriginalRuntime.callRollApi(body);}
+   if(owner!==S.character)return;$('dm2-force-output').textContent='Дополнительный энергетический урон: '+out.ordinary+' · Кубики: '+out.dice.map(d=>d.raw).join(', ')+' · Игнорирует броню и Выносливость.'+(out.dice.some(d=>d.raw===10)?' Выпала 10: разрешите подтверждение Праведной ярости отдельной встречной проверкой.':'');
+  }catch(e){if(owner===S.character)$('dm2-force-output').textContent=e.message;}finally{button.disabled=false;}
+ };
+};
+const dm2Style=document.createElement('style');dm2Style.textContent='#damage-modal .dm2-trigger{width:54px!important;min-width:54px;padding:3px 5px;margin:0 0 0 6px;font:inherit;text-align:center;border-radius:9px}.dm2-section{border-top:1px solid #a8862f80;margin-top:16px;padding-top:12px}.dm2-section h4{color:#c9a24b;margin:0 0 10px}.dm2-mod{margin:8px 0;padding:6px;background:#c9a24b05}.dm2-mod .damage-check{margin:0}.dm2-note{color:#aaa493;font-size:11px;line-height:1.5;padding-left:23px}.dm2-mod select{margin-top:6px}.dm2-force-result{margin-top:12px;font-size:13px}';document.head.append(dm2Style);
 
 </script>
 </body>
