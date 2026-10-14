@@ -16677,6 +16677,199 @@ $('action-damage').onclick=()=>openDamageRoll();
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!DAMAGE.busy)$('damage-modal').classList.remove('active');});
 
 </script>
+<style id="npc-horde-initial-magnitude-style">
+#sb-entry-modal.npc-horde-magnitude-modal .box{width:780px;max-width:calc(100vw / 1.3 - 28px);box-sizing:border-box}
+#sb-entry-modal .npc-horde-initial{min-width:0;margin:12px 0;padding:12px;border:1px solid var(--border-gold);box-sizing:border-box}
+#sb-entry-modal .npc-horde-initial label{display:block;margin-bottom:8px;color:var(--gold);font:inherit}
+#sb-entry-modal .npc-horde-initial input{width:100%;max-width:230px;min-width:0;box-sizing:border-box;padding:8px;font:inherit;background:#101012;color:var(--text-main);border:1px solid var(--border-dark)}
+#sb-entry-modal .npc-horde-initial input:invalid{border-color:#bd756b}
+#sb-entry-modal .npc-horde-initial-status{margin-top:8px;font-size:13px;color:var(--text-dim)}
+</style>
+<script id="npc-horde-initial-magnitude-script">
+// Only explicitly marked, independently verified source templates use this path.
+// Source rows, existing actors and printed Magnitudes are never filled by render.
+const NPC_HORDE_MAGNITUDE_MAX=1000000;
+function npcHordeMagnitude(value){
+  if(typeof value!=='number'&&typeof value!=='string')return null;
+  if(typeof value==='string'&&!value.trim())return null;
+  const number=Number(value);
+  return Number.isSafeInteger(number)&&number>0&&number<=NPC_HORDE_MAGNITUDE_MAX?number:null;
+}
+function npcHordeHasRequirement(block){
+  return !!block?.horde&&typeof block.horde==='object'&&Object.hasOwn(block.horde,'requires_initial_magnitude');
+}
+function npcHordeRequirementValid(block){
+  return npcOptionObject(block)&&block.category==='Орда'&&npcOptionObject(block.horde)&&block.horde.requires_initial_magnitude===true&&['magnitude','initial','turn_start'].every(key=>Object.hasOwn(block.horde,key)&&block.horde[key]===null)&&[1,2].includes(block.schema_version)&&['npc','vehicle'].includes(block.type)&&npcOptionName(block.name)&&block.name.trim().length<=200&&npcOptionObject(block.stats)&&STATS.every(([key])=>Object.hasOwn(block.stats,key))&&npcOptionObject(block.vitals)&&npcOptionObject(block.defence)&&npcOptionObject(block.movement)&&['skills_basic','skills_adv','talents','features','traits','weapons'].every(key=>Array.isArray(block[key]));
+}
+function npcHordeFillMagnitude(raw,value){
+  const magnitude=npcHordeMagnitude(value);
+  if(!npcHordeRequirementValid(raw)||magnitude==null)throw Error('Перед применением Орды укажите целую начальную численность от 1 до '+NPC_HORDE_MAGNITUDE_MAX+'.');
+  raw.horde.magnitude=magnitude;raw.horde.initial=magnitude;raw.horde.turn_start=magnitude;
+  delete raw.horde.requires_initial_magnitude;return raw;
+}
+const NPC_HORDE_BASE_CAN_APPLY=npcPresetCanApply;
+npcPresetCanApply=function(record){
+  if(npcHordeHasRequirement(record?.statblock)&&!npcHordeRequirementValid(record.statblock))return false;
+  return NPC_HORDE_BASE_CAN_APPLY(record);
+};
+const NPC_HORDE_BASE_NORMALIZE=normalizeStatblock;
+normalizeStatblock=function(raw){
+  if(npcHordeHasRequirement(raw))throw Error('Шаблон Орды требует явно выбранной начальной численности.');
+  return NPC_HORDE_BASE_NORMALIZE(raw);
+};
+function npcHordeCaptureContext(entry,record){
+  entry.hordeContext={entry,kind:entry.kind,recordId:entry.recordId,recordRevision:entry.recordRevision,presetId:entry.presetId,source:record,sourceFingerprint:JSON.stringify(record),snapshotFingerprint:JSON.stringify(entry.preset),actor:SB.record,actorFingerprint:JSON.stringify(SB.record),draft:SB.draft,draftFingerprint:JSON.stringify(SB.draft??null),quick:SB.quick,quickFingerprint:JSON.stringify(SB.quick??null),chronicle:S.chronicle,chronicleId:SB.chronicleId};
+}
+function npcHordeContext(entry=SB.entry){
+  const context=entry?.hordeContext,source=NPC_PRESETS.rows?.find(row=>row.id===entry?.presetId);
+  return !!context&&context.entry===entry&&SB.entry===entry&&entry.kind===context.kind&&entry.recordId===context.recordId&&entry.recordRevision===context.recordRevision&&entry.presetId===context.presetId&&['preset-horde','preset-options'].includes(entry.kind)&&!$('sb-entry-modal').classList.contains('hidden')&&sbAllowed()&&!SB.busy&&context.source===source&&JSON.stringify(source)===context.sourceFingerprint&&JSON.stringify(entry.preset)===context.snapshotFingerprint&&npcHordeRequirementValid(source?.statblock)&&npcPresetCanApply(source)&&SB.record===context.actor&&JSON.stringify(SB.record)===context.actorFingerprint&&SB.draft===context.draft&&JSON.stringify(SB.draft??null)===context.draftFingerprint&&SB.quick===context.quick&&JSON.stringify(SB.quick??null)===context.quickFingerprint&&S.chronicle===context.chronicle&&S.chronicle?.id===context.chronicleId&&SB.chronicleId===context.chronicleId;
+}
+function npcHordeMagnitudeValue(entry=SB.entry){
+  if(!npcHordeContext(entry))return null;
+  const inputs=$('sb-entry-fields').querySelectorAll('[data-npc-horde-initial]');
+  if(inputs.length!==1||inputs[0].type!=='number'||!inputs[0].checkValidity())return null;
+  return npcHordeMagnitude(inputs[0].value);
+}
+function npcHordeInitialFields(){
+  return '<fieldset class="npc-horde-initial"><legend>Численность Орды</legend><p class="sb-description">В книге начальная численность не указана. Выберите её для этой карточки. Готового значения по умолчанию нет.</p><label for="npc-horde-initial-magnitude">Начальная численность</label><input id="npc-horde-initial-magnitude" name="npc_horde_initial_magnitude" data-npc-horde-initial="1" type="number" min="1" max="'+NPC_HORDE_MAGNITUDE_MAX+'" step="1" required value="" placeholder="Укажите число"><div class="npc-horde-initial-status" data-npc-horde-status role="status" aria-live="polite">Укажите целое число от 1 до '+NPC_HORDE_MAGNITUDE_MAX+'.</div></fieldset>';
+}
+function npcHordeRefresh(){
+  const entry=SB.entry;if(!npcHordeHasRequirement(entry?.preset?.statblock))return;
+  const magnitude=npcHordeMagnitudeValue(entry),submit=$('sb-entry-form').querySelector('[type="submit"]'),status=$('sb-entry-fields').querySelector('[data-npc-horde-status]');
+  if(submit){if(entry.kind==='preset-horde')submit.disabled=magnitude==null;else if(magnitude==null)submit.disabled=true;}
+  if(status)status.textContent=magnitude==null?'Укажите целое число от 1 до '+NPC_HORDE_MAGNITUDE_MAX+'.':'Начальная, текущая и численность в начале хода будут равны '+magnitude+'.';
+}
+const NPC_HORDE_BASE_OPTIONS_CONTEXT=npcPresetOptionsContext;
+npcPresetOptionsContext=function(entry=SB.entry){
+  if(npcHordeHasRequirement(entry?.preset?.statblock)&&!npcHordeContext(entry))return false;
+  return NPC_HORDE_BASE_OPTIONS_CONTEXT(entry);
+};
+const NPC_HORDE_BASE_OPTIONS_REFRESH=npcPresetOptionsRefresh;
+npcPresetOptionsRefresh=function(){NPC_HORDE_BASE_OPTIONS_REFRESH();npcHordeRefresh();};
+const NPC_HORDE_BASE_OPEN_OPTIONS=npcPresetOpenOptions;
+function npcHordeOpen(record){
+  if(!sbAllowed()||SB.busy||!SB.record||S.chronicle?.id!==SB.chronicleId||!npcHordeRequirementValid(record?.statblock)||!npcPresetCanApply(record))return false;
+  if(record.statblock.schema_version===2){
+    NPC_HORDE_BASE_OPEN_OPTIONS(record);
+    $('sb-entry-fields').insertAdjacentHTML('afterbegin',npcHordeInitialFields());
+  }else{
+    const entry={presetId:record.id,preset:sbClone(record),presetFingerprint:npcPresetOptionsFingerprint(record),recordRevision:SB.record.revision,chronicleId:SB.chronicleId,draftFingerprint:JSON.stringify(SB.draft??null)};
+    sbModal('preset-horde','Численность Орды',npcHordeInitialFields(),entry);
+  }
+  npcHordeCaptureContext(SB.entry,record);
+  $('sb-entry-modal').classList.remove('npc-preset-modal');$('sb-entry-modal').classList.add('npc-horde-magnitude-modal');
+  if(SB.entry.kind==='preset-options')npcPresetOptionsRefresh();else npcHordeRefresh();
+  $('npc-horde-initial-magnitude')?.focus();return true;
+}
+function npcHordeConfirm(){
+  const entry=SB.entry,magnitude=npcHordeMagnitudeValue(entry);if(magnitude==null)return false;
+  const selected=entry.kind==='preset-options'?npcPresetOptionsSelections(entry):[];
+  if(!selected||selected.some(item=>item.options.length<item.group.min))return false;
+  const record=entry.preset,raw=sbClone(record.statblock),violations=[];
+  const choices=selected.map(item=>{
+    const over=item.options.length>item.group.max;
+    if(over)violations.push(item.group.name+': выбрано '+item.options.length+', книжный максимум — '+item.group.max+'.');
+    return {group_id:item.group.id,group_name:item.group.name,min:item.group.min,max:item.group.max,option_ids:item.options.map(option=>option.id),option_names:item.options.map(option=>option.name),exceeds_limit:over};
+  });
+  try{
+    for(const item of selected)for(const option of item.options)for(const effect of option.effects)npcPresetAppendChoice(raw,effect);
+    npcHordeFillMagnitude(raw,magnitude);delete raw.choice_groups;raw.schema_version=1;raw.id=SB.record.id;raw.revision=SB.record.revision;raw.type=SB.record.type;raw.type_choice_migrated=true;
+    if(record.statblock.type==='vehicle')raw.race='Техника';raw.discord_rolls=sbData().discord_rolls===true;
+    raw.preset_metadata={id:record.id,name:record.name,revision:record.revision,ruleset:record.ruleset,sources:sbClone(npcPresetSources(record)),applied_at:new Date().toISOString(),layout_version:2,original_source:npcPresetOriginalSource(record),horde_initial_magnitude:magnitude};
+    if(record.statblock.schema_version===2)Object.assign(raw.preset_metadata,{choice_schema_version:2,choices,rule_violations:violations});
+    if(violations.length)(raw.notes??=[]).push({name:'Нарушение книжного ограничения при выборе пресета',description:violations.join(' ')});
+    if(new TextEncoder().encode(JSON.stringify(raw)).length>=1048576)throw Error('Выбранный профиль слишком велик для сохранения.');
+    const draft=normalizeStatblock(raw);if(!draft.name.trim()||!npcHordeContext(entry))return false;
+    SB.draft=draft;SB.error='';sbTouch();SB.entry=null;closeModal('sb-entry-modal');renderStatblock();toast(violations.length?'Пресет применён с нарушением книжного ограничения. Сохраните или отмените изменения.':'Пресет применён к черновику. Сохраните или отмените изменения.');return true;
+  }catch(error){toast('Пресет не применён: '+error.message);return false;}
+}
+const NPC_HORDE_BASE_CONFIRM_OPTIONS=npcPresetConfirmOptions;
+npcPresetConfirmOptions=function(){return npcHordeHasRequirement(SB.entry?.preset?.statblock)?npcHordeConfirm():NPC_HORDE_BASE_CONFIRM_OPTIONS();};
+const NPC_HORDE_BASE_APPLY=npcPresetApply;
+npcPresetApply=function(id){
+  const record=NPC_PRESETS.rows?.find(row=>row.id===id);
+  if(!npcHordeHasRequirement(record?.statblock))return NPC_HORDE_BASE_APPLY(id);
+  if(!sbAllowed()||SB.busy||!SB.record||SB.entry?.kind!=='preset'||SB.entry.recordId!==SB.record.id||SB.entry.chronicleId!==SB.chronicleId||S.chronicle?.id!==SB.chronicleId||$('sb-entry-modal').classList.contains('hidden')||!npcPresetCanApply(record))return false;
+  return npcHordeOpen(record);
+};
+const NPC_HORDE_BASE_SUBMIT=sbSubmitModal;
+sbSubmitModal=function(event){return SB.entry?.kind==='preset-horde'?npcHordeConfirm():NPC_HORDE_BASE_SUBMIT(event);};
+const NPC_HORDE_BASE_CLOSE=closeModal;
+closeModal=function(id){
+  if(id==='sb-entry-modal'&&$('sb-entry-modal').classList.contains('npc-horde-magnitude-modal')){
+    if(SB.entry?.kind==='preset-horde')SB.entry=null;
+    $('sb-entry-modal').classList.remove('npc-horde-magnitude-modal');$('sb-entry-form').querySelector('[type="submit"]').disabled=false;
+  }
+  return NPC_HORDE_BASE_CLOSE(id);
+};
+const NPC_HORDE_BASE_MODAL=sbModal;
+sbModal=function(kind,...args){
+  if($('sb-entry-modal').classList.contains('npc-horde-magnitude-modal')){$('sb-entry-modal').classList.remove('npc-horde-magnitude-modal');$('sb-entry-form').querySelector('[type="submit"]').disabled=false;}
+  return NPC_HORDE_BASE_MODAL(kind,...args);
+};
+const NPC_HORDE_BASE_PREVIEW=npcPresetPreview;
+npcPresetPreview=function(id){
+  NPC_HORDE_BASE_PREVIEW(id);const record=NPC_PRESETS.rows?.find(row=>row.id===id);
+  if(SB.entry?.kind==='preset'&&npcHordeRequirementValid(record?.statblock))$('npc-preset-preview').querySelector('[data-npc-preset-apply]')?.insertAdjacentHTML('beforebegin','<p class="npc-preset-limit">Перед применением потребуется указать начальную численность Орды. В книге её значение не задано.</p>');
+};
+$('sb-entry-fields').addEventListener('input',event=>{if(event.target.matches('[data-npc-horde-initial]')){if(SB.entry?.kind==='preset-options')npcPresetOptionsRefresh();else npcHordeRefresh();}});
+$('sb-entry-fields').addEventListener('change',event=>{if(event.target.matches('[data-npc-horde-initial]')){if(SB.entry?.kind==='preset-options')npcPresetOptionsRefresh();else npcHordeRefresh();}});
+$('sb-entry-modal').addEventListener('click',event=>{if(event.target===$('sb-entry-modal')&&SB.entry?.kind==='preset-horde')closeModal('sb-entry-modal');});
+document.addEventListener('keydown',event=>{
+  if(SB.entry?.kind!=='preset-horde'||$('sb-entry-modal').classList.contains('hidden'))return;
+  if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeModal('sb-entry-modal');return;}
+  if(event.key==='Tab'){
+    const fields=[...$('sb-entry-modal').querySelectorAll('input,button')].filter(element=>!element.disabled&&!element.hidden),first=fields[0],last=fields.at(-1);
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+  }
+},true);
+if(typeof NPC_PRESET_LABELS!=='undefined')NPC_PRESET_LABELS.horde_initial_magnitude='Выбранная начальная численность';
+if(typeof NPC_PRESET_HIDDEN_KEYS!=='undefined')NPC_PRESET_HIDDEN_KEYS.add('requires_initial_magnitude');
+// Portable actor files carry the chosen initial Magnitude as an explicit typed
+// parameter of their referenced preset. No array side channels or globals.
+const NPC_HORDE_BASE_VOX_PRESET=voxPresetBase;
+voxPresetBase=function(record,choices,actorType,initialMagnitude){
+  if(!npcHordeHasRequirement(record?.statblock))return NPC_HORDE_BASE_VOX_PRESET(record,choices,actorType);
+  if(!npcHordeRequirementValid(record.statblock)||!npcPresetCanApply(record)||typeof initialMagnitude!=='number'||npcHordeMagnitude(initialMagnitude)==null)throw Error('В файле не указана корректная начальная численность Орды.');
+  const source=voxClone(record);npcHordeFillMagnitude(source.statblock,initialMagnitude);
+  const data=NPC_HORDE_BASE_VOX_PRESET(source,choices,actorType);
+  data.preset_metadata.original_source=npcPresetOriginalSource(record);data.preset_metadata.horde_initial_magnitude=initialMagnitude;return data;
+};
+voxBuildFile=async function(kind,name,actor){
+  const cache=new Map(),data=voxCleanActor(actor),file={format:VOX_FILE_FORMAT,version:VOX_FILE_VERSION,kind,name:String(name),exported_at:new Date().toISOString()};
+  if(kind==='statblock'&&data.preset_metadata?.id){
+    const meta=data.preset_metadata,record=await voxCatalogRow('npc_presets',meta.id,cache);
+    if(record.revision!==meta.revision)throw Error('Пресет обновлён с момента применения. Для точного экспорта нужна версия '+meta.revision+'; в базе сейчас '+record.revision+'.');
+    const choices=voxPresetChoices(meta),base=voxPresetBase(record,choices,data.type,meta.horde_initial_magnitude);
+    file.preset={id:record.id,revision:record.revision,choices,actor_type:data.type};
+    if(npcHordeHasRequirement(record.statblock))file.preset.horde_initial_magnitude=meta.horde_initial_magnitude;
+    file.changes=await voxPackDelta(voxDelta(base,data),cache);
+  }else file.data=await voxEncode(data,cache);
+  return file;
+};
+voxRestoreFile=async function(file){
+  if(!file||file.format!==VOX_FILE_FORMAT||file.version!==VOX_FILE_VERSION||!['character','statblock'].includes(file.kind)||typeof file.name!=='string'||!file.name.trim()||file.name.length>200)throw Error('Это не поддерживаемый файл персонажа Deathwatch.');
+  const cache=new Map();let data,requiredInitial=null;
+  if(file.preset){
+    if(file.kind!=='statblock'||file.data)throw Error('Неверный формат пресета.');
+    const preset=file.preset,record=await voxCatalogRow('npc_presets',preset.id,cache);
+    if(record.revision!==preset.revision)throw Error('Версия пресета не совпадает: нужна '+preset.revision+', в базе '+record.revision+'. Импорт остановлен.');
+    data=voxApplyDelta(voxPresetBase(record,preset.choices,preset.actor_type,preset.horde_initial_magnitude),await voxUnpackDelta(file.changes,cache));
+    if(npcHordeHasRequirement(record.statblock))requiredInitial=preset.horde_initial_magnitude;
+  }else data=await voxDecode(file.data,cache);
+  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('В файле нет данных листа.');
+  data=voxCleanActor(data);
+  if(requiredInitial!=null&&data.preset_metadata?.horde_initial_magnitude!==requiredInitial)throw Error('Начальная численность Орды повреждена в файле.');
+  if(file.kind==='statblock'){
+    if(!['npc','vehicle'].includes(data.type)||data.schema_version!==1||!data.stats||!data.vitals)throw Error('Повреждён статблок.');
+    normalizeStatblock(data);
+  }else if(!data.info||!data.stats||!data.vitals)throw Error('Повреждён лист персонажа.');
+  if(new TextEncoder().encode(JSON.stringify(data)).length>(file.kind==='statblock'?1040000:2000000))throw Error('Данные листа слишком велики.');
+  return {kind:file.kind,name:file.name.trim(),data};
+};
+</script>
+
 </body>
 </html>
 
