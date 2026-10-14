@@ -16583,7 +16583,12 @@ function damageDefaults(w){
     bonus+=strength;notes.push('Бонус Силы: +'+strength);
   }
   if(!npc&&!p.damage_bonuses_included)bonus+=gearPsyDamageBonus(p,d);
-  if(w.row){const quality=typeof eaWeaponBonus==='function'?eaWeaponBonus(w.row):(melee&&gearItemQuality(w.row)==='И'?1:0);if(quality){bonus+=quality;notes.push('Качество оружия: +'+quality+' урона');}}
+  if(w.row){let quality=typeof eaWeaponBonus==='function'?eaWeaponBonus(w.row):(melee&&gearItemQuality(w.row)==='И'?1:0);
+    if(typeof eaQualityRules==='function'){
+      const rule={source:'quality:'+w.row.ea_weapon_uid+':damage',target:'damage',target_name:melee?'weapon_melee':'weapon_ranged',effect:quality,condition:''};
+      if(!eaEnabled(d,rule))quality=0;
+    }
+    if(quality){bonus+=quality;notes.push('Качество оружия: +'+quality+' урона');}}
   if(a?.damage_bonuses)for(const m of a.damage_bonuses){if(['all',w.type].includes(m.target_name)){bonus+=m.effect;notes.push(m.name+': +'+m.effect);}}
   if(npc&&melee&&w.type!=='unarmed')notes.push('Профиль НПЦ уже включает бонус Силы.');
   const ammoId=Number(w.ammo?.id);
