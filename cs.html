@@ -15318,11 +15318,33 @@ function sgaOpenSymbol(slot){
   sgaOpenModal(slot==='common.symbol'?'Символ ордена':'Второй символ ордена или талисман',`<p class="desc">${esc(note)} Выберите один предмет и необходимые варианты. Правила бонусов приведены в описании и применяются вручную.</p><label for="sga-item">Символ<select id="sga-item"><option value="">— выбрать —</option>${items.map(e=>`<option value="${e.id}"${existing?.item_id===e.id?' selected':''}>${esc(e.name)}</option>`).join('')}</select></label><div id="sga-symbol-details"></div>`,{kind:'symbol',slot,signature,selected:existing?sgClone(existing.starting_symbol):null,fingerprint:JSON.stringify(existing||null)});
   sgaDrawSymbol();
 }
+function sgaSymbolDescription(item,base,choice=null,picker=false){
+  const m=item?.stats?.chapter_trapping;if(!m)return base || '';
+  const body=document.createElement('div');body.innerHTML=descBody(base || '');
+  body.querySelectorAll('p').forEach(p=>{if(/^Источник\s*:/i.test(p.textContent.trim()))p.remove();});
+  // Variant effects are already displayed beside their selection controls.
+  if(picker && m.variants?.length)body.querySelectorAll('ul').forEach(list=>{
+    if(m.variants.every(v=>list.textContent.includes(v.label)&&list.textContent.includes(v.effect)))list.remove();
+  });
+  if(!body.textContent.trim() && m.rules){const p=document.createElement('p');p.textContent=m.rules;body.append(p);}
+  // These weapon descriptions lack the chapter-trapping carry rule; their profiles stay unchanged.
+  if(['ceremonial-sword','duelling-tulwar'].includes(m.key) && !body.textContent.includes('боевому ножу')){
+    const p=document.createElement('p');p.textContent='Можно носить дополнительно к боевому ножу либо вместо него.';body.append(p);
+  }
+  if(choice){
+    const variants=(m.variants || []).filter(v=>(choice.variants || []).includes(v.id));
+    if(variants.length)body.insertAdjacentHTML('beforeend','<p><b>Выбрано:</b> '+esc(variants.map(v=>v.label).join('; '))+'</p>');
+    for(const [key,value] of Object.entries(choice.details || {})){const p=document.createElement('p');p.textContent=key+': '+value;body.append(p);}
+  }
+  const source=document.createElement('p');source.className='sga-symbol-source';source.textContent='Источник: '+m.book+', стр. '+m.page+'.';body.append(source);
+  return body.innerHTML;
+}
+
 function sgaDrawSymbol(){
   const c=SGA_CONTEXT;if(c?.kind!=='symbol')return;
   const item=sgaSlotItems(c.d,c.slot).find(e=>e.id===Number($('sga-item').value)),host=$('sga-symbol-details');if(!item){host.innerHTML='';return;}
   const m=item.stats?.chapter_trapping||{},lock=sgState(c.d).symbol_locks?.[m.key],chosen=lock||(c.selected?.key===m.key?c.selected:null),ids=chosen?.variants||[];
-  host.innerHTML=`<details class="sga-symbol-description"${m.variants?.length?'':' open'}><summary>Описание и источник</summary>${descBody(item.description||'')}${m.rules?'<p>'+esc(m.rules)+' Источник: '+esc(m.book)+', стр. '+m.page+'.</p>':''}</details>${m.variants?.length?`<fieldset><legend>Выберите ${m.choice_count||1}${lock?' (выбор закреплён)':''}</legend>${m.variants.map(v=>`<label class="sga-variant"><input type="checkbox" data-sga-variant="${escAttr(v.id)}"${ids.includes(v.id)?' checked':''}${lock?' disabled':''}><span><b>${esc(v.label)}</b><br>${esc(v.effect)}</span></label>`).join('')}</fieldset>`:''}<div id="sga-detail-fields"></div>${m.requirement?`<label class="sga-variant"><input type="checkbox" id="sga-requirement"><span>${esc(m.requirement)} Подтверждаю выполнение условия.</span></label>`:''}`;
+  host.innerHTML=`<details class="sga-symbol-description"${m.variants?.length?'':' open'}><summary>Описание и источник</summary>${sgaSymbolDescription(item,item.description||'',null,true)}</details>${m.variants?.length?`<fieldset><legend>Выберите ${m.choice_count||1}${lock?' (выбор закреплён)':''}</legend>${m.variants.map(v=>`<label class="sga-variant"><input type="checkbox" data-sga-variant="${escAttr(v.id)}"${ids.includes(v.id)?' checked':''}${lock?' disabled':''}><span><b>${esc(v.label)}</b><br>${esc(v.effect)}</span></label>`).join('')}</fieldset>`:''}<div id="sga-detail-fields"></div>${m.requirement?`<label class="sga-variant"><input type="checkbox" id="sga-requirement"><span>${esc(m.requirement)} Подтверждаю выполнение условия.</span></label>`:''}`;
   sgaDrawDetails(chosen);
 }
 function sgaDrawDetails(chosen=null){
@@ -15367,9 +15389,8 @@ async function sgaApply(){
   }catch(error){if($('sga-error'))$('sga-error').textContent=error.message;return false;}finally{c.busy=false;}
 }
 gearItemDesc=function(row){
-  const base=SGA_ORIG.gearItemDesc(row),x=row?.starting_symbol;if(!x)return base;
-  const m=GEAR_MAP[row.item_id]?.stats?.chapter_trapping,variants=(m?.variants||[]).filter(v=>x.variants.includes(v.id));
-  return base+(m?.rules?'<p>'+esc(m.rules)+' Источник: '+esc(m.book)+', стр. '+m.page+'.</p>':'')+'<p><b>Выбрано:</b> '+esc(variants.map(v=>v.label+': '+v.effect).join('; ')||GEAR_MAP[row.item_id]?.name||row.name)+'</p>'+Object.entries(x.details||{}).map(([k,v])=>'<p>'+esc(k)+': '+esc(v)+'</p>').join('');
+  const base=SGA_ORIG.gearItemDesc(row),item=GEAR_MAP[row?.item_id];
+  return item?.stats?.chapter_trapping?sgaSymbolDescription(item,base,row?.starting_symbol):base;
 };
 showGearInfo=function(row,key,index){
   if(key==='gear'&&GEAR_MAP[row.item_id]?.stats?.starting_item_key==='special_ammo_clip'){
