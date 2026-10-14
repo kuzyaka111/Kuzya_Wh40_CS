@@ -7915,7 +7915,7 @@ function renderPsy(){
   if (corrBar) corrBar.style.width =
     (v.max_corruption ? Math.min(100, (v.corruption || 0) / v.max_corruption * 100) : 0) + '%';
   const base = $('psy-rating-base');
-  base.value = d.psy.base || 0;
+  base.value = permanentPsiRating(d);
   document.querySelectorAll('.psy-opt').forEach(o =>
     o.classList.toggle('active', o.dataset.psy === d.psy.mode));
   updatePsyRating();
@@ -7923,12 +7923,7 @@ function renderPsy(){
 }
 function updatePsyRating(){
   const d = S.character.character_data;
-  const p = d.psy;
-  let r = Number(p.base) || 0;
-  if (p.mode === 'bound') r = Math.ceil(r / 2);
-  else if (p.mode === 'push') r = r + 3;
-  r += modsAdd(d, 'indicator', 'psi_rating', 'pre') + modsAdd(d, 'indicator', 'psi_rating', 'post');
-  $('psy-rating-display').textContent = r;
+  $('psy-rating-display').textContent = dwPsyRating(d);
   renderList('gear');
 }
 function renderPsySupported(){
@@ -10073,7 +10068,8 @@ document.addEventListener('input', e => {
   if (e.target.id === 'pick-search') drawPickResults(e.target.value);
   if (e.target.id === 'honour-search') renderHonourCatalog();
   if (e.target.id === 'psy-rating-base'){
-    S.character.character_data.psy.base = Number(e.target.value) || 0;
+    const d = S.character.character_data;
+    d.psy.base = (Number(e.target.value) || 0) - psiRatingBonus(d);
     updatePsyRating();
     debouncedSave();
   }
@@ -11457,10 +11453,10 @@ function dwQualitiesHtml(w){
   return chips ? '<div class="gw-quals"><div>'+chips+'</div></div>' : '';
 }
 function dwPsyRating(d){
-  let pr=Number(d.psy?.base)||0;
+  let pr=permanentPsiRating(d);
   if(d.psy?.mode==='bound') pr=Math.ceil(pr/2);
   else if(d.psy?.mode==='push') pr+=3;
-  return Math.max(0,pr+modsAdd(d,'indicator','psi_rating','pre')+modsAdd(d,'indicator','psi_rating','post'));
+  return Math.max(0,pr);
 }
 function dwGrants(d){
   if (!dwActive(d) || !DW_RULES) return [];
@@ -12891,8 +12887,11 @@ function specializationAdvanceSources(d){
   return [...new Set([d.info?.specialization,...advancedSpecRows(d).map(s => s.name)].filter(Boolean))];
 }
 function chapterAdvanceSource(d){ return hasAdvancedSpec(d,18) ? 'Чёрный Щит' : d.info?.chapter; }
+function psiRatingBonus(d){
+  return modsAdd(d,'indicator','psi_rating','pre')+modsAdd(d,'indicator','psi_rating','post');
+}
 function permanentPsiRating(d){
-  return Math.max(0,(Number(d.psy?.base)||0)+modsAdd(d,'indicator','psi_rating','pre')+modsAdd(d,'indicator','psi_rating','post'));
+  return Math.max(0,(Number(d.psy?.base)||0)+psiRatingBonus(d));
 }
 function advancedSkillGrants(d){
   return advancedSpecRows(d).flatMap(s => SPEC_ABILITIES.filter(a => Number(a.specialization_id) === Number(s.id))
