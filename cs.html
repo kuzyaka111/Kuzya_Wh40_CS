@@ -9739,7 +9739,7 @@ function captureSheet(){
   const name = $('sh-name')?.textContent.trim();
   if (name) S.character.name = name;
   S.character.character_data.vitals.xp_spent = calcTotalXpSpent(S.character.character_data);
-  return JSON.parse(JSON.stringify({ id:S.character.id, name:S.character.name, character_data:S.character.character_data }));
+  return JSON.parse(JSON.stringify({ id:S.character.id, chronicle_id:S.character.chronicle_id, actor_id:S.user?.id, name:S.character.name, character_data:S.character.character_data }));
 }
 async function saveSheet(commitDraft = false){
   if (!S.character || (editMode && !commitDraft)) return false;
@@ -9747,8 +9747,8 @@ async function saveSheet(commitDraft = false){
   savesPending++; updateSaveStatus();
   const operation = saveQueue.then(async () => {
     try {
-      const { data, error } = await sb.from('characters')
-        .update({ character_data:snapshot.character_data, name:snapshot.name }).eq('id', snapshot.id).select('id').single();
+      if(S.user?.id!==snapshot.actor_id)throw Error('Сеанс изменился. Сохранение отменено.');
+      const { data, error } = await sb.rpc('vox_actor_operation',{p_action:'save_character',p_chronicle:snapshot.chronicle_id,p_actor:snapshot.actor_id,p_id:String(snapshot.id),p_payload:snapshot.character_data,p_name:snapshot.name});
       if (error) throw error;
       if (!data || String(data.id) !== String(snapshot.id)) throw new Error('Обновление персонажа не подтверждено');
       savedRevision = Math.max(savedRevision, revision);
@@ -12015,7 +12015,7 @@ function sbTabRequest(search=location.search){
  return {id,chronicle,token};
 }
 function sbOpenTab(id){
- if(!sbAllowed()||SB.busy||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return;
+ if(!voxSession()||SB.busy||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return;
  const token=sbUuid(),key=SB_TAB_PREFIX+token,url=new URL(location.href);
  url.search='';url.hash='';url.searchParams.set('statblock',id);url.searchParams.set('chronicle',S.chronicle.id);url.searchParams.set('handoff',token);
  try{
@@ -12032,7 +12032,7 @@ async function sbResumeTab(){
  let context=null;
  try{if(!request.invalid)context=JSON.parse(sessionStorage.getItem(SB_TAB_PREFIX+request.token)||'null');}catch(_){}
  if(!S.user||!context||String(context.userId)!==String(S.user.id)||Number(context.chronicleId)!==request.chronicle||context.recordId!==request.id){
-  await showDash();toast('Откройте статблок из Хроники в режиме Мастера');return true;
+  await showDash();toast('Откройте свой статблок из Хроники');return true;
  }
  const loader=$('app-loader');loader?.classList.remove('hidden');
  try{
@@ -12047,7 +12047,7 @@ async function sbResumeTab(){
 
 const SB = {record:null,draft:null,chronicleId:null,busy:false,error:'',dirty:false,entry:null,loadToken:0,createId:null,quick:null,quickVersion:0,quickTimer:null,quickFlight:null,quickConflict:false};
 function sbClone(value){ return JSON.parse(JSON.stringify(value)); }
-function sbAllowed(){ return !!(S.user && S.chronicle && S.role === 'gm'); }
+function sbAllowed(){ return voxCanActor(); }
 function sbData(){ return SB.draft || SB.quick || SB.record; }
 function sbUuid(){
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -12093,9 +12093,9 @@ function sbOptions(values,selected){
 }
 function openCreateRecordModal(){
   SB.createId=null;
-  $('char-kind-wrap').classList.toggle('hidden',!sbAllowed());
+  $('char-kind-wrap').classList.toggle('hidden',!(S.role==='gm'));
   sbChooseKind('character');
-  $('char-modal-title').textContent=sbAllowed()?'Новый статблок':'Новый персонаж';
+  $('char-modal-title').textContent=(S.role==='gm')?'Новый статблок':'Новый персонаж';
   $('char-name-input').value='';
   openModal('modal-character');
   sbChooseKind('character');
@@ -12110,26 +12110,26 @@ async function readStatblocks(chronicleId){
 async function loadStatblocks(){
   const panel=$('statblock-panel'),host=$('statblock-list');
   const token=++SB.loadToken;
-  panel.classList.toggle('hidden',!sbAllowed());
+  panel.classList.toggle('hidden',!voxSession());
   host.innerHTML='';
-  if (!sbAllowed()) return;
+  if (!voxSession()) return;
   const chronicleId=S.chronicle.id;
   host.innerHTML='<div class="empty">Загрузка…</div>';
   try {
     const collection=await readStatblocks(chronicleId);
-    if(token!==SB.loadToken || !sbAllowed() || S.chronicle.id!==chronicleId) return;
-    const rows=Object.entries(collection).filter(([id,r])=>/^[0-9a-f-]{36}$/i.test(id)&&r&&['npc','vehicle'].includes(r.type));
+    if(token!==SB.loadToken || !voxSession() || S.chronicle.id!==chronicleId) return;
+    const rows=Object.entries(collection).filter(([id,r])=>/^[0-9a-f-]{36}$/i.test(id)&&r&&['npc','vehicle'].includes(r.type)&&(S.role==='gm'||r.owner_id===S.user.id));
     rows.sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'ru'));
     host.innerHTML=rows.length?rows.map(([id,d])=>`<button type="button" class="list-item clickable" data-sb-open="${esc(id)}">
       <span style="min-width:0"><span class="nm">${esc(d.name)}</span><span class="tags-row">${[d.race,d.category,...(Array.isArray(d.tags)?d.tags:[])].filter(Boolean).map(t=>`<span class="chr-tag">${esc(t)}</span>`).join('')}</span></span>
       <span class="badge gm">${sbIsVehicle(d)?'Техника':'НПЦ'}</span></button>`).join(''):'<div class="empty">НПЦ и техники пока нет.</div>';
   } catch(error){
-    if(token!==SB.loadToken || !sbAllowed() || S.chronicle.id!==chronicleId) return;
+    if(token!==SB.loadToken || !voxSession() || S.chronicle.id!==chronicleId) return;
     host.innerHTML=`<div class="empty">Ошибка загрузки: ${esc(error.message)}<br><button type="button" class="sm" onclick="loadStatblocks()">Повторить</button></div>`;
   }
 }
 async function createStatblock(type){
-  if (!sbAllowed() || !['npc','vehicle'].includes(type) || SB.busy) return;
+  if (!voxSession() || S.role!=='gm' || !['npc','vehicle'].includes(type) || SB.busy) return;
   const name=$('char-name-input').value.trim();
   if (!name || name.length>200) return toast('Введите имя длиной от 1 до 200 символов');
   const chronicleId=S.chronicle.id,id=SB.createId || (SB.createId=sbUuid());
@@ -12155,18 +12155,20 @@ async function createStatblock(type){
   finally { SB.busy=false; $('modal-character').inert=false; if(SB.record && S.chronicle?.id===SB.chronicleId) renderStatblock(); }
 }
 async function openStatblock(id){
-  if (!sbAllowed() || SB.busy) return;
+  if (!voxSession() || SB.busy) return;
   if(!await sbFlushQuick())return;
   if (SB.dirty && !confirm('Есть несохранённые изменения. Загрузить сохранённую версию и отказаться от них?')) return;
   const chronicleId=S.chronicle.id;
+  try { S.role=await voxMembership(chronicleId); } catch(e){toast(voxMessage(e));return;}
   SB.busy=true;
   $('statblock-panel').inert=true; $('sb-root').inert=true;
   try {
     const raw=(await readStatblocks(chronicleId))[id];
     if (!raw) throw new Error('Запись не найдена. Возможно, её удалили в другой вкладке.');
+    if(S.role!=='gm' && raw.owner_id!==S.user.id)throw Error('VOX_NO_ACCESS');
     await sbLoadSkills();
     const record=normalizeStatblock(raw);
-    if (!sbAllowed() || S.chronicle.id!==chronicleId) return;
+    if (!voxSession() || S.chronicle.id!==chronicleId) return;
     SB.record=record; SB.chronicleId=chronicleId; SB.draft=null; SB.quick=null;SB.quickConflict=false;SB.error=''; SB.dirty=false;
     S.character=null;
     showScreen('statblock');
@@ -15706,6 +15708,346 @@ BACKDROP_CLOSE['roll-modifier-editor']=rmcClose;
 document.addEventListener('click',event=>{if(event.target.closest('[data-rmc-save]')){event.preventDefault();rmcApply(true);}else if(event.target.closest('[data-rmc-cancel]'))rmcClose();});
 document.addEventListener('submit',event=>{if(event.target.id==='rmc-form'){event.preventDefault();rmcApply(false);}});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('roll-modifier-editor')?.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();rmcClose();}} ,true);
+
+</script>
+<style id="vox-actor-tools-style">
+#vox-tools-modal{z-index:1400}#vox-tools-modal .box{max-width:720px;width:92%;box-sizing:border-box;font-family:'Roboto Condensed',Arial,sans-serif;font-size:16px;line-height:1.5}#vox-tools-modal h2{font-family:'Roboto Condensed',Arial,sans-serif;text-transform:uppercase;font-size:24px;color:var(--gold)}#vox-tools-modal button{font-family:'Roboto Condensed',Arial,sans-serif;font-size:15px}#vox-tools-modal input{box-sizing:border-box;max-width:100%;font:inherit;padding:10px;border:1px solid var(--border-gold);background:#141513;color:var(--text-main)}.vox-actor-tools{display:flex;flex-wrap:wrap;gap:10px;border-top:1px solid var(--border-gold);padding-top:16px;margin-top:16px}.vox-member-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-dark)}.vox-member-row .desc{display:block;font-size:14px}#vox-tools-status{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--gold);margin:12px 0}#vox-import-preview{overflow-wrap:anywhere}@media(max-width:600px){.vox-member-row{flex-wrap:wrap}#vox-tools-modal .box{width:100%;padding:18px}}
+</style>
+<div id="vox-tools-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="vox-tools-title"><div class="box modal-box"><h2 id="vox-tools-title"></h2><div id="vox-tools-body"></div><div id="vox-tools-status" role="status"></div><button type="button" id="vox-tools-close" class="modal-close">Закрыть</button></div></div>
+
+<script id="vox-actor-portable-v1">
+// Versioned reference-based transport. No account, owner or webhook credentials.
+const VOX_FILE_FORMAT='deathwatch.actor',VOX_FILE_VERSION=1;
+const VOX_TABLES=new Set(['equipment','ammo','skills','talents','features','honors','distinctions','armor_features','augmentations','solo_abilities','squad_abilities','psi_powers','specialization_abilities','specialization_ability_options','chapters','specializations','dreadnought_models','combat_actions','conditions','critical_effects','npc_presets','weapon_qualities','tables','characteristic_advancements']);
+const voxClone=x=>JSON.parse(JSON.stringify(x));
+const voxEqual=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function voxSafeKey(k){if(['__proto__','prototype','constructor'].includes(k))throw Error('Недопустимое поле JSON: '+k);return k;}
+function voxCleanActor(d){
+ const out=voxClone(d);
+ for(const k of ['id','revision','updated_at','created_at','owner_id','user_id','chronicle_id','_statblock','_import_receipt'])delete out[k];
+ return out;
+}
+function voxDelta(base,value){
+ if(voxEqual(base,value))return {op:'keep'};
+ if(Array.isArray(base)&&Array.isArray(value)){
+  const items={};value.forEach((v,i)=>{const p=voxDelta(base[i],v);if(p.op!=='keep')items[i]=p;});
+  return {op:'array',length:value.length,items};
+ }
+ if(base&&value&&typeof base==='object'&&typeof value==='object'&&!Array.isArray(base)&&!Array.isArray(value)){
+  const put={},remove=Object.keys(base).filter(k=>!Object.hasOwn(value,k));
+  for(const k of Object.keys(value)){voxSafeKey(k);const p=voxDelta(base[k],value[k]);if(p.op!=='keep')put[k]=p;}
+  return {op:'object',put,remove};
+ }
+ return {op:'set',value};
+}
+function voxApplyDelta(base,p,depth=0){
+ if(depth>80||!p||typeof p!=='object')throw Error('Повреждён список изменений.');
+ if(p.op==='keep')return base===undefined?undefined:voxClone(base);
+ if(p.op==='set')return voxClone(p.value);
+ if(p.op==='array'){
+  if(!Array.isArray(base)||!Number.isSafeInteger(p.length)||p.length<0||p.length>100000)throw Error('Повреждён список.');
+  const out=voxClone(base);out.length=p.length;
+  for(const [k,v]of Object.entries(p.items||{})){if(!/^(0|[1-9]\d*)$/.test(k)||Number(k)>=p.length)throw Error('Недопустимый индекс.');out[k]=voxApplyDelta(base[k],v,depth+1);}
+  for(let i=0;i<out.length;i++)if(!Object.hasOwn(out,i)||out[i]===undefined)throw Error('Пропущены данные списка.');return out;
+ }
+ if(p.op==='object'){
+  if(!base||typeof base!=='object'||Array.isArray(base))throw Error('Повреждён объект.');const out=voxClone(base);
+  for(const k of p.remove||[])delete out[voxSafeKey(k)];
+  for(const [k,v]of Object.entries(p.put||{}))out[voxSafeKey(k)]=voxApplyDelta(base[k],v,depth+1);
+  return out;
+ }
+ throw Error('Неизвестный вид изменений.');
+}
+function voxTableFor(row,path){
+ const section=path.filter(x=>typeof x==='string'&&!/^\d+$/.test(x)).at(-1);
+ if(row.catalog_source==='ammo'||row.ammo_id!=null)return 'ammo';
+ if(row.catalog_key&&VOX_TABLES.has(row.catalog_key))return row.catalog_key;
+ if(row.catalog_key==='deeds')return 'features';
+ if(row.table_id!=null)return 'tables';
+ if(row.item_id!=null)return row.catalog_source&&VOX_TABLES.has(row.catalog_source)?row.catalog_source:(['talents','features','traits'].includes(section)?(section==='talents'?'talents':'features'):'equipment');
+ if(section==='options'&&row.id!=null)return 'specialization_ability_options';
+ if(['skills_basic','skills_adv'].includes(section))return 'skills';
+ if(section==='weapons')return 'equipment';
+ if(typeof SECTIONS!=='undefined'&&SECTIONS[section]?.[1])return SECTIONS[section][1];
+ if(section==='armour_choice')return 'equipment';
+ if(section==='conditions'&&row.code)return 'conditions';
+ if(section==='active_actions'&&row.code)return 'combat_actions';
+ return null;
+}
+function voxRowId(row,table){if(['conditions','combat_actions'].includes(table))return row.code??row.id;return table==='ammo'?(row.ammo_id??row.item_id??row.id):(row.catalog_id??row.table_id??row.item_id??row.ability_id??row.id??row.code);}
+async function voxCatalogRow(table,id,cache){
+ if(!VOX_TABLES.has(table)||id==null||!['number','string'].includes(typeof id))throw Error('Недопустимая ссылка на справочник.');
+ const key=table+':'+String(id);if(cache.has(key))return cache.get(key);
+ const promise=(async()=>{const column=['conditions','combat_actions'].includes(table)&&!/^\d+$/.test(String(id))?'code':'id';const {data,error}=await sb.from(table).select('*').eq(column,id).maybeSingle();if(error)throw error;if(!data)throw Error('Не найдена запись '+table+' / '+id);return data;})();cache.set(key,promise);return promise;
+}
+function voxAt(row,path){let v=row;for(const k of path){voxSafeKey(String(k));if(v==null||!Object.hasOwn(v,k))throw Error('Поле справочника недоступно: '+path.join('.'));v=v[k];}return v;}
+function voxDbRef(table,id,path){return {$db:{table,id,path}};}
+async function voxEncodeCatalogValue(value,table,id,fieldPath,cache,depth=0){
+ if(depth>80)throw Error('Слишком сложная структура справочника.');
+ let original;try{original=voxAt(await voxCatalogRow(table,id,cache),fieldPath);}catch(_){return voxEncode(value,cache);}
+ if(voxEqual(original,value))return voxDbRef(table,id,fieldPath);
+ if(Array.isArray(value))return {$array:await Promise.all(value.map((v,i)=>voxEncodeCatalogValue(v,table,id,[...fieldPath,i],cache,depth+1)))};
+ if(value&&typeof value==='object'){const out={};for(const [k,v]of Object.entries(value))out[voxSafeKey(k)]=await voxEncodeCatalogValue(v,table,id,[...fieldPath,k],cache,depth+1);return {$object:out};}
+ return value;
+}
+async function voxGearProjection(db,cache){
+ const out=sbGearFromCatalog(db),stats=typeof db.stats==='string'?JSON.parse(db.stats):db.stats||{};
+ if(Object.hasOwn(out,'qualities')){
+  const labels=[];for(const q of stats.qualities||[]){const row=await voxCatalogRow('weapon_qualities',q.qid,cache),param=q.param??q.value;let label=row.name;if(param!=null&&param!==''){const replaced=label.replace(/\([ХX]\)/g,'('+param+')');label=replaced===label?label+' ('+param+')':replaced;}labels.push(label);}out.qualities=labels.join(', ');
+ }
+ return out;
+}
+// Encode every object explicitly: user content cannot masquerade as a reference.
+async function voxEncode(value,cache,path=[],context=null,depth=0){
+ if(depth>80)throw Error('Слишком сложная структура листа.');
+ if(value===null||typeof value!=='object')return value;
+ if(Array.isArray(value))return {$array:await Promise.all(value.map((v,i)=>voxEncode(v,cache,[...path,i],context,depth+1)))};
+ let ref=null,db=null,table=voxTableFor(value,path),id=table&&voxRowId(value,table),projection=null;
+ if(table&&id==null&&value.name&&['catalog','chapter','specialization','common','codex'].includes(value.source)){
+  const {data,error}=await sb.from(table).select('*').eq('name',value.name).maybeSingle();if(error)throw error;if(!data)throw Error('Не найдена запись '+table+' / '+value.name);id=data.id;cache.set(table+':'+id,Promise.resolve(data));
+ }
+ if(path.filter(x=>typeof x==='string').at(-1)==='injuries'&&value.zone&&value.damage_type&&value.roll_number!=null){
+  const {data,error}=await sb.from('critical_effects').select('*').eq('zone',value.zone).eq('damage_type',value.damage_type).eq('roll_number',value.roll_number).maybeSingle();if(error)throw error;if(data){table='critical_effects';id=data.id;cache.set(table+':'+id,Promise.resolve(data));}
+ }
+ if(table&&id!=null&&(value.source!=='custom')){db=await voxCatalogRow(table,id,cache);ref={table,id};}
+ if(ref&&table==='equipment'&&path.filter(x=>typeof x==='string').at(-1)==='weapons'&&typeof sbGearFromCatalog==='function')projection=await voxGearProjection(db,cache);
+ const out={};
+ for(const [k,v]of Object.entries(value)){
+  voxSafeKey(k);
+  // Stable IDs and copied catalogue fields are links, while instance settings stay values.
+  let field=({desc:'description',catalog_stats:'stats',class:'used_for'}[k]||k);
+  if(ref&&Object.hasOwn(db,field)&&voxEqual(v,db[field])){out[k]=voxDbRef(table,id,[field]);continue;}
+  if(ref&&Object.hasOwn(db,field)&&v&&typeof v==='object'&&db[field]&&typeof db[field]==='object'){out[k]=await voxEncodeCatalogValue(v,table,id,[field],cache);continue;}
+  if(ref&&table==='critical_effects'&&k==='desc'&&voxEqual(v,db.effect||db.description||'')){out[k]=voxDbRef(table,id,[db.effect?'effect':'description']);continue;}
+  if(projection&&Object.hasOwn(projection,k)&&voxEqual(v,projection[k])&&!['source','item_id','quantity'].includes(k)){out[k]={$derived:{table,id,kind:'statblock-gear',field:k}};continue;}
+  if(ref&&['item_id','ammo_id','ability_id','catalog_id'].includes(k)&&String(v)===String(id)){out[k]=voxDbRef(table,id,['id']);continue;}
+  if(path.at(-1)==='info'&&['chapter','chapter_id','specialization','specialization_id'].includes(k)){
+   const t=k.startsWith('chapter')?'chapters':'specializations',key=k.startsWith('chapter')?'chapter_id':'specialization_id',rid=value[key];
+   if(rid!=null&&rid!==''){const row=await voxCatalogRow(t,rid,cache),f=k.endsWith('_id')?'id':'name';if(voxEqual(v,row[f])){out[k]=voxDbRef(t,rid,[f]);continue;}}
+  }
+  out[k]=await voxEncode(v,cache,[...path,k],ref,depth+1);
+ }
+ return {$object:out};
+}
+async function voxDecode(value,cache,depth=0){
+ if(depth>80)throw Error('Слишком сложный файл JSON.');
+ if(value===null||typeof value!=='object')return value;
+ if(Array.isArray(value))throw Error('Неверное кодирование JSON.');
+ if(Object.keys(value).length!==1)throw Error('Неверный узел JSON.');
+ if(value.$db){const r=value.$db;if(!Array.isArray(r.path)||r.path.length>20)throw Error('Недопустимая ссылка.');return voxClone(voxAt(await voxCatalogRow(r.table,r.id,cache),r.path));}
+ if(value.$derived){const r=value.$derived;if(r.table!=='equipment'||r.kind!=='statblock-gear'||typeof sbGearFromCatalog!=='function')throw Error('Недопустимая ссылка профиля.');const row=await voxGearProjection(await voxCatalogRow(r.table,r.id,cache),cache);if(!Object.hasOwn(row,voxSafeKey(r.field)))throw Error('Поле профиля недоступно.');return voxClone(row[r.field]);}
+ if(value.$array){if(!Array.isArray(value.$array)||value.$array.length>100000)throw Error('Слишком длинный список.');return Promise.all(value.$array.map(v=>voxDecode(v,cache,depth+1)));}
+ if(value.$object&&typeof value.$object==='object'&&!Array.isArray(value.$object)){const out={};for(const [k,v]of Object.entries(value.$object))out[voxSafeKey(k)]=await voxDecode(v,cache,depth+1);return out;}
+ throw Error('Неизвестный узел JSON.');
+}
+function voxPresetChoices(meta){return (meta.choices||[]).map(c=>({group_id:c.group_id,option_ids:[...(c.option_ids||[])]}));}
+function voxPresetBase(record,choices,actorType){
+ const raw=voxClone(record.statblock),groups=raw.choice_groups||[],resolved=[];
+ if(groups.length){
+  if(!Array.isArray(choices)||choices.length!==groups.length)throw Error('В файле не хватает выбранных опций пресета.');
+  const seen=new Set();
+  for(const choice of choices){
+   if(seen.has(choice.group_id))throw Error('Повтор группы пресета.');seen.add(choice.group_id);
+   const g=groups.find(x=>x.id===choice.group_id);if(!g||!Array.isArray(choice.option_ids)||new Set(choice.option_ids).size!==choice.option_ids.length||choice.option_ids.length<g.min)throw Error('Повреждён выбор пресета.');
+   const options=choice.option_ids.map(id=>{const o=g.options.find(x=>x.id===id);if(!o)throw Error('Опция пресета не найдена: '+id);return o;});
+   for(const o of options)for(const effect of o.effects||[])npcPresetAppendChoice(raw,effect);
+   resolved.push({group_id:g.id,group_name:g.name,min:g.min,max:g.max,option_ids:options.map(x=>x.id),option_names:options.map(x=>x.name),exceeds_limit:options.length>g.max});
+  }
+ }
+ delete raw.choice_groups;raw.schema_version=1;raw.type=actorType;raw.type_choice_migrated=true;
+ if(record.statblock.type==='vehicle')raw.race='Техника';
+ raw.preset_metadata={id:record.id,name:record.name,revision:record.revision,ruleset:record.ruleset,sources:voxClone(npcPresetSources(record)),layout_version:2,original_source:npcPresetOriginalSource(record)};
+ if(groups.length)Object.assign(raw.preset_metadata,{choice_schema_version:2,choices:resolved,rule_violations:resolved.filter(x=>x.exceeds_limit).map(x=>x.group_name+': выбрано '+x.option_ids.length+', книжный максимум — '+x.max+'.')});
+ return voxCleanActor(normalizeStatblock(raw));
+}
+async function voxBuildFile(kind,name,actor){
+ const cache=new Map(),data=voxCleanActor(actor),file={format:VOX_FILE_FORMAT,version:VOX_FILE_VERSION,kind,name:String(name),exported_at:new Date().toISOString()};
+ if(kind==='statblock'&&data.preset_metadata?.id){
+  const meta=data.preset_metadata,record=await voxCatalogRow('npc_presets',meta.id,cache);
+  if(record.revision!==meta.revision)throw Error('Пресет обновлён с момента применения. Для точного экспорта нужна версия '+meta.revision+'; в базе сейчас '+record.revision+'.');
+  const choices=voxPresetChoices(meta),base=voxPresetBase(record,choices,data.type);
+  file.preset={id:record.id,revision:record.revision,choices,actor_type:data.type};
+  // Instance overrides are encoded separately; the preset itself is never copied.
+  file.changes=await voxPackDelta(voxDelta(base,data),cache);
+ }else file.data=await voxEncode(data,cache);
+ return file;
+}
+async function voxRestoreFile(file){
+ if(!file||file.format!==VOX_FILE_FORMAT||file.version!==VOX_FILE_VERSION||!['character','statblock'].includes(file.kind)||typeof file.name!=='string'||!file.name.trim()||file.name.length>200)throw Error('Это не поддерживаемый файл персонажа Deathwatch.');
+ const cache=new Map();let data;
+ if(file.preset){
+  if(file.kind!=='statblock'||file.data)throw Error('Неверный формат пресета.');
+  const p=file.preset,record=await voxCatalogRow('npc_presets',p.id,cache);
+  if(record.revision!==p.revision)throw Error('Версия пресета не совпадает: нужна '+p.revision+', в базе '+record.revision+'. Импорт остановлен.');
+  data=voxApplyDelta(voxPresetBase(record,p.choices,p.actor_type),await voxUnpackDelta(file.changes,cache));
+ }else data=await voxDecode(file.data,cache);
+ if(!data||typeof data!=='object'||Array.isArray(data))throw Error('В файле нет данных листа.');
+ data=voxCleanActor(data);
+ if(file.kind==='statblock'){
+  if(!['npc','vehicle'].includes(data.type)||data.schema_version!==1||!data.stats||!data.vitals)throw Error('Повреждён статблок.');
+  // Validate without silently discarding fields from the transport.
+  normalizeStatblock(data);
+ }else if(!data.info||!data.stats||!data.vitals)throw Error('Повреждён лист персонажа.');
+ if(new TextEncoder().encode(JSON.stringify(data)).length>(file.kind==='statblock'?1040000:2000000))throw Error('Данные листа слишком велики.');
+ return {kind:file.kind,name:file.name.trim(),data};
+}
+async function voxPackDelta(p,cache,path=[]){
+ if(p.op==='set')return {op:'set',value:await voxEncode(p.value,cache,path)};
+ if(p.op==='object'){const put={};for(const [k,v]of Object.entries(p.put))put[k]=await voxPackDelta(v,cache,[...path,k]);return {...p,put};}
+ if(p.op==='array'){const items={};for(const [k,v]of Object.entries(p.items))items[k]=await voxPackDelta(v,cache,[...path,Number(k)]);return {...p,items};}
+ return p;
+}
+async function voxUnpackDelta(p,cache,depth=0){
+ if(!p||depth>80)throw Error('Неверные изменения пресета.');
+ if(p.op==='set')return {op:'set',value:await voxDecode(p.value,cache)};
+ if(p.op==='object'){const put={};for(const [k,v]of Object.entries(p.put||{}))put[voxSafeKey(k)]=await voxUnpackDelta(v,cache,depth+1);return {...p,put};}
+ if(p.op==='array'){const items={};for(const [k,v]of Object.entries(p.items||{}))items[k]=await voxUnpackDelta(v,cache,depth+1);return {...p,items};}
+ return p;
+}
+
+</script>
+<script id="vox-actor-tools-v1">
+const VOX_TOOLS={busy:false,context:null,imported:null,receipt:null};
+function voxSession(){return !!(S.user&&S.chronicle&&['gm','player'].includes(S.role));}
+function voxCanActor(){return voxSession()&&(S.role==='gm'||SB.record?.owner_id===S.user.id&&SB.chronicleId===S.chronicle.id);}
+function voxMessage(error){const text=String(error?.message||error);return ({VOX_NOT_A_MEMBER:'Вы больше не участвуете в этой хронике.',VOX_MASTER_ONLY:'Это действие доступно только Мастеру.',VOX_PLAYER_NOT_FOUND:'Игрок больше не состоит в этой хронике.',VOX_NO_ACCESS:'Нет доступа к этому листу.',VOX_ACTOR_NOT_FOUND:'Лист не найден.',STATBLOCK_CONFLICT:'Статблок изменился в другой вкладке. Загрузите актуальную версию.'})[text]||text;}
+async function voxMembership(chronicle=S.chronicle?.id){
+ if(!S.user||!chronicle)throw Error('VOX_NOT_A_MEMBER');
+ const {data,error}=await sb.from('chronicle_members').select('role').eq('chronicle_id',chronicle).eq('user_id',S.user.id).maybeSingle();
+ if(error)throw error;if(!data)throw Error('VOX_NOT_A_MEMBER');return data.role;
+}
+async function voxOperation(action,extra={},chronicle=S.chronicle?.id){
+ if(!S.user||!chronicle)throw Error('VOX_NOT_A_MEMBER');
+ const {data,error}=await sb.rpc('vox_actor_operation',{p_action:action,p_chronicle:chronicle,p_actor:S.user.id,...extra});if(error)throw error;if(!data)throw Error('Операция не подтверждена.');return data;
+}
+function voxActorContext(){
+ if(!voxSession())return null;
+ if(!$('screen-statblock').classList.contains('hidden')&&SB.record){
+  let data=sbData();
+  if(sbActorActive()&&!SB.draft){
+   data=voxClone(data);const a=S.character.character_data;
+   data.modifiers=normalizeModifiers(a.modifiers);for(const key of ['cond','perm'])data.modifiers[key]=data.modifiers[key].filter(m=>!String(m.source).startsWith('npc-talent:'));
+   for(const key of ['custom_actions','active_actions','conditions','conditions_collapsed','discord_rolls'])if(Object.hasOwn(a,key))data[key]=voxClone(a[key]);
+  }
+  return {kind:'statblock',id:SB.record.id,name:data.name,chronicle:SB.chronicleId,data};
+ }
+ if(S.character&&!S.character._statblock&&!$('screen-sheet').classList.contains('hidden'))return {kind:'character',id:S.character.id,name:S.character.name,chronicle:S.character.chronicle_id,data:S.character.character_data};
+ return null;
+}
+function voxSameActor(c){const now=voxActorContext();return !!c&&now?.kind===c.kind&&String(now.id)===String(c.id)&&now.chronicle===c.chronicle&&S.chronicle?.id===c.chronicle;}
+function voxShowTools(title,html){$('vox-tools-title').textContent=title;$('vox-tools-body').innerHTML=html;$('vox-tools-status').textContent='';$('vox-tools-modal').classList.remove('hidden');}
+function voxCloseTools(){if(VOX_TOOLS.busy)return;$('vox-tools-modal').classList.add('hidden');VOX_TOOLS.context=null;VOX_TOOLS.imported=null;VOX_TOOLS.receipt=null;}
+function voxStatus(text){$('vox-tools-status').textContent=text;}
+async function voxRun(task){if(VOX_TOOLS.busy)return;VOX_TOOLS.busy=true;$('vox-tools-body').inert=true;try{await task();}catch(e){voxStatus(voxMessage(e));}finally{VOX_TOOLS.busy=false;$('vox-tools-body').inert=false;}}
+function voxAttachSettings(){
+ const host=$('settings-modal').querySelector('.modal-box');host.querySelector('.vox-actor-tools')?.remove();
+ if(!voxActorContext())return;
+ host.insertAdjacentHTML('beforeend','<div class="vox-actor-tools"><button type="button" class="modal-close" data-vox-export>Выгрузить JSON</button>'+(S.role==='gm'?'<button type="button" class="modal-confirm" data-vox-transfer>Передать игроку</button>':'')+'</div>');
+}
+const VOX_OPEN_SETTINGS=openSettings;
+openSettings=function(...args){const result=VOX_OPEN_SETTINGS(...args);voxAttachSettings();return result;};
+async function voxExport(){
+ const c=voxActorContext();if(!c)return;
+ voxShowTools('Выгрузить JSON','<p>Собственные записи и показатели сохраняются в файле. Справочники и пресет — ссылками. Выгружаются текущие данные открытого листа, включая несохранённые изменения.</p>');
+ await voxRun(async()=>{
+  await voxMembership(c.chronicle);
+  const snapshot=voxClone(c.data),fingerprint=JSON.stringify(snapshot),name=c.name;
+  const file=await voxBuildFile(c.kind,name,snapshot);
+  if(!voxSameActor(c)||JSON.stringify(voxActorContext().data)!==fingerprint)throw Error('Лист изменился во время выгрузки. Повторите её.');
+  const blob=new Blob([JSON.stringify(file,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(name.replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').slice(0,100)||'Deathwatch')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);voxStatus('JSON выгружен. Данные листа не изменены.');
+ });
+}
+async function voxMembers(forTransfer=false){
+ const c=forTransfer?voxActorContext():null;
+ if(S.role!=='gm'||!voxSession()||forTransfer&&!c)return;
+ const chronicle=S.chronicle.id;VOX_TOOLS.context={chronicle,actor:c};
+ voxShowTools(forTransfer?'Передать игроку':'Участники хроники','<p>Загрузка участников…</p>');
+ await voxRun(async()=>{
+  if(await voxMembership(chronicle)!=='gm')throw Error('VOX_MASTER_ONLY');
+  const {data,error}=await sb.from('chronicle_members').select('user_id,role,joined_at,users_simple(username)').eq('chronicle_id',chronicle).order('joined_at');if(error)throw error;
+  if(S.chronicle?.id!==chronicle||forTransfer&&!voxSameActor(c))throw Error('Хроника или лист изменились. Откройте окно заново.');
+  const rows=(data||[]).filter(r=>!forTransfer||r.role==='player');
+  $('vox-tools-body').innerHTML=(forTransfer?'<p>Лист будет передан выбранному игроку без создания копии. Мастер сохраняет доступ. Перед передачей примените или отмените изменения настроек и завершите редактирование листа.</p>':'<p>При исключении игрока его персонажи и НПЦ возвращаются Мастеру. Учётная запись игрока не удаляется.</p>')+(rows.length?rows.map(r=>'<div class="vox-member-row"><div><b>'+esc(r.users_simple?.username||'Участник')+'</b><span class="desc">'+(r.role==='gm'?'Мастер':'Игрок')+'</span></div>'+(r.role==='player'?'<button type="button" class="'+(forTransfer?'modal-confirm':'modal-close')+'" data-vox-'+(forTransfer?'give':'remove')+'="'+escAttr(r.user_id)+'" data-vox-name="'+escAttr(r.users_simple?.username||'Участник')+'">'+(forTransfer?'Передать':'Исключить')+'</button>':'')+'</div>').join(''):'<p>Нет присоединившихся игроков.</p>');
+ });
+}
+async function voxTransfer(button){
+ const ctx=VOX_TOOLS.context,c=ctx?.actor;if(!voxSameActor(c))return voxStatus('Лист изменился. Откройте передачу заново.');
+ if(inSettingsSession()&&settingsDirty)return voxStatus('Сначала примените или отмените изменения настроек.');
+ if(c.kind==='character'&&editMode||c.kind==='statblock'&&SB.draft)return voxStatus('Сначала сохраните или отмените редактирование листа.');
+ if(!confirm('Передать «'+c.name+'» игроку «'+button.dataset.voxName+'»?'))return;
+ await voxRun(async()=>{
+  if(!await flushSave())throw Error('Сначала сохраните лист.');
+  if(!voxSameActor(c))throw Error('Лист изменился.');
+  await voxOperation('transfer',{p_kind:c.kind,p_id:String(c.id),p_target:button.dataset.voxGive,p_revision:c.kind==='statblock'?SB.record.revision:null},c.chronicle);
+  closeSheetModal('settings-modal');settingsSession=null;settingsDirty=false;
+  if(c.kind==='statblock'){SB.record=null;SB.draft=null;SB.quick=null;SB_PLAY.actor=null;}S.character=null;
+  $('vox-tools-modal').classList.add('hidden');showScreen('chronicle');await Promise.all([loadCharacters(),loadStatblocks()]);toast('Лист передан игроку');
+ });
+}
+async function voxRemoveMember(button){
+ const chronicle=VOX_TOOLS.context?.chronicle;if(S.chronicle?.id!==chronicle)return;
+ if(!confirm('Исключить «'+button.dataset.voxName+'»? Его персонажи и НПЦ вернутся Мастеру.'))return;
+ let success=false;
+ await voxRun(async()=>{const result=await voxOperation('remove_member',{p_target:button.dataset.voxRemove},chronicle);if(!result.removed)throw Error('Исключение не подтверждено.');success=true;toast('Участник исключён. Листы возвращены Мастеру.');await Promise.all([loadCharacters(),loadStatblocks()]);});
+ if(success)await voxMembers();
+}
+function voxImport(){
+ if(!voxSession())return;VOX_TOOLS.context={chronicle:S.chronicle.id,user:S.user.id};VOX_TOOLS.imported=null;VOX_TOOLS.receipt=null;
+ voxShowTools('Импорт JSON','<p>Будет создан новый лист в текущей хронике. Существующие листы не перезаписываются. Ссылки на справочники и версию пресета будут проверены до создания.</p><label for="vox-import-file">Файл персонажа или НПЦ</label><input id="vox-import-file" type="file" accept="application/json,.json"><div id="vox-import-preview"></div><button type="button" class="modal-confirm" id="vox-import-confirm" disabled>Создать лист</button>');
+}
+async function voxReadImport(input){
+ const file=input.files?.[0],ctx=VOX_TOOLS.context;if(!file||!ctx)return;
+ VOX_TOOLS.imported=null;VOX_TOOLS.receipt=null;$('vox-import-confirm').disabled=true;
+ await voxRun(async()=>{
+  if(file.size>8388608)throw Error('Максимальный размер JSON — 8 МБ.');
+  const raw=JSON.parse(await file.text()),restored=await voxRestoreFile(raw);
+  if(VOX_TOOLS.context!==ctx||S.chronicle?.id!==ctx.chronicle||S.user?.id!==ctx.user)throw Error('Хроника изменилась. Откройте импорт заново.');
+  VOX_TOOLS.imported=restored;VOX_TOOLS.sourceFile=raw;VOX_TOOLS.receipt=crypto.randomUUID();
+  $('vox-import-preview').innerHTML='<p><b>'+esc(restored.name)+'</b> · '+(restored.kind==='character'?'Персонаж':'НПЦ / техника')+(raw.preset?' · Пресет '+esc(raw.preset.id)+', версия '+esc(raw.preset.revision):'')+'</p><p>Ссылки проверены. Можно создать новый лист.</p>';
+  $('vox-import-confirm').disabled=false;voxStatus('');
+ });
+}
+async function voxConfirmImport(){
+ const c=VOX_TOOLS.context,item=VOX_TOOLS.imported,receipt=VOX_TOOLS.receipt;if(!item||!c||S.chronicle?.id!==c.chronicle||S.user?.id!==c.user)return;
+ await voxRun(async()=>{
+  // Validate reference availability again: the preview may have remained open.
+  const fresh=await voxRestoreFile(VOX_TOOLS.sourceFile);
+  if(S.chronicle?.id!==c.chronicle||S.user?.id!==c.user)throw Error('Хроника изменилась.');
+  const result=await voxOperation('import',{p_kind:fresh.kind,p_name:fresh.name,p_payload:fresh.data,p_receipt:receipt},c.chronicle);
+  if(!result.id)throw Error('Импорт не подтверждён. Повторите создание; копия не будет продублирована.');
+  $('vox-tools-modal').classList.add('hidden');VOX_TOOLS.imported=null;await Promise.all([loadCharacters(),loadStatblocks()]);toast('Новый лист импортирован');
+  if(item.kind==='character')await openSheet(result.id);else await openStatblock(result.id);
+ });
+}
+const VOX_ENTER_CHRONICLE=enterChronicle;
+enterChronicle=async function(id,name,role,...args){
+ try{const actual=await voxMembership(id);const result=await VOX_ENTER_CHRONICLE(id,name,actual,...args);$('vox-members-btn').classList.toggle('hidden',actual!=='gm');return result;}
+ catch(e){toast(voxMessage(e));await showDash();return false;}
+};
+// Route existing statblock writes through the membership/ownership-aware operation.
+const VOX_RPC=sb.rpc.bind(sb);
+sb.rpc=function(name,args,...rest){
+ if(name==='save_chronicle_statblock')return VOX_RPC('vox_actor_operation',{p_action:'save_statblock',p_chronicle:args.p_chronicle_id,p_actor:S.user?.id,p_id:String(args.p_block_id),p_revision:args.p_expected_revision,p_payload:args.p_delete?null:args.p_block},...rest);
+ return VOX_RPC(name,args,...rest);
+};
+const VOX_OPEN_SHEET=openSheet;
+openSheet=async function(id,...args){
+ try{
+  const {data,error}=await sb.from('characters').select('id,user_id,is_gm_character,chronicle_id').eq('id',id).single();if(error)throw error;
+  const role=await voxMembership(data.chronicle_id);
+  if(role!=='gm'&&(data.user_id!==S.user.id||data.is_gm_character))throw Error('VOX_NO_ACCESS');
+  if(S.chronicle?.id!==data.chronicle_id){const {data:chronicle,error:err}=await sb.from('chronicles').select('id,name').eq('id',data.chronicle_id).single();if(err)throw err;S.chronicle=chronicle;}
+  S.role=role;
+  return await VOX_OPEN_SHEET(id,...args);
+ }catch(e){toast(voxMessage(e));return false;}
+};
+$('chr-chpass-btn').insertAdjacentHTML('afterend','<button type="button" id="vox-members-btn" class="hidden">Участники</button><button type="button" id="vox-import-btn">Импорт JSON</button>');
+$('vox-members-btn').onclick=()=>voxMembers();$('vox-import-btn').onclick=voxImport;
+$('settings-modal').addEventListener('click',e=>{if(e.target.closest('[data-vox-export]'))voxExport();if(e.target.closest('[data-vox-transfer]'))voxMembers(true);});
+$('vox-tools-body').addEventListener('click',e=>{const give=e.target.closest('[data-vox-give]'),remove=e.target.closest('[data-vox-remove]');if(give)voxTransfer(give);else if(remove)voxRemoveMember(remove);else if(e.target.closest('#vox-import-confirm'))voxConfirmImport();});
+$('vox-tools-body').addEventListener('change',e=>{if(e.target.id==='vox-import-file')voxReadImport(e.target);});
+$('vox-tools-close').onclick=voxCloseTools;$('vox-tools-modal').addEventListener('click',e=>{if(e.target===$('vox-tools-modal'))voxCloseTools();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('vox-tools-modal').classList.contains('hidden')){e.stopImmediatePropagation();voxCloseTools();}},true);
 
 </script>
 </body>
