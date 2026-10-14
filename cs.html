@@ -6864,7 +6864,7 @@ function renderSkills(){
           if (hideUntrained && (g.level || 'untrained') === 'untrained' && !r.counts_as_basic) return;
           const glvl = g.level || 'untrained';
           const sgch = g.characteristic || r.characteristic || '';
-          const gbi = skillBadgeInfo(d, r, glvl, basicish, sgch);
+          const gbi = skillBadgeInfo(d, r, glvl, basicish, sgch, g.name);
           html += `<div class="skill-group-row">
             ${sgch ? `<span class="skill-chip">${esc(CH_ABBR[sgch] || sgch)}</span>` : ''}
             <span class="skill-group-name">${esc(g.name)}</span>
@@ -8550,7 +8550,7 @@ function rollOptions(){
     (d[key] || []).forEach((r, i) => {
       const basicish = key === 'skills_basic' || !!r.counts_as_basic;
       const add = (lvl, ch, name, gi) => {
-        const bi = skillBadgeInfo(d, r, lvl, basicish, ch);
+        const bi = skillBadgeInfo(d, r, lvl, basicish, ch, gi==null?'':r.groups[gi]?.name);
         if (bi.value == null) return;
         out.push({ id:key + ':' + i + (gi == null ? '' : ':' + gi), kind:'skill',
                    characteristic:ch || '', name, value:bi.value, title:bi.title });
@@ -8715,7 +8715,7 @@ function openRollFromBadge(spec){
   const grp = gi != null ? (row.groups || [])[gi] : null;
   const lvl = (grp || row).level || 'untrained';
   const ch = (grp && grp.characteristic) || row.characteristic;
-  const bi = skillBadgeInfo(d, row, lvl, basicish, ch);
+  const bi = skillBadgeInfo(d, row, lvl, basicish, ch, grp?.name||'');
   if (bi.value == null){ toast('Умение не тренировано — бросок невозможен'); return; }
   openRoll({ kind:'skill', sel:{
     kind:'skill', id:key + ':' + idx + (gi != null ? ':' + gi : ''),
@@ -12593,7 +12593,7 @@ function sbRenderSkills(){
           if (hideUntrained && (g.level || 'untrained') === 'untrained' && !r.counts_as_basic) return;
           const glvl = g.level || 'untrained';
           const sgch = g.characteristic || r.characteristic || '';
-          const gbi = skillBadgeInfo(d, r, glvl, basicish, sgch);
+          const gbi = skillBadgeInfo(d, r, glvl, basicish, sgch, g.name);
           html += `<div class="skill-group-row">
             ${sgch ? `<span class="skill-chip">${esc(CH_ABBR[sgch] || sgch)}</span>` : ''}
             <span class="skill-group-name">${esc(g.name)}</span>
@@ -17027,6 +17027,177 @@ $('action-confirm').addEventListener('click',e=>{if(ACTION.selected?.code!=='foc
 $('roll-go').addEventListener('click',e=>{if(!ROLL.action?.warp)return;e.preventDefault();e.stopImmediatePropagation();doRoll();},true);
 
 </script>
+<style id="equipment-auto-style">
+.ea-controls{border-top:1px solid var(--border-gold);margin-top:12px;padding-top:12px}.ea-entry{padding:8px 0;overflow-wrap:anywhere}.ea-entry select,.ea-entry input{max-width:100%;box-sizing:border-box;font:inherit;background:#151518;color:var(--text-main);border:1px solid var(--border-gold);padding:6px}.ea-entry button{margin:4px;font:inherit}.ea-note{color:var(--text-dim);font-size:14px}.ea-weapon-choice{margin:8px 0}.ea-damage{margin-top:8px;overflow-wrap:anywhere}.gw-q-chip[data-ea-quality]{cursor:help}
+</style>
+<script id="equipment-auto-runtime">
+const EA_ORIG={normalize,permMods,statBonus,skillBadgeInfo,rollModRows,rollModRowHtml,renderRollMods,renderModSection,gearResolve,gearEffWeapon,gearDmgCellHtml,gearStatsCellsHtml,gearQualitiesHtml,dwQualitiesHtml,showGearInfo,renderList,renderSheet,updateStatsOnly,openRoll,sgaDrawSymbol,gearItemDesc};
+function eaNorm(s){return String(s||'').toLowerCase().replace(/ё/g,'е').replace(/[()]/g,'').replace(/\s+/g,' ').trim();}
+function eaState(d){return d.equipment_automation||{};}
+normalize=function(raw){const d=EA_ORIG.normalize(raw);if(raw?.equipment_automation)d.equipment_automation=sgClone(raw.equipment_automation);return d;};
+function eaSymbols(d){const out=[],seen=new Set();for(const row of d?.gear||[]){const m=GEAR_MAP[row.item_id]?.stats?.chapter_trapping,x=row.starting_symbol;if(!m||!x||Number(x.chapter_id)!==Number(d.info?.chapter_id))continue;const key=m.key+':'+(x.variants||[]).slice().sort().join(',');if(seen.has(key))continue;seen.add(key);out.push({row,m,x});}return out;}
+function eaSkillOptions(d,names){const out=[];for(const s of DB_SKILLS.filter(s=>names.includes(s.name))){const owned=[...(d.skills_basic||[]),...(d.skills_adv||[])].find(r=>Number(r.skill_id??r.id)===Number(s.id));const groups=owned?.groups||[];if(groups.length)for(const g of groups)out.push({id:String(s.id),group:g.name,label:s.name+' · '+g.name});else out.push({id:String(s.id),group:'',label:s.name});}return out;}
+function eaBinding(d,source,s,names){const configured=eaState(d).bindings?.[source];if(configured)return configured;const text=Object.values(s.x.details||{}).map(eaNorm).join(' '),options=eaSkillOptions(d,names);const matches=options.filter(o=>text===eaNorm(o.label)||o.group&&text===eaNorm(o.group));return matches.length===1?matches[0]:null;}
+function eaRules(d){const out=[];for(const s of eaSymbols(d)){const {m,x,row}=s,has=v=>(x.variants||[]).includes(String(v));
+ const add=(suffix,target,name,effect,condition='',extra={})=>{const source='symbol:'+m.key+':'+suffix;out.push({name:row.name,source,target,target_name:name,effect,mode:'add',timing:'post',condition,scope:condition, ...extra});};
+ const skill=(suffix,name,value)=>{const item=DB_SKILLS.find(s=>s.name===name);if(item)add(suffix,'skill',String(item.id),value);};
+ const chosen=(suffix,names)=>{const source='symbol:'+m.key+':'+suffix,b=eaBinding(d,source,s,names);add(suffix,'skill',b?.id||'',3,'',{bindingNames:names,binding:b,group:b?.group||'',needsBinding:!b||!b.group});};
+ switch(m.key){
+ case 'devotion-chain':add('fear','test','sv',3,'Против Страха или урона Сплочённости');break;
+ case 'tabard':if(has(1))add('pattern','test','obsh',2);break;
+ case 'blood-drop':add('fate','test','all',13,'Трата очка Судьбы на бонус к этой проверке',{replacesFate:true});break;
+ case 'golden-icons':if(has(1))skill('command','Командование',3);if(has(2))add('charge','damage','weapon_melee',1,'Урон при Натиске',{action:'charge'});break;
+ case 'robe':if(has(1))chosen('scholar',['Учёное знание']);if(has(2))chosen('secrets',['Запретное знание']);if(has(3))skill('seeker','Проницательность',3);break;
+ case 'wolf-pelt':skill('intimidate','Запугивание',2);break;
+ case 'runic-totem':if(has(1))add('fury','damage','fury',1,'Дополнительный урон подтверждённого Праведного гнева');if(has(2))chosen('sea',['Вождение','Пилотирование']);if(has(3))skill('sun','Бдительность',3);break;
+ case 'tempest-amulet':if(has(1))add('strength','stat','sil',2);if(has(2))add('duel','test','bb',2,'Поединок один на один');break;
+ case 'cingulum':if(has(1))add('parry','test','bb',3,'Парирование',{action:'parry'});if(has(2))add('first','test','bb',3,'Первый бросок атаки в бою');if(has(3))add('cohesion','test','all',3,'Восстановление Сплочённости или предотвращение урона ей');break;
+ case 'ossific-relic':add('enemy','test','bb',3,'Против: '+(Object.values(x.details||{}).join(', ')||'выбранного вида врага'));break;
+ case 'scrimshaw-tools':break; // Crafting a new relic requires a separate test and a real degree-of-success value.
+ case 'sable-heraldry':if(has(1))add('perception','stat','vos',3);if(has(2))add('agility','stat','lov',2);break;
+ case 'promethean-sigils':if(has(1))add('initiative','indicator','initiative',2);if(has(2))skill('forge','Техпользование',3);if(has(3))add('strength','stat','sil',2);break;
+ case 'honour-gift':if(has(1))add('endurance','test','wyn',2);if(has(2))chosen('tactics',['Тактика']);if(has(3))add('charge','test','bb',20,'Натиск',{action:'charge'});break;
+ case 'iron-cage-icon':for(const k of ['sil','wyn','sv'])add(k,'stat',k,10,'Один ход, один раз за игровую сессию',{timing:'pre',activated:true});break;
+ case 'librarium-texts':chosen('knowledge',['Обыденное знание','Учёное знание','Запретное знание']);break;
+ case 'grisly-trophies':add('rage','test','sv',10,'Против чёрной ярости или красной жажды');break;
+ case 'ork-bone-talisman':add('hatred','test','db',10,'Против орков; требуется Ненависть (Орки)');break;
+ case 'night-world-colours':add('camouflage','skill',String(DB_SKILLS.find(s=>s.name==='Скрытность')?.id||''),10,'Пока нанесены боевые цвета ночного мира');break;
+ case 'marksman-sight':if(has(1))add('laser','test','db',10,'Одиночный выстрел из оружия с этим прицелом',{action:'standard_attack',sight:true});if(has(2))add('range','range','all',0,'Дальность: +10 м для пистолета / +20 м для лёгкого оружия',{sight:true});if(has(3))add('penetration','penetration','all',0,'Бронебойность: +бонус Восприятия',{sight:true});if(has(4))add('light','ignore','db',0,'Отмена штрафов освещения и оптической маскировки',{sight:true});if(has(5))add('hidden','ignore','db',20,'Полностью скрытая цель: −10 вместо −30',{sight:true});break;
+ case 'scrimshaw-talismans':if(has(1))skill('intimidate','Запугивание',5);if(has(2))add('psychic','test','all',5,'Сопротивление психосилам');break;
+ }
+ }return out;}
+function eaQualityRules(d){const out=[];for(const row of d?.gear||[]){const w=EA_ORIG.gearResolve(row),bonus=eaWeaponBonus(row);if(!bonus||!w||!['weapon_melee','weapon_ranged','shield'].includes(w.type))continue;const uid=row.ea_weapon_uid ||= crypto.randomUUID(),melee=['weapon_melee','shield'].includes(w.type);if(melee)out.push({name:row.name+' · качество',source:'quality:'+uid,target:'test',target_name:'bb',effect:bonus*5,condition:''});out.push({name:row.name+' · урон от качества',source:'quality:'+uid+':damage',target:'damage',target_name:melee?'weapon_melee':'weapon_ranged',effect:bonus,condition:''});}return out;}
+function eaReplacedManual(d){return [...eaRules(d).filter(a=>!a.group&&eaEnabled(d,a)),...eaQualityRules(d)].filter(a=>eaDecision(d,a)==='auto').flatMap(a=>eaConflicts(d,a));}
+function eaRawMods(d){return [...(d.modifiers?.perm||[]),...(d.modifiers?.cond||[])];}
+function eaFingerprint(m){return JSON.stringify([m.name,m.target,m.target_name,m.mode,Number(m.effect),m.timing||'pre',m.source||'']);}
+function eaConflicts(d,a){return eaRawMods(d).filter(m=>!m.source||String(m.source).startsWith('roll-saved:')).filter(m=>m.mode!=='mul'&&Number(m.effect)===(a.replacesFate?10:Number(a.effect))&&((a.target==='skill'&&m.target==='skill'&&String(m.target_name)===String(a.target_name))||(['stat','test'].includes(a.target)&&['stat','check'].includes(m.target)&&(m.target==='check'||m.target_name===a.target_name||m.target_name==='all'||a.target_name==='all'))||(a.target==='damage'&&m.target==='weapon_damage'&&[a.target_name,'all'].includes(m.target_name))));}
+function eaDecision(d,a){const value=eaState(d).decisions?.[a.source];if(!value||typeof value==='string')return value;if(value.mode==='manual')return 'manual';return JSON.stringify(value.manual)===JSON.stringify(eaConflicts(d,a).map(eaFingerprint))?'auto':null;}
+function eaEnabled(d,a){if(a.needsBinding)return false;const choice=eaDecision(d,a);if(choice==='manual')return false;if(eaConflicts(d,a).length&&choice!=='auto')return false;return true;}
+function eaStatic(a){return !a.condition||a.activated;}
+function eaActive(d,a){return eaEnabled(d,a)&&(!a.activated||eaState(d).active?.['symbol:iron-cage-icon:active']);}
+function eaGenerated(d){return eaRules(d).filter(a=>eaStatic(a)&&eaActive(d,a)&&['stat','skill','indicator'].includes(a.target));}
+permMods=function(d){const base=EA_ORIG.permMods(d),generated=eaGenerated(d),suppressed=new Set(eaReplacedManual(d).map(eaFingerprint));return base.filter(m=>!suppressed.has(eaFingerprint(m))).concat(generated.filter(a=>a.target!=='skill'||!a.group));};
+statBonus=function(d,k){const value=EA_ORIG.statBonus(d,k),post=eaGenerated(d).filter(a=>a.target==='stat'&&a.target_name===k&&a.timing==='post').reduce((n,a)=>n+a.effect,0);if(!post)return value;const effective=charBase(d,k)+modsAdd(d,'stat',k,'pre')+modsAdd(d,'stat',k,'post');return value+Math.floor(effective/10)-Math.floor((effective-post)/10);};
+skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){
+ const matched=eaGenerated(d).filter(a=>a.target==='skill'&&a.group&&String(a.target_name)===String(row.skill_id??row.id)&&eaNorm(a.group)===eaNorm(groupName));
+ const suppress=new Set(matched.filter(a=>eaDecision(d,a)==='auto').flatMap(a=>eaConflicts(d,a).map(eaFingerprint)));
+ const input=suppress.size?{...d,modifiers:{perm:(d.modifiers?.perm||[]).filter(m=>!suppress.has(eaFingerprint(m))),cond:d.modifiers?.cond||[]}}:d;
+ const result=EA_ORIG.skillBadgeInfo(input,row,level,basicish,chName);if(result.value==null)return result;
+ const key=CH_KEY[chName||row.characteristic],stat=eaGenerated(d).filter(a=>a.target==='stat'&&a.target_name===key).reduce((n,a)=>n+a.effect,0),base=charBase(d,key);
+ const statDelta=basicish&&(level||'untrained')==='untrained'?Math.ceil((base+stat)/2)-Math.ceil(base/2):stat;
+ const id=String(row.skill_id??row.id),grouped=eaGenerated(d).filter(a=>a.target==='skill'&&a.group&&String(a.target_name)===id&&eaNorm(a.group)===eaNorm(groupName));
+ const value=Number(result.value)+statDelta+grouped.reduce((n,a)=>n+a.effect,0);return value===Number(result.value)?result:{...result,value,text:String(value),title:result.title+' · Бонус символа '+(value-Number(result.value))};
+};
+function eaWeaponRow(){const d=S.character?.character_data,id=ROLL.action?.weapon_id||ROLL.eaWeapon;return id?.startsWith('gear:')?d?.gear?.[Number(id.slice(5))]:null;}
+function eaWeaponBonus(row){return gearItemQuality(row)==='И'?2:gearItemQuality(row)==='В'?1:0;}
+function eaSightRow(d){return eaSymbols(d).find(s=>s.m.key==='marksman-sight');}
+function eaSightWeapon(d,row){const binding=eaState(d).bindings?.['symbol:marksman-sight:weapon'];return binding&&(d.gear||[]).filter(r=>r.ea_weapon_uid===binding.uid).length===1&&String(row?.ea_weapon_uid||'')===String(binding.uid);}
+gearResolve=function(row){const w=EA_ORIG.gearResolve(row),d=S.character?.character_data;if(!w||!d?.gear?.includes(row))return w;let result=w;const clone=()=>{if(result===w)result={...w,qualities:(w.qualities||[]).slice()};};
+ if(w.type==='weapon_ranged'&&eaWeaponBonus(row)===1&&!(w.qualities||[]).some(q=>Number(q.qid??q)===4)){clone();result.qualities.push({qid:4});}
+ const sight=eaSightRow(d);if(sight&&eaSightWeapon(d,row)&&['пистолет','лёгкое','легкое','pistol','basic'].includes(eaNorm(w.weight_class))){
+  if(sight.x.variants.includes('2')&&eaEnabled(d,{source:'symbol:marksman-sight:range',target:'range',effect:0})){clone();const n=Number(w.range);if(Number.isFinite(n))result.range=n+(['пистолет','pistol'].includes(eaNorm(w.weight_class))?10:20);}
+  if(sight.x.variants.includes('3')&&eaEnabled(d,{source:'symbol:marksman-sight:penetration',target:'penetration',effect:0})){clone();result.pen=(Number(w.pen)||0)+statBonus(d,'vos');}
+ }return result;
+};
+function eaRollApplies(a){const k=rollCharKey(),sel=ROLL.sel;if(a.target==='skill'){const r=actionSkillRow(sel);return r&&String(r.skill_id??r.id)===String(a.target_name)&&(!a.group||eaNorm(r.groups?.[Number(sel.id.split(':')[2])]?.name)===eaNorm(a.group));}if(a.target==='damage')return !!eaWeaponRow();return ['test','stat','ignore'].includes(a.target)&&(a.target_name==='all'||a.target_name===k);}
+function eaRollItems(){const d=S.character?.character_data;if(!d)return [];const row=eaWeaponRow(),action=ROLL.action?.row?.code;
+ const rules=eaRules(d).filter(a=>a.target!=='indicator'&&a.target!=='range'&&a.target!=='penetration'&&eaRollApplies(a)&&!(a.target==='skill'&&!a.condition));
+ if(row&&['weapon_melee','shield'].includes(gearRowType(row))&&rollCharKey()==='bb'){const bonus=eaWeaponBonus(row)*5;if(bonus)rules.push({name:row.name+' · '+(bonus===10?'Исключительное':'Выдающееся')+' качество',source:'quality:'+(row.ea_weapon_uid ||= crypto.randomUUID()),target:'test',target_name:'bb',effect:bonus,condition:''});}
+ return rules.map(a=>{const ready=eaActive(d,a)&&(!a.sight||eaSightWeapon(d,row));const automatic=!a.condition||a.action&&action===a.action&&(!a.sight||['single','stationary',''].includes(ROLL.action?.variant||''));const on=ready&&(automatic?ROLL.eaOn?.[a.source]!==false:ROLL.eaOn?.[a.source]===true);return {...a,ready,on,automatic};});
+}
+openRoll=function(opts){ROLL.eaOn={};ROLL.eaWeapon='';return EA_ORIG.openRoll(opts);};
+rollModRows=function(){const rows=EA_ORIG.rollModRows(),d=S.character?.character_data;if(!d)return rows;const auto=eaRollItems(),suppressed=new Set(auto.filter(a=>a.on&&eaDecision(d,a)==='auto').flatMap(a=>eaConflicts(d,a).map(m=>m.name+'\0'+m.effect)));
+ for(const m of eaReplacedManual(d))suppressed.add(m.name+'\0'+m.effect);const out=rows.filter(r=>!suppressed.has(r.label+'\0'+r.value));for(const a of auto){if(a.target==='stat'&&ROLL.sel?.kind==='skill')continue;if(a.replacesFate&&a.on)for(const r of out)if(Number(r.value)===10&&/судьб/i.test(r.label))r.on=false;
+  if(a.target==='ignore'){const matches=out.filter(r=>r.on&&r.value<0&&(a.source.endsWith(':light')?/освещ|темнот|хамелеолин|тенев.*пол/i.test(r.label):r.value===-30&&/полностью.*скрыт|невидим.*цел|скрыт.*цел/i.test(r.label)));if(a.ready&&matches.length&&ROLL.eaOn?.[a.source]!==false)a.on=true;a.effect=a.source.endsWith(':light')?-matches.reduce((n,r)=>n+r.value,0):matches.length?20:0;}
+  out.push({label:a.name,value:a.target==='damage'?0:a.effect,ea:a.source,locked:false,on:a.on,unavailable:!a.ready,scope:(a.target==='damage'?'К урону +'+a.effect+' · ':'')+(a.condition||'Автоматический бонус')+(!a.ready?' · требуется выбор в бонусах символа':''),actualEffect:a.effect});
+ }return out;
+};
+rollModRowHtml=function(r){if(!r.ea)return EA_ORIG.rollModRowHtml(r);return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope)+'</span></span><span class="vl">'+(r.on&&r.value>0?'+':'')+r.value+'</span><input type="checkbox" data-ea-roll="'+escAttr(r.ea)+'"'+(r.on?' checked':'')+(r.unavailable?' disabled':'')+'></div>';};
+function eaAddDamage(expr,n){if(!n||!expr)return expr;const s=String(expr),m=s.match(/^(\d+\s*[dдк]\s*\d+)(?:\s*([+-])\s*(\d+))?$/i);if(!m)return s+(n>=0?' + ':' − ')+Math.abs(n);const total=(m[2]==='-'?-1:1)*Number(m[3]||0)+n;return m[1]+(total?(total>0?'+':'')+total:'');}
+function eaDamage(row,w,d,roll=false){if(!w?.dmg)return w?.dmg;const quality=eaQualityRules(d).find(a=>a.target==='damage'&&a.source==='quality:'+row.ea_weapon_uid+':damage');let add=quality&&eaEnabled(d,quality)?quality.effect:0;if(['weapon_melee','shield'].includes(w.type)&&!w.includes_strength_bonus)add+=statBonus(d,'sil');
+ const target=['weapon_melee','shield'].includes(w.type)?'weapon_melee':'weapon_ranged';const mods=permMods(d).filter(m=>m.target==='weapon_damage'&&m.mode!=='mul'&&[target,w.type,w.class,'all'].includes(m.target_name));add+=mods.reduce((n,m)=>n+Number(m.effect||0),0);
+ if(roll)for(const a of eaRollItems())if(a.target==='damage'&&a.on&&(a.target_name==='all'||a.target_name===target))add+=a.effect;
+ if(typeof damageDefaults==='function'){const c=damageDefaults({row,profile:w,type:w.type,id:'ea-display:'+row.ea_weapon_uid,name:row.name});add=c.bonus;if(roll)for(const a of eaRollItems())if(a.target==='damage'&&a.on&&(a.target_name==='all'||a.target_name===target))add+=a.effect;}
+ return eaAddDamage(w.dmg,add);
+}
+gearEffWeapon=function(row,w){const result=EA_ORIG.gearEffWeapon(row,w),d=S.character?.character_data;if(!result||!d)return result;return {...result,dmg:eaDamage(row,result,d),ea_damage_complete:true,ea_includes_psy:typeof damageDefaults==='function'};};
+gearDmgCellHtml=function(f,w,i,editable,letter,key,wcls){if(w?.ea_damage_complete){const shown=w.ea_includes_psy?{...w,qualities:(w.qualities||[]).filter(q=>Number(q.qid??q)!==87)}:w;const raw=EA_ORIG.gearDmgCellHtml(f,shown,i,editable,letter,null,wcls);return raw;}return EA_ORIG.gearDmgCellHtml(f,w,i,editable,letter,key,wcls);};
+// Reference tooltips use the current property catalogue, including parameterised labels.
+function eaQualityText(text){const box=document.createElement('div');box.innerHTML=descBody(String(text||'Описание свойства отсутствует.').replace(/\\n/g,'\n').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p\s*>/gi,'\n\n'));box.querySelectorAll('br').forEach(b=>b.replaceWith(document.createTextNode('\n')));return box.textContent;}
+function eaQualityTip(q,label,note=''){return '<button type="button" class="gw-q-chip snack" data-ea-quality="'+escAttr(q.id)+'" data-tooltip="'+escAttr((note?note+'\n\n':'')+eaQualityText(q.description))+'">'+esc(label)+'</button>';}
+gearQualitiesHtml=function(r,i,w,editable){let html=EA_ORIG.gearQualitiesHtml(r,i,w,editable);const refs=(w?.qualities||[]).map(q=>({qid:q?.qid??q,param:q?.param,note:q?.note}));const box=document.createElement('div');box.innerHTML=html;const chips=[...box.querySelectorAll('span.gw-q-chip.snack')];let n=0;for(const ref of refs){const q=WQ_MAP[ref.qid];if(!q||hiddenWeaponQuality(ref.qid))continue;const chip=chips[n++];if(chip)chip.outerHTML=eaQualityTip(q,chip.textContent,ref.note||'');}
+ if(editable)for(const chip of box.querySelectorAll('[data-gear-qual]')){const q=WQ_MAP[chip.dataset.gearQual.split(':')[1]];if(q)chip.dataset.tooltip=String(q.description||'').replace(/\\n/g,'\n');}return box.innerHTML;
+};
+dwQualitiesHtml=function(w){const html=EA_ORIG.dwQualitiesHtml(w),box=document.createElement('div');box.innerHTML=html;for(const chip of box.querySelectorAll('[data-dw-quality-desc]')){chip.dataset.tooltip=chip.dataset.dwQualityDesc;chip.dataset.eaQuality='dw';}return box.innerHTML;};
+function eaRuleControls(d,a){const conflicts=eaConflicts(d,a),choice=eaDecision(d,a),binding=eaState(d).bindings?.[a.source]||a.binding;let html='<div class="ea-entry" data-ea-owner="'+escAttr(S.character?.id)+'"><b>'+esc(a.name)+' '+(a.effect?'+': '')+a.effect+'</b><div class="ea-note">'+esc(a.condition||(a.target==='test'?statFullName(a.target_name)||'Все проверки':a.target==='indicator'&&a.target_name==='initiative'?'Бонус к инициативе':a.target==='damage'?'К урону оружия':modTargetNameLabel(a.target,a.target_name)))+'</div>';
+ if(a.needsBinding)html+='<div class="ea-note">Укажите конкретное умение и группу; бонус пока не применяется.</div>';
+ if(a.bindingNames){const opts=eaSkillOptions(d,a.bindingNames);html+='<label>Умение <select data-ea-binding="'+escAttr(a.source)+'"><option value="">— выбрать —</option>'+opts.map(o=>'<option value="'+escAttr(JSON.stringify(o))+'"'+(binding&&binding.id===o.id&&binding.group===o.group?' selected':'')+'>'+esc(o.label)+'</option>').join('')+'</select></label><label> Группа <input data-ea-group="'+escAttr(a.source)+'" value="'+escAttr(binding?.group||a.group||'')+'" placeholder="Например: Империум"></label>';}
+ if(a.activated&&a.target_name==='sil')html+='<label><input type="checkbox" data-ea-activate="symbol:iron-cage-icon:active"'+(eaState(d).active?.['symbol:iron-cage-icon:active']?' checked':'')+'> Применять сейчас (отключите после хода)</label>';
+ if(conflicts.length)html+='<div>Возможное совпадение: '+esc(conflicts.map(m=>m.name||'Ручной модификатор').join(', '))+'. '+(choice==='auto'?'Учитывается автоматический бонус; совпавшие ручные записи сохранены.':choice==='manual'?'Учитывается ручной бонус.':'Автобонус пока не применяется.')+'</div><button type="button" data-ea-decision="'+escAttr(a.source)+'" data-value="auto">Автоматически</button><button type="button" data-ea-decision="'+escAttr(a.source)+'" data-value="manual">Оставить ручной</button>';
+ return html+'</div>';
+}
+function eaControls(d,row=null){const rules=eaRules(d).concat(eaQualityRules(d).filter(a=>eaConflicts(d,a).length)).filter(a=>!row||a.source.startsWith('symbol:'+GEAR_MAP[row.item_id]?.stats?.chapter_trapping?.key+':'));let html=rules.map(a=>eaRuleControls(d,a)).join('');
+ if((!row||GEAR_MAP[row.item_id]?.stats?.chapter_trapping?.key==='marksman-sight')&&eaSightRow(d)){const binding=eaState(d).bindings?.['symbol:marksman-sight:weapon'];html+='<div class="ea-entry" data-ea-owner="'+escAttr(S.character?.id)+'"><label>Оружие с боевым прицелом <select data-ea-sight><option value="">— выбрать —</option>'+(d.gear||[]).map((r,i)=>{const w=EA_ORIG.gearResolve(r);return w?.type==='weapon_ranged'&&['пистолет','лёгкое','легкое','pistol','basic'].includes(eaNorm(w.weight_class))?'<option value="'+i+'"'+(r.ea_weapon_uid===binding?.uid?' selected':'')+'>'+esc(r.name)+'</option>':'';}).join('')+'</select></label></div>';}
+ return html?'<section class="ea-controls"><b>Автоматические бонусы снаряжения</b>'+html+'</section>':'';
+}
+showGearInfo=function(row,key,index){const result=EA_ORIG.showGearInfo(row,key,index),d=S.character?.character_data;if(key==='gear'&&row.starting_symbol&&$('info-modal').classList.contains('active')){$('info-edit').insertAdjacentHTML('beforeend',eaControls(d,row));$('info-edit').dataset.eaRow=String(index);}return result;};
+renderModSection=function(section){EA_ORIG.renderModSection(section);if(section==='perm'&&S.character)$('mods-perm-list')?.insertAdjacentHTML('beforeend',eaControls(S.character.character_data));};
+renderRollMods=function(){EA_ORIG.renderRollMods();const d=S.character?.character_data;if(!d||!ROLL.sel)return;const host=$('roll-mods');
+ if(!ROLL.action?.weapon_id&&['bb','db'].includes(rollCharKey()))host.insertAdjacentHTML('afterbegin','<label class="ea-weapon-choice">Оружие проверки <select data-ea-roll-weapon><option value="">— без оружия —</option>'+actionWeapons(d).filter(w=>w.id.startsWith('gear:')&&(rollCharKey()==='bb'?['weapon_melee','shield'].includes(w.type):w.type==='weapon_ranged')).map(w=>'<option value="'+escAttr(w.id)+'"'+(w.id===ROLL.eaWeapon?' selected':'')+'>'+esc(w.label)+'</option>').join('')+'</select></label>');
+ for(const a of [...eaRollItems(),...eaQualityRules(d).filter(a=>a.target==='damage'&&a.source==='quality:'+eaWeaponRow()?.ea_weapon_uid+':damage')])if(eaConflicts(d,a).length)host.insertAdjacentHTML('beforeend',eaRuleControls(d,a));
+ const row=eaWeaponRow();if(row){const w=gearEffWeapon(row,gearResolve(row));host.insertAdjacentHTML('beforeend','<div class="ea-damage">Урон оружия: '+esc(eaDamage(row,{...w,dmg:EA_ORIG.gearEffWeapon(row,gearResolve(row)).dmg},d,true))+(typeof damageDefaults!=='function'&&gearPsyDamageBonus(w,d)?' +'+gearPsyDamageBonus(w,d)+' (Пси-рейтинг)':'')+'</div>');}
+};
+sgaDrawSymbol=function(){EA_ORIG.sgaDrawSymbol();const note=document.querySelector('#starting-choice-modal .modal-box > p.desc');if(note)note.textContent=note.textContent.replace('Правила бонусов приведены в описании и применяются вручную.','Числовые бонусы рассчитываются автоматически. Уточнения и возможные совпадения с ручными бонусами доступны в карточке символа.');};
+function eaRefresh(){renderSheet();if($('damage-modal')?.classList.contains('active')&&!DAMAGE.busy&&DAMAGE.owner===S.character)renderDamageRoll();if($('roll-modal').classList.contains('active')){const current=ROLL.sel,found=rollOptions().find(r=>r.id===current?.id);if(found)ROLL.sel=found;renderRollMods();renderRollTotal();}debouncedSave();}
+document.addEventListener('change',e=>{const el=e.target,d=S.character?.character_data;if(!d)return;
+ if(el.matches('[data-ea-roll]')){ROLL.eaOn ||= {};ROLL.eaOn[el.dataset.eaRoll]=el.checked;renderRollMods();renderRollTotal();return;}
+ if(el.matches('[data-ea-roll-weapon]')){ROLL.eaWeapon=el.value;ROLL.eaOn={};renderRollMods();renderRollTotal();return;}
+ if(!el.matches('[data-ea-binding],[data-ea-group],[data-ea-sight],[data-ea-activate]'))return;
+ if(el.closest('[data-ea-owner]')?.dataset.eaOwner!==String(S.character.id))return;
+ d.equipment_automation ||= {};if(el.dataset.eaBinding){d.equipment_automation.bindings ||= {};if(el.value)d.equipment_automation.bindings[el.dataset.eaBinding]=JSON.parse(el.value);else delete d.equipment_automation.bindings[el.dataset.eaBinding];}
+ if(el.dataset.eaGroup){d.equipment_automation.bindings ||= {};const a=eaRules(d).find(a=>a.source===el.dataset.eaGroup),existing=d.equipment_automation.bindings[el.dataset.eaGroup];if(existing)existing.group=el.value.trim();else if(a?.bindingNames?.length===1){const skill=DB_SKILLS.find(s=>s.name===a.bindingNames[0]);d.equipment_automation.bindings[el.dataset.eaGroup]={id:String(skill.id),group:el.value.trim()};}}
+ if(el.matches('[data-ea-sight]')){d.equipment_automation.bindings ||= {};const row=d.gear[Number(el.value)];if(el.value!==''&&row){if(!row.ea_weapon_uid||d.gear.filter(r=>r.ea_weapon_uid===row.ea_weapon_uid).length>1)row.ea_weapon_uid=crypto.randomUUID();d.equipment_automation.bindings['symbol:marksman-sight:weapon']={uid:row.ea_weapon_uid};}else delete d.equipment_automation.bindings['symbol:marksman-sight:weapon'];}
+ if(el.dataset.eaActivate){d.equipment_automation.active ||= {};d.equipment_automation.active[el.dataset.eaActivate]=el.checked;}
+ const idx=$('info-edit')?.dataset.eaRow;eaRefresh();if(idx!=null&&$('info-modal').classList.contains('active'))showGearInfo(d.gear[Number(idx)],'gear',Number(idx));
+});
+document.addEventListener('click',e=>{const decision=e.target.closest('[data-ea-decision]');if(decision){const d=S.character?.character_data;if(!d||decision.closest('[data-ea-owner]')?.dataset.eaOwner!==String(S.character.id))return;d.equipment_automation ||= {};d.equipment_automation.decisions ||= {};const a=[...eaRules(d),...eaQualityRules(d),...eaRollItems()].find(a=>a.source===decision.dataset.eaDecision);if(!a)return;d.equipment_automation.decisions[decision.dataset.eaDecision]={mode:decision.dataset.value,manual:eaConflicts(d,a).map(eaFingerprint)};const idx=$('info-edit')?.dataset.eaRow;eaRefresh();if(idx!=null&&$('info-modal').classList.contains('active'))showGearInfo(d.gear[Number(idx)],'gear',Number(idx));return;}
+ const q=e.target.closest('[data-ea-quality]');if(q&&!q.matches('[data-dw-quality-title]')){e.stopPropagation();showInfo(q.textContent,q.dataset.tooltip);}
+});
+document.addEventListener('pointerover',e=>{const q=e.target.closest('[data-ea-quality],[data-gear-qual][data-tooltip]');if(q&&e.pointerType!=='touch'&&!q.contains(e.relatedTarget))showTooltip(q,true);});
+document.addEventListener('pointerout',e=>{const q=e.target.closest('[data-ea-quality],[data-gear-qual][data-tooltip]');if(q&&!q.contains(e.relatedTarget))scheduleTooltipHide();});
+document.addEventListener('focusin',e=>{if(e.target.matches('[data-ea-quality]'))showTooltip(e.target,true);});
+function eaStatblockTips(){document.querySelectorAll('#sb-root .sb-weapon').forEach((card,i)=>{const row=sbData()?.weapons?.[i],host=card.querySelector('.sb-weapon-qualities');if(!row||!host)return;const parts=String(row.qualities||'').split(/[,;]\s*(?![^()]*\))/).filter(Boolean);host.innerHTML=parts.map(label=>{const q=Object.values(WQ_MAP).find(q=>{const name=q.name.replace(/\([ХX]\)/g,'').trim();return label.trim()===name||label.trim().startsWith(name+' (')||q.param&&label.trim().startsWith(name+' ');});return q?eaQualityTip(q,label.trim()):'<span class="gw-q-chip">'+esc(label.trim())+'</span>';}).join('');});}
+
+const eaDerivedBefore=updateDerived;
+updateDerived=function(){const r=eaDerivedBefore(),d=S.character?.character_data;if(!d)return r;const extra=eaGenerated(d).filter(a=>a.target==='indicator'&&a.target_name==='initiative').reduce((n,a)=>n+a.effect,0);let el=$('ea-initiative');if(extra&&!el){el=document.createElement('div');el.id='ea-initiative';el.className='ea-note';$('speed-half')?.closest('.param-chips')?.insertAdjacentElement('afterend',el);}if(el){el.hidden=!extra;el.textContent='Инициатива: 1к10+'+(statBonus(d,'lov')+extra)+' (символ +'+extra+')';}return r;};
+const eaRenderStatblockBefore=renderStatblock;renderStatblock=function(...args){const r=eaRenderStatblockBefore(...args);eaStatblockTips();return r;};
+</script>
+
+<script id="equipment-auto-damage-bridge">
+// Keep the sheet and the independently published damage workflow on one calculation.
+if(typeof damageStrength==='function'){
+ const eaDamageStrengthBefore=damageStrength;
+ damageStrength=function(d){const value=eaDamageStrengthBefore(d),post=eaGenerated(d).filter(a=>a.target==='stat'&&a.target_name==='sil'&&a.timing==='post').reduce((n,a)=>n+a.effect,0);if(!post||dwActive(d)||d._statblock)return value;const current=modsAdd(d,'stat','sil','post');return value+(statBonus(d,'sil')-EA_ORIG.statBonus(d,'sil'))-(Math.floor(current/10)-Math.floor((current-post)/10));};
+}
+if(typeof damageDefaults==='function'){
+ const eaDamageDefaultsBefore=damageDefaults;
+ damageDefaults=function(w){const c=eaDamageDefaultsBefore(w),suppressed=new Set(eaReplacedManual(S.character?.character_data||{}).map(eaFingerprint));return {...c,situation:c.situation.filter(m=>!suppressed.has(eaFingerprint(m)))};};
+}
+function eaFuryBonus(d){return eaRules(d).filter(a=>a.target==='damage'&&a.target_name==='fury'&&eaEnabled(d,a)).reduce((n,a)=>n+a.effect,0);}
+let EA_FURY_REQUEST=null;
+if(typeof damageResolve==='function'){
+ const eaDamageResolveBefore=damageResolve;
+ damageResolve=function(input,die){const bonus=damageInteger(input.fury_bonus??EA_FURY_REQUEST??0,0,9999,'бонус Праведного гнева'),r=eaDamageResolveBefore(input,die);if(r.confirmed){r.fury+=bonus;r.total=r.ordinary+r.fury;}return {...r,fury_bonus:r.confirmed?bonus:0};};
+ const eaRenderDamageBefore=renderDamageRoll;
+ renderDamageRoll=function(){eaRenderDamageBefore();const d=S.character?.character_data;if(!d||!DAMAGE.weapon)return;const rules=eaRules(d).filter(a=>a.target==='damage'&&a.target_name==='fury');if(!rules.length)return;$('damage-params').insertAdjacentHTML('beforeend',damageCheckbox('ea-fury-bonus','Бонус символа к подтверждённому Праведному гневу: +'+eaFuryBonus(d),true)+rules.filter(a=>eaConflicts(d,a).length).map(a=>eaRuleControls(d,a)).join(''));};
+ const eaDoDamageBefore=doDamageRoll;
+ doDamageRoll=async function(){if(DAMAGE.busy)return;EA_FURY_REQUEST=$('ea-fury-bonus')?.checked?eaFuryBonus(S.character?.character_data||{}):0;try{return await eaDoDamageBefore();}finally{EA_FURY_REQUEST=null;}};
+ $('damage-go').onclick=()=>doDamageRoll();
+ const eaDamageCallBefore=sbOriginalRuntime.callRollApi;
+ sbOriginalRuntime.callRollApi=function(body){if(body?.action==='roll-damage')body={...body,damage:{...body.damage,fury_bonus:EA_FURY_REQUEST??0,notes:[...(body.damage.notes||[]),...(EA_FURY_REQUEST?['Символ ордена: +'+EA_FURY_REQUEST+' к подтверждённому Праведному гневу.']:[])]}};return eaDamageCallBefore(body);};
+}
+</script>
+
 </body>
 </html>
 
