@@ -16870,6 +16870,163 @@ voxRestoreFile=async function(file){
 };
 </script>
 
+<script data-feature="warp-powers">
+// Approved psychic power workflow. Metadata comes from the live power catalogue.
+const WARP={catalog:null,loading:null,owner:null,power:null,variant:null,continuing:false,turns:0,busy:false};
+async function warpCatalog(){
+ if(WARP.catalog)return WARP.catalog;
+ if(!WARP.loading)WARP.loading=(async()=>{const {data,error}=await sb.from('psi_powers').select('id,name,description,sustained,combat_rules');if(error)throw error;if(!Array.isArray(data))throw Error('Нет справочника пси-сил.');WARP.catalog=data;return data;})().finally(()=>WARP.loading=null);
+ return WARP.loading;
+}
+function warpKnown(){return (S.character?.character_data?.psi||[]).map(row=>({row,power:WARP.catalog?.find(p=>String(p.id)===String(row.id))})).filter(x=>x.power?.combat_rules);}
+function warpSupported(power){return normalizePsySupported(S.character.character_data).includes(toId(power.id));}
+function warpUsedPr(power,turns=0){
+ const d=S.character.character_data,count=normalizePsySupported(d).length;
+ let pr=dwPsyRating(d)-(count>1?count:0);
+ if(power.id===67)pr+=turns;
+ return Math.max(0,pr);
+}
+function warpVariants(power){return power.combat_rules.variants;}
+function warpLocation(mode,d100){if(mode==='head')return {name:'Голова',value:null};if(mode==='weakest')return {name:'Выбирается самая слабо защищённая зона',value:null};return bodyHitLocation(d100);}
+function warpMount(){
+ if($('warp-modal'))return;
+ const el=document.createElement('div');el.id='warp-modal';el.className='modal-overlay';
+ el.innerHTML='<style>#warp-modal .warp-box{box-sizing:border-box;width:min(620px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:#101011;border:1px solid var(--gold,#a8862f);padding:24px;color:var(--text-main,#d7d1c0);box-shadow:0 16px 60px #000b;}#warp-modal .warp-title{font-size:24px;color:var(--gold,#a8862f);text-transform:uppercase;margin-bottom:20px;}#warp-modal label{display:block;margin:14px 0;}#warp-modal select,#warp-modal input{display:block;box-sizing:border-box;width:100%;margin-top:7px;padding:8px;border:1px solid var(--border-gold,#68562f);background:#151516;color:inherit;}#warp-modal details{margin:14px 0;border-top:1px solid var(--border-dark,#333);padding-top:10px;}#warp-modal summary{cursor:pointer;color:var(--gold,#a8862f);}#warp-modal .warp-description{max-height:240px;overflow:auto;padding-top:10px;}</style><div class="roll-box warp-box"><div class="warp-title">Использование Варпа</div><div id="warp-content"></div><div id="warp-error" class="desc" role="alert"></div><div class="roll-result-acts"><button type="button" class="modal-close" id="warp-close">Закрыть</button></div></div>';
+ document.body.append(el);$('warp-close').onclick=()=>{if(!WARP.busy)closeSheetModal('warp-modal');};
+}
+async function warpOpen(){
+ warpMount();WARP.owner=S.character;WARP.power=null;WARP.variant=null;WARP.continuing=false;WARP.turns=0;
+ $('warp-content').textContent='Загрузка доступных пси-сил…';$('warp-error').textContent='';openSheetModal('warp-modal');
+ const owner=WARP.owner;try{await warpCatalog();if(S.character!==owner||WARP.owner!==owner)return;warpDraw();}catch(e){$('warp-error').textContent='Не удалось загрузить пси-силы. '+e.message;}
+}
+function warpDraw(){
+ if(S.character!==WARP.owner)return;
+ const known=warpKnown(),power=WARP.power,variants=power?warpVariants(power):[],supported=power&&warpSupported(power);
+ const variant=WARP.variant;const host=$('warp-content');
+ host.innerHTML='<label>Доступные пси-силы<select id="warp-power" class="editable-field"><option value="">Выберите пси-силу…</option>'+known.map(x=>'<option value="'+x.power.id+'"'+(x.power===power?' selected':'')+'>'+esc(x.row.name||x.power.name)+'</option>').join('')+'</select></label>'
+ +(known.length?'':'<p class="desc">Нет известных пси-сил с проверенными правилами применения.</p>')
+ +(power?'<div class="warp-details"><div class="desc">'+esc(psiMetaParts(power.description).head||power.description.split('\n')[0])+'</div><details><summary>Описание и особые правила</summary><div class="warp-description">'+descHtml(power.description)+'</div></details>'
+ +(variants.length>1?'<label>Применение<select id="warp-variant" class="editable-field">'+variants.map(v=>'<option value="'+escAttr(v.key)+'"'+(v===variant?' selected':'')+'>'+esc(v.label)+'</option>').join('')+'</select></label>':'')
+ +'<p class="desc">'+esc(variant?.attack?'Атака · '+({focus:'попадание по проверке Варпа',automatic:'автоматическое попадание',bs:'дополнительная проверка ДБ'}[variant.hit]||'автоматическое попадание'):'Воздействие без определения зоны')+'</p>'
+ +'<p class="desc">'+(supported?'Сила уже поддерживается.':'Поддержание: '+(power.sustained?'да':'нет'))+'</p>'
+ +(power.id===67?'<label>Количество ходов поддержания<input id="warp-turns" class="editable-field" type="number" min="0" max="999" step="1" value="'+WARP.turns+'"></label><p class="desc">0 — первоначальное применение. Каждый ход поддержания даёт этой силе +1 ПР.</p>':'')
+ +'<p class="desc">Используемый ПР: <b id="warp-pr">'+warpUsedPr(power,WARP.turns)+'</b></p>'
+ +'<div class="roll-result-acts"><button type="button" class="modal-confirm" id="warp-use">Использовать силу</button>'
+ +(supported&&power.combat_rules.continuation?.length?'<button type="button" class="modal-confirm" id="warp-continue">Атаковать поддерживаемой силой</button>':'')+'</div></div>':'');
+ $('warp-power').onchange=e=>{WARP.power=known.find(x=>String(x.power.id)===e.target.value)?.power||null;WARP.variant=WARP.power?warpVariants(WARP.power)[0]:null;WARP.turns=0;warpDraw();};
+ if($('warp-variant'))$('warp-variant').onchange=e=>{WARP.variant=variants.find(v=>v.key===e.target.value);warpDraw();};
+ if($('warp-turns'))$('warp-turns').oninput=e=>{const n=Number(e.target.value);WARP.turns=Number.isSafeInteger(n)&&n>=0&&n<=999?n:NaN;$('warp-pr').textContent=Number.isFinite(WARP.turns)?warpUsedPr(power,WARP.turns):'Введите целое число ходов';};
+ if($('warp-use'))$('warp-use').onclick=()=>warpStart(false);
+ if($('warp-continue'))$('warp-continue').onclick=()=>warpContinuation();
+}
+function warpContinuation(){
+ const power=WARP.power;if(S.character!==WARP.owner||!power||!warpSupported(power))return;
+ WARP.continuing=true;const variants=power.combat_rules.continuation;
+ if(variants.length===1){WARP.variant=variants[0];warpStart(true);return;}
+ $('warp-content').innerHTML='<p>'+esc(power.name)+' · атака поддерживаемой силой</p><div class="roll-result-acts">'+variants.map(v=>'<button type="button" class="modal-confirm" data-warp-cont="'+escAttr(v.key)+'">'+esc(v.label)+'</button>').join('')+'</div>';
+ $('warp-content').querySelectorAll('[data-warp-cont]').forEach(b=>b.onclick=()=>{WARP.variant=variants.find(v=>v.key===b.dataset.warpCont);warpStart(true);});
+}
+async function warpStart(continuing){
+ if(WARP.busy||S.character!==WARP.owner||!WARP.power||!WARP.variant)return;
+ const power=WARP.power,variant=WARP.variant;
+ if(!Number.isSafeInteger(WARP.turns)||WARP.turns<0||WARP.turns>999){$('warp-error').textContent='Введите целое число ходов от 0 до 999.';return;}
+ if(continuing&&!warpSupported(power)){$('warp-error').textContent='Поддержание этой силы прекращено.';return;}
+ const context={owner:S.character,power,variant,continuing,pr:warpUsedPr(power,WARP.turns),turns:WARP.turns};
+ if(context.pr<1){$('warp-error').textContent='Для применения силы нужен итоговый ПР не меньше 1.';return;}
+ if(continuing||variant.focus===false){
+  WARP.busy=true;try{if(variant.attack)await warpAutomatic(context);else{closeSheetModal('warp-modal');showInfo(power.name+' · '+variant.label,power.description);}}catch(e){$('warp-error').textContent=e.message;}finally{WARP.busy=false;}return;
+ }
+ closeSheetModal('warp-modal');
+ const row={code:'focus_power',requires_weapon:false,subtypes:variant.attack?['attack']:[],check_targets:[{kind:'stat',key:'sv'}],modifiers:[]};
+ openRoll({kind:'stat',action:{name:'Использование Варпа · '+power.name+' · '+variant.label,row,owner:S.character,warp:context,action_type:'variable'}});
+}
+async function warpAutomatic(context){
+ if(S.character!==context.owner)throw Error('Персонаж изменился. Откройте силу заново.');
+ const v=context.variant;
+ if(v.hit==='bs'){
+  closeSheetModal('warp-modal');openRoll({kind:'stat',action:{name:context.power.name+' · '+v.label,row:{code:'psychic_attack',requires_weapon:false,subtypes:['attack'],check_targets:[{kind:'stat',key:'db'}],modifiers:[]},owner:context.owner,warp:{...context,stage:'bs'}}});return;
+ }
+ const body={action:'roll-location',character_id:S.character.id,chronicle_id:S.chronicle?.id,stat_label:context.power.name+' · '+v.label,target:100,mod:0,is_attack:true,zone_mode:v.zone||'reverse'};
+ const r=await callRollApi(body);if(S.character!==context.owner)return;
+ closeSheetModal('warp-modal');
+ openRoll({kind:'stat',sel:{kind:'stat',statKey:'db',name:context.power.name}});ROLL.action=null;showRollResult(r);
+ const replaceButton=id=>{const old=$(id);if(!old)return null;const fresh=old.cloneNode(true);old.replaceWith(fresh);return fresh;};
+ const again=replaceButton('roll-again'),reset=replaceButton('roll-reset');
+ if(again)again.onclick=()=>warpAutomatic(context).catch(e=>toast(e.message));
+ if(reset)reset.onclick=()=>warpOpen().then(()=>{if(S.character!==context.owner)return;WARP.power=context.power;WARP.variant=warpVariants(context.power)[0];WARP.turns=context.turns||0;warpDraw();});
+}
+function warpActivate(context){
+ if(S.character!==context.owner||!context.power.sustained)return;
+ const d=S.character.character_data,row=(d.psi||[]).find(r=>String(r.id)===String(context.power.id));if(!row)return;
+ const supported=normalizePsySupported(d);if(supported.includes(toId(context.power.id)))return;
+ // Keep the actor's existing state; only the support list is changed.
+ if(!psiCanSupport(row.desc))row.desc=context.power.description;
+ if(setPsySupported(d,context.power.id,true)){renderPsySupported();renderList('psi');scheduleSave();}
+}
+const WARP_ORIG={confirm:confirmAction,renderSelection:renderActionSelection,mods:rollModRows,attack:actionAttackCheck,api:callRollApi,result:showRollResult};
+renderActionSelection=function(){WARP_ORIG.renderSelection();if(ACTION.selected?.code==='focus_power'){const host=$('action-selected');host.querySelectorAll('#action-type,#action-variant').forEach(el=>el.closest('label')?.remove());host.querySelectorAll('.desc').forEach(el=>el.remove());}};
+confirmAction=function(){if(ACTION.selected?.code==='focus_power'&&actionOwnerValid()){closeSheetModal('action-modal');warpOpen();return;}return WARP_ORIG.confirm();};
+actionAttackCheck=function(){const w=ROLL.action?.warp;if(w)return w.variant.attack===true&&(w.stage==='bs'||w.variant.hit==='focus');return WARP_ORIG.attack();};
+rollModRows=function(){
+ const w=ROLL.action?.warp;let rows=WARP_ORIG.mods();if(!w||w.stage==='bs')return rows;
+ rows.push({label:'Пси-рейтинг: 5 × '+w.pr,value:5*w.pr,locked:true,on:true});
+ if(w.variant.ranged_mods){
+  const d=S.character.character_data,seen=new Set(rows.map(r=>r.label+'\u0000'+r.value));
+  // Personal DB modifiers are available for psychic aiming. Equipment bonuses stay with weapons.
+  for(const section of ['perm','cond'])for(const m of d.modifiers?.[section]||[]){
+   if(m.target!=='stat'||m.target_name!=='db'||m.mode==='mul'||String(m.source||'').startsWith('equipment:'))continue;
+   const key=(m.name||'Дальний бой')+'\u0000'+(Number(m.effect)||0);if(seen.has(key))continue;seen.add(key);
+   const id='warp:'+section+':'+d.modifiers[section].indexOf(m);rows.push({label:m.name||'Дальний бой',value:Number(m.effect)||0,locked:section==='perm',on:section==='perm'||ROLL.warpOn?.[id]===true,scope:'Стрелковый модификатор для Варпа',warpMod:id});
+  }
+ }
+ return rows;
+};
+const warpRenderMods=renderRollMods;
+renderRollMods=function(){warpRenderMods();const box=$('roll-mods');if(!box)return;box.querySelectorAll('.roll-mod').forEach((div,i)=>{const row=rollModRows()[i],el=div.querySelector('input');if(row?.warpMod&&el){delete el.dataset.rollMod;el.dataset.warpRollMod=row.warpMod;el.checked=row.on;el.onchange=()=>{(ROLL.warpOn||={})[row.warpMod]=el.checked;renderRollMods();renderRollTotal();rollResultReset();};}});};
+const warpOpenRoll=openRoll;
+openRoll=function(opts){ROLL.warpOn={};return warpOpenRoll(opts);};
+callRollApi=async function(body){
+ const w=ROLL.action?.warp;
+ let request=body;
+ if(body.action==='roll'&&w&&w.stage!=='bs')request={...body,psychic_test:true,is_attack:w.variant.attack===true&&w.variant.hit==='focus',zone_mode:w.variant.hit==='focus'?(w.variant.zone||'reverse'):'none'};
+ if(body.action==='roll-location'&&sbActorActive()){
+  if(!S.character.character_data.discord_rolls){const die=sbRandomDie(100);return {d100:die,target:100,mod:0,threshold:100,success:true,degrees:0,delivered:false,skip:'npc_local',location_only:true,hit_location:warpLocation(body.zone_mode,die)};}
+  const owner=S.character;if(!await sbFlushQuick())throw Error('Не удалось сохранить НПЦ.');if(S.character!==owner)throw Error('НПЦ изменился.');request={...body,statblock_id:SB.record.id,chronicle_id:SB.chronicleId};delete request.character_id;
+ }
+ const r=await WARP_ORIG.api(request);
+ if(w&&S.character!==w.owner)throw Error('Персонаж изменился во время броска. Откройте силу заново.');
+ if(request.psychic_test){if(r.d100>=91){r.success=false;r.hit_location=null;}else if(r.success&&request.is_attack)r.hit_location=warpLocation(request.zone_mode,r.d100);}
+ if(request.psychic_test)WARP.lastResponse=r;
+ return r;
+};
+showRollResult=function(r){
+ WARP_ORIG.result(r);
+ if(r.location_only){const eq=$('roll-result').querySelector('.roll-eq'),verdict=$('roll-result').querySelector('.roll-verdict');if(eq)eq.textContent='д100 для определения зоны';if(verdict)verdict.textContent='Автоматическое попадание';}
+ const location=r.success&&r.hit_location;
+ if(location&&location.value==null){const el=$('roll-result').querySelector('.roll-hit-location');if(el)el.textContent='Зона попадания: '+location.name;if(r.location_only){const big=$('roll-result').querySelector('.roll-big');if(big)big.hidden=true;const eq=$('roll-result').querySelector('.roll-eq');if(eq)eq.textContent='Зона задана правилом силы';}}
+ const w=ROLL.action?.warp;if(!w||!r.success||w.stage==='bs')return;
+ warpActivate(w);
+ if(w.variant.attack&&w.variant.hit!=='focus'){
+  const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.textContent=w.variant.hit==='bs'?'Проверка ДБ':'Определить зону';$('roll-result').append(b);
+  b.onclick=async()=>{if(b.disabled)return;b.disabled=true;try{await warpAutomatic(w);}catch(e){rollErr(e.message);b.disabled=false;}};
+ }
+ if(w.power.id===25){const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.textContent='Вторичный эффект: зона';$('roll-result').append(b);b.onclick=()=>warpAutomatic({...w,variant:{key:'secondary',label:'Вторичный эффект',attack:true,hit:'automatic',zone:'weakest'}}).catch(e=>rollErr(e.message));}
+ if(w.power.sustained&&w.power.combat_rules.continuation?.length){const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.textContent='Атаковать поддерживаемой силой';$('roll-result').append(b);b.onclick=()=>{WARP.owner=w.owner;WARP.power=w.power;WARP.turns=w.turns;warpMount();$('warp-error').textContent='';openSheetModal('warp-modal');if(w.power.id===67)warpDraw();else warpContinuation();};}
+};
+const warpRenderSupported=renderPsySupported;
+renderPsySupported=function(){warpRenderSupported();if(!WARP.catalog)return;const host=$('psy-supported');if(!host)return;host.querySelectorAll('[data-psy-sup-del]').forEach(el=>{const power=WARP.catalog.find(p=>String(p.id)===el.dataset.psySupDel);if(!power?.combat_rules?.continuation?.length)return;const b=document.createElement('button');b.type='button';b.textContent='Атаковать';b.onclick=()=>{warpOpen().then(()=>{WARP.power=power;WARP.variant=warpVariants(power)[0];warpDraw();});};el.parentNode.append(b);});};
+const warpDoRoll=doRoll;
+doRoll=async function(){
+ const w=ROLL.action?.warp;WARP.lastResponse=null;await warpDoRoll();const r=WARP.lastResponse;
+ if(!w||w.stage==='bs'||!r?.success||!w.variant.attack||w.variant.hit==='focus'||S.character!==w.owner)return;
+ try{await warpAutomatic(w);}catch(e){const note=document.createElement('p');note.className='desc';note.textContent='Сила применена, но следующий этап не выполнен: '+e.message;$('roll-result').append(note);}
+};
+// Existing buttons captured their original function when the sheet was bound.
+// Intercept only psychic applications; other actions keep their original handlers.
+$('action-confirm').addEventListener('click',e=>{if(ACTION.selected?.code!=='focus_power')return;e.preventDefault();e.stopImmediatePropagation();confirmAction();},true);
+$('roll-go').addEventListener('click',e=>{if(!ROLL.action?.warp)return;e.preventDefault();e.stopImmediatePropagation();doRoll();},true);
+
+</script>
 </body>
 </html>
 
