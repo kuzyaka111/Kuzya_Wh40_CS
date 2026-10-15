@@ -2046,6 +2046,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 </div>
 
 <!-- ============ ЭКРАН 1: ВХОД ============ -->
+<div id="screen-startup" class="wrap hidden"><div class="login-shell tpanel"><h2>Загрузка данных</h2><p id="startup-message" role="status" style="line-height:1.5">Загрузка…</p><button type="button" id="startup-retry" hidden onclick="initApp()">Повторить</button></div></div>
 <div id="screen-login" class="wrap">
   <div class="login-shell">
     <div class="crest"><svg class="deathwatch-emblem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 675.70245 800" role="img" aria-label="Эмблема Дезвоч" fill="currentColor"><g transform="matrix(0.94451004,0,0,0.94451004,-157.35537,-65.171193)"></g><g transform="matrix(0.94451004,0,0,0.94451004,-157.35537,-65.171193)"><g><path d="m 232.2,366.3 v 74.9 h 131.6 c -4.5,-23.1 -6.8,-49.3 -1.2,-74.9 z"></path><path d="m 232.2,552.6 h 133.1 c 0,-13.4 3.7,-26.7 13.6,-38.2 3.5,-4 -0.7,-17.6 -6.1,-36.7 H 232.2 Z"></path><path d="M 816.5,366.3 H 685.1 c 5.6,25.6 3.3,51.8 -1.2,74.9 h 132.6 z"></path><path d="M 816.5,477.6 H 675 c -5.4,19.1 -9.5,32.7 -6,36.7 9.9,11.5 13.7,24.8 13.6,38.2 h 133.9 z"></path><path d="m 531.7,270 c 0,0 -2.9,-0.2 -7.7,-0.2 -0.1,0 -0.1,0 -0.1,0 0,0 -0.1,0 -0.1,0 -4.9,0 -7.7,0.2 -7.7,0.2 -33.4,1.6 -110.7,13.5 -136.9,89.8 -22.3,65.2 20,138.8 11.4,148.7 -34.4,39.8 12.4,102.9 18.7,108.1 11.5,9.4 48.1,-9.6 42.3,0.2 -4.4,7.5 -8.4,63.9 -8.4,63.9 h 11.3 l 5.4,-19.6 9.7,-0.1 1.9,19.8 h 19.8 l 1.9,-18.8 6.6,-0.9 0.9,19.8 h 16 l 0.7,-20.3 h 13 l 0.7,20.3 h 16 l 0.9,-19.8 6.6,0.9 1.9,18.8 h 19.8 l 1.9,-19.8 9.7,0.1 5.4,19.6 h 11.3 c 0,0 -4,-56.4 -8.4,-63.9 -5.8,-9.8 30.8,9.1 42.3,-0.2 6.4,-5.2 53.1,-68.3 18.7,-108.1 -8.6,-9.9 33.6,-83.6 11.4,-148.7 C 642.5,283.5 565.2,271.6 531.7,270 Z m -29.1,279.7 c -4.5,5 -10.9,11 -19.7,15.9 -21.1,11.9 -42,10.2 -50.4,9 -0.6,-0.1 -1.1,-0.2 -1.6,-0.6 -18.5,-11.7 -25.5,-29.9 -20,-41.3 0.8,-1.7 3.9,-7.5 13.6,-11 0.6,-0.2 1.1,-0.2 1.7,-0.2 11.7,1.1 26.2,3.4 42.2,8.4 13,4 24.1,9 33.1,13.7 2.3,1.2 2.8,4.2 1.1,6.1 z m 44.2,68.9 c -0.1,1.3 -1.7,1.8 -2.5,0.8 -2,-2.5 -4.7,-5.5 -8.4,-8.1 -3.9,-2.9 -7.6,-4.7 -10.6,-5.7 -2.9,1.1 -6.7,2.9 -10.6,5.7 -3.7,2.7 -6.4,5.6 -8.4,8.1 -0.8,1 -2.4,0.5 -2.5,-0.8 -0.6,-9.6 -0.2,-29.3 14.3,-43.6 1.9,-1.9 4.3,-3.5 7.2,-5 2.8,1.6 5.3,3.2 7.2,5 14.5,14.3 14.9,34.1 14.3,43.6 z m 49.3,-51 c -12,0 -21.7,-9.7 -21.7,-21.7 0,-6.7 3.1,-12.7 7.8,-16.7 6.4,-1.9 12.5,-3.4 18.2,-4.6 9.9,2 17.3,10.8 17.3,21.2 0.1,12.1 -9.6,21.8 -21.6,21.8 z"></path><path d="m 271.1,249.2 c 12.3,1 47,34.3 62.8,52.9 12.5,14.7 42.8,47.1 42.8,47.1 l 20,-34 c -9.2,-15.5 -53.2,-39.6 -74.9,-75.5 -0.8,-1.3 -0.4,-7.3 -2.2,-14.8 -0.3,-1.2 -0.8,-3.3 -1.5,-5.9 6.1,-5.4 9.8,-5.1 12.2,-13.9 6.1,-21.8 -4.7,-43.9 -24,-49.3 -19.3,-5.4 -39.9,8 -46,29.8 -2.2,7.9 -1,8.1 0.8,15.2 -10,5.7 -20.8,10.9 -32,10.7 -20.8,-0.2 -4.9,10.5 42,37.7 z"></path><path d="m 783.3,682 c 2.1,-10.7 -5.2,-21.1 -16.2,-23.2 -7.5,-1.4 -15.4,5.1 -19.3,6.6 -4.5,-1.1 -37.5,-27.9 -83.8,-78.8 l -18.7,29.7 c 48.1,43.7 46.2,31.9 77.7,66.6 1.2,2.8 4.4,5.8 3.2,8.9 -1.2,3.1 -6.1,7.2 -7,12 -2.3,11.8 5.7,23.2 17.8,25.5 12.1,2.3 29.3,-2.3 31.6,-14 1,-5.2 -0.9,-10.4 -3.4,-14.7 3.7,2.8 16.7,-0.8 18.1,-18.6 z"></path><path d="m 726.7,239.7 c -21.7,35.9 -65.7,60 -74.9,75.5 l 20,34 c 0,0 30.3,-32.4 42.8,-47.1 15.8,-18.6 50.6,-51.9 62.8,-52.9 46.9,-27.2 62.8,-38 41.9,-37.7 -11.2,0.2 -22,-5.1 -32,-10.7 1.8,-7.1 2.9,-7.3 0.8,-15.2 -6.1,-21.8 -26.7,-35.2 -46,-29.8 -19.3,5.4 -30.1,27.4 -24,49.3 2.4,8.8 6.1,8.5 12.2,13.9 -0.7,2.6 -1.3,4.7 -1.5,5.9 -1.7,7.5 -1.3,13.5 -2.1,14.8 z"></path><path d="m 401.8,616.3 -18.7,-29.7 c -46.3,50.9 -79.3,77.7 -83.8,78.8 -3.8,-1.5 -11.8,-8 -19.3,-6.6 -11,2.1 -18.2,12.5 -16.2,23.2 1.4,17.8 14.4,21.3 18,18.6 -2.4,4.3 -4.4,9.5 -3.4,14.7 2.3,11.8 19.5,16.3 31.6,14 12.1,-2.3 20.1,-13.7 17.8,-25.5 -0.9,-4.9 -5.8,-8.9 -7,-12 -1.2,-3.1 2,-6.1 3.2,-8.9 31.6,-34.7 29.7,-22.9 77.8,-66.6 z"></path><path d="m 860.3,69 v 0.2 h -335.8 -0.1 -0.1 -336 V 69 h -21.7 v 86.7 h 15.5 c 0.1,-14 1.1,-26.7 6.2,-32.4 v 0 c 5.5,-0.7 122.3,-37.3 174.8,38.7 21.2,29.7 23.2,61.5 23.2,75.9 l 0.4,59.1 c 3,2.6 5.8,5 8.1,7.3 37.4,-40.3 92.7,-48.2 120.4,-49.5 0,0 3,-0.2 8.4,-0.2 0.1,0 0.1,0 0.1,0 0.1,0 0.1,0 0.1,0 5.3,0 8.4,0.2 8.4,0.2 27.8,1.3 83.5,9.2 120.9,49.9 2.4,-2.4 5.3,-5 8.6,-7.8 l 0.4,-59.1 c 0,-14.4 2,-46.1 23.2,-75.9 52.5,-76 169.3,-39.4 174.8,-38.7 v 0 c 5.1,5.7 6,18.3 6.2,32.4 H 882 V 69 Z"></path><path d="m 232.2,663.9 h 31.7 c 2.7,-5.6 7.9,-10 14.6,-11.2 7.5,-1.4 15.4,5.1 19.3,6.6 4.2,-1 33.6,-24.7 75.5,-69.8 -0.1,-0.2 -0.1,-0.3 -0.2,-0.5 H 232.2 Z"></path><path d="M 816.5,663.9 V 589 H 674.9 c 42.1,45.4 71.8,69.3 76,70.3 3.8,-1.5 11.8,-8 19.3,-6.6 6.7,1.3 12,5.6 14.6,11.2 z"></path><path d="m 860.3,861.6 v 0.2 C 776.7,868 719.2,848.3 690.1,813.8 659.9,778 662.2,725.5 662.2,725.5 l -2.6,-61.6 h 34.9 c -8.8,-6.6 -20.4,-15.8 -38.6,-32.3 0,0 -5.8,-1 -7.4,0.3 -12.5,10.1 -49.2,-10.5 -42.9,0.2 4.7,8.1 9.1,55.5 9.1,55.5 H 433 c 0,0 4.4,-47.4 9.1,-55.5 6.3,-10.7 -30.4,10 -42.9,-0.2 -1.5,-1.3 -8.2,-0.3 -8.2,-0.3 -18.2,16.5 -29.8,25.7 -38.6,32.3 H 389 l -2.6,61.6 c 0,0 2.3,52.5 -27.9,88.3 -29.1,34.5 -86.6,54.2 -170.2,48 v -0.2 c -5.1,-5.7 -6,-18.3 -6.2,-32.4 H 166.6 V 916 h 21.5 0.1 335.9 0.1 0.1 335.9 0.1 21.7 v -86.7 h -15.5 c -0.1,14 -1.1,26.6 -6.2,32.3 z"></path></g></g></svg></div>
@@ -3207,7 +3208,7 @@ function showScreen(name){
   document.body.dataset.voxScreen=name;
   document.body.dataset.voxArt=['sheet','statblock','squad'].includes(name)?'off':'on';
   document.body.dataset.sheetArt=['sheet','statblock','squad'].includes(name)?'on':'off';
-  ['login','dash','chronicle','sheet','statblock','squad'].forEach(s =>
+  ['login','startup','dash','chronicle','sheet','statblock','squad'].forEach(s =>
     $('screen-' + s).classList.toggle('hidden', s !== name));
   const loader = document.getElementById('app-loader');
   if (loader) loader.classList.add('hidden');
@@ -3236,9 +3237,7 @@ async function doLogin(){
   if (!data) return toast('Аутентификатор не найден. Зарегистрируйте его.');
   S.user = data;
   localStorage.setItem('dw_user', JSON.stringify(data));
-  if(await squadResumeTab())return;
-  if(await sbResumeTab())return;
-  await showDash();
+  try{await resumeStartup();}catch(error){startupMessage('Не удалось загрузить данные. Повторите попытку.',true);}
 }
 
 async function doRegister(){
@@ -3255,6 +3254,7 @@ async function doRegister(){
 }
 
 function doLogout(){
+  ++chronicleEntryToken;
   S.user = S.chronicle = S.role = S.character = null;
   localStorage.removeItem('dw_user');
   $('login-name').value = '';
@@ -3263,6 +3263,7 @@ function doLogout(){
 
 // ==== ИНФО-ПАНЕЛЬ ====
 async function showDash(){
+  ++chronicleEntryToken;
   S.chronicle = S.role = S.character = null;
   $('dash-user').textContent = S.user.username;
   showScreen('dash');
@@ -3404,6 +3405,8 @@ async function leaveChronicle(id){
 }
 
 // ==== ПАНЕЛЬ ХРОНИКИ ====
+let chronicleEntryToken=0, characterListToken=0, eventListToken=0;
+async function chronicleRead(query){try{return await query;}catch(error){return {data:null,error};}}
 async function enterChronicle(id, name, role, deferScreen=false){
   S.chronicle = { id, name };
   S.role = role;
@@ -3421,10 +3424,13 @@ async function enterChronicle(id, name, role, deferScreen=false){
     x.classList.toggle('active', x.dataset.tl === 'events'));
   $('timeline-events').classList.remove('hidden');
   if(!deferScreen) showScreen('chronicle');
-  await loadCharacters();
-  await loadStatblocks();
-  await loadEvents();
-  if (isGm) await loadChronicleDiscord();
+  const context=S.chronicle;
+  if(isGm)void loadChronicleDiscord().catch(error=>{if(S.chronicle===context)console.warn(error);});
+  if(deferScreen)return true;
+  const results=await Promise.allSettled([loadCharacters(),loadStatblocks(),loadEvents()]);
+  if(S.chronicle!==context)return false;
+  if(results.some(r=>r.status==='rejected'))toast('Не удалось загрузить часть данных хроники.');
+  return true;
 }
 
 function charCard(c){
@@ -3436,7 +3442,7 @@ function charCard(c){
   if (info.specialization) builtIn.push(info.specialization);
   const allTags = [...builtIn, ...rawTags.filter(t => !builtIn.includes(t))];
   const tagsHtml = allTags.map(t => `<span class="chr-tag">${esc(t)}</span>`).join('');
-  return `<div class="list-item clickable" onclick="openCharTab(${c.id})">
+  return `<div class="list-item clickable" data-character-id="${c.id}" onclick="openCharTab(${c.id})">
       <button class="chr-delete" data-delete-character="${c.id}" data-character-name="${esc(c.name)}" onclick="event.stopPropagation();deleteCharFromList(Number(this.dataset.deleteCharacter),this.dataset.characterName)" title="Удалить персонажа">&times;</button>
       <div style="min-width:0;flex:1">
         <div class="nm">${esc(c.name)}</div>
@@ -3450,32 +3456,55 @@ function charCard(c){
     </div>`;
 }
 
+const characterDeletes = new Set();
+const deletedCharacterIds = new Map();
+function characterDeleteKey(user,chronicle){return String(user?.id)+':'+String(chronicle?.id);}
 async function deleteCharFromList(id, name){
-  if (!confirm(`Удалить персонажа «${name}»?`)) return;
-  const { error } = await sb.from('characters').delete().eq('id', id);
-  if (error){ toast('Ошибка: ' + error.message); return; }
-  toast('Персонаж удалён');
-  await loadCharacters();
+  const chronicle = S.chronicle, user = S.user;
+  if(!chronicle || !user)return;
+  const key = characterDeleteKey(user,chronicle), pending = key+':'+id;
+  if(characterDeletes.has(pending) || !confirm(`Удалить персонажа «${name}»?`))return;
+  characterDeletes.add(pending);
+  const buttons = [...document.querySelectorAll('[data-delete-character]')].filter(b=>Number(b.dataset.deleteCharacter)===id);
+  buttons.forEach(b=>b.disabled=true);
+  try{
+    const {data,error} = await sb.from('characters').delete().eq('id',id).eq('chronicle_id',chronicle.id).select('id');
+    if(error)throw error;
+    if(!data?.some(row=>Number(row.id)===id))throw Error('Удаление не подтверждено сервером. Обновите список и повторите попытку.');
+    if(!deletedCharacterIds.has(key))deletedCharacterIds.set(key,new Set());
+    deletedCharacterIds.get(key).add(id);
+    if(S.chronicle!==chronicle || S.user!==user)return;
+    for(const listId of ['character-list','gm-character-list']){
+      const box=$(listId);
+      box.querySelectorAll('[data-character-id]').forEach(card=>{if(Number(card.dataset.characterId)===id)card.remove();});
+      if(!box.querySelector('[data-character-id]'))box.innerHTML='<div class="empty">'+(listId==='gm-character-list'?'Персонажей Мастера нет.':'Персонажей нет.')+'</div>';
+    }
+    toast('Персонаж удалён');
+  }catch(error){if(S.chronicle===chronicle && S.user===user)toast('Ошибка: '+(error?.message || error));}
+  finally{characterDeletes.delete(pending);buttons.forEach(b=>b.disabled=false);}
 }
 
 async function loadCharacters(){
   const box = $('character-list'), gmBox = $('gm-character-list');
-  const isGm = S.role === 'gm';
+  const isGm = S.role === 'gm', context=S.chronicle, user=S.user, token=++characterListToken;
+  if(!context || !user)return;
   box.innerHTML = '<div class="empty">Загрузка...</div>';
   gmBox.innerHTML = '';
 
   let q = sb.from('characters')
     .select('id, name, is_gm_character, user_id, character_data, users_simple(username)')
-    .eq('chronicle_id', S.chronicle.id).order('id');
-  if (!isGm) q = q.eq('user_id', S.user.id).eq('is_gm_character', false);
+    .eq('chronicle_id', context.id).order('id');
+  if (!isGm) q = q.eq('user_id', user.id).eq('is_gm_character', false);
 
-  const { data, error } = await q;
+  const { data, error } = await chronicleRead(q);
+  if(token!==characterListToken || S.chronicle!==context || S.user!==user)return;
   if (error){
     box.innerHTML = `<div class="empty">Ошибка: ${esc(error.message)}</div>`;
     gmBox.innerHTML = '';
     return;
   }
-  const all = data || [];
+  const deleted=deletedCharacterIds.get(characterDeleteKey(user,context));
+  const all = (data || []).filter(c=>!deleted?.has(Number(c.id)));
   const players = all.filter(c => !c.is_gm_character);
   box.innerHTML = players.length ? players.map(charCard).join('')
     : '<div class="empty">Персонажей нет.</div>';
@@ -3488,11 +3517,13 @@ async function loadCharacters(){
 
 // ==== ХРОНОЛОГИЯ ====
 async function loadEvents(){
-  const box = $('timeline-events');
+  const box = $('timeline-events'), context=S.chronicle, user=S.user, token=++eventListToken;
+  if(!context || !user)return;
   box.innerHTML = '<div class="empty">Загрузка событий...</div>';
-  const { data, error } = await sb.from('chronicle_events')
+  const { data, error } = await chronicleRead(sb.from('chronicle_events')
     .select('id, title, body, event_date')
-    .eq('chronicle_id', S.chronicle.id).order('id', { ascending: false });
+    .eq('chronicle_id', context.id).order('id', { ascending: false }));
+  if(token!==eventListToken || S.chronicle!==context || S.user!==user)return;
   if (error){
     box.innerHTML = `<div class="empty">Хронология недоступна: ${esc(error.message)}</div>`;
     return;
@@ -4491,8 +4522,11 @@ let SPEC_ABILITIES = [];
 let SPEC_ABILITY_OPTIONS = {};
 let SPEC_PSI_BY_ID = {};
 
+let skillsLoadPromise=null,talentsLoadPromise=null;
 async function loadSkillsFromDB(){
   if (DB_SKILLS.length) return DB_SKILLS;
+  if(skillsLoadPromise)return skillsLoadPromise;
+  skillsLoadPromise=(async()=>{
   const { data, error } = await sb.from('skills')
     .select('id, name, characteristic, category, description')
     .order('name');
@@ -4501,10 +4535,15 @@ async function loadSkillsFromDB(){
   SKILL_BY_ID = {};
   DB_SKILLS.forEach(s => { SKILL_BY_ID[Number(s.id)] = s; });
   return DB_SKILLS;
+  })();
+  try{return await skillsLoadPromise;}finally{skillsLoadPromise=null;}
+
 }
 
 async function loadTalentsFromDB(){
   if (DB_TALENTS.length) return DB_TALENTS;
+  if(talentsLoadPromise)return talentsLoadPromise;
+  talentsLoadPromise=(async()=>{
   const { data, error } = await sb.from('talents')
     .select('id, name, description, groups_enabled')
     .order('name');
@@ -4513,6 +4552,9 @@ async function loadTalentsFromDB(){
   TALENT_BY_ID = {};
   DB_TALENTS.forEach(t => { TALENT_BY_ID[Number(t.id)] = t; });
   return DB_TALENTS;
+  })();
+  try{return await talentsLoadPromise;}finally{talentsLoadPromise=null;}
+
 }
 
 function makeSkillRow(s){
@@ -5046,8 +5088,7 @@ async function openSheet(id){
   setLoading($('sheet-root'), true);
   let data, error;
   try {
-    await loadSkillsFromDB();
-    await loadTalentsFromDB();
+    await Promise.all([loadSkillsFromDB(),loadTalentsFromDB()]);
     ({ data, error } = await sb.from('characters').select('*, users_simple(username)').eq('id', id).single());
   } catch(cause){ error = cause; }
   setLoading($('sheet-root'), false);
@@ -10421,28 +10462,46 @@ $('chr-discord-url').addEventListener('input', () => {
 const modsEditBtn = $('mods-edit-btn');
 if (modsEditBtn) modsEditBtn.addEventListener('click', openSettings);
 
-(async function init(){
-  console.info('cs.html build: armor-refactor-v1 (14.09.2026)');
-  const charId = new URLSearchParams(location.search).get('char');
-  const saved = localStorage.getItem('dw_user');
-  if (saved){
-    try {
-  await loadChapters();
-      const u = JSON.parse(saved);
-      const { data } = await sb.from('users_simple')
-        .select('id, username').eq('id', u.id).maybeSingle();
-      if (data){
-        S.user = data;
-        if(await squadResumeTab())return;
+let startupBusy = false;
+function startupMessage(message, retry=false){
+  showScreen('startup');
+  $('startup-message').textContent = message;
+  $('startup-retry').hidden = !retry;
+}
+async function resumeStartup(){
+  if(await squadResumeTab())return;
   if(await sbResumeTab())return;
-        if (charId){ await openSheet(Number(charId)); return; }
-        return showDash();
-      }
-    } catch(e){}
-    localStorage.removeItem('dw_user');
+  const charId = new URLSearchParams(location.search).get('char');
+  if(charId){
+    const opened = await openSheet(Number(charId));
+    if(opened === false && document.body.dataset.voxScreen !== 'sheet')
+      startupMessage('Не удалось открыть лист. Проверьте соединение и доступ к персонажу, затем повторите загрузку.', true);
+    return;
   }
-  showScreen('login');
-})();
+  await showDash();
+}
+async function initApp(){
+  if(startupBusy)return;
+  startupBusy = true;
+  try{
+    startupMessage('Загрузка…');
+    const saved = localStorage.getItem('dw_user');
+    if(!saved){ S.user = null; showScreen('login'); return; }
+    let user;
+    try{ user = JSON.parse(saved); }catch(_){ user = null; }
+    if(!user?.id){ localStorage.removeItem('dw_user'); S.user = null; showScreen('login'); return; }
+    const {data,error} = await sb.from('users_simple').select('id, username').eq('id',user.id).maybeSingle();
+    if(error)throw error;
+    if(!data){ localStorage.removeItem('dw_user'); S.user = null; showScreen('login'); return; }
+    S.user = data;
+    await loadChapters();
+    await resumeStartup();
+  }catch(error){
+    console.warn('Startup failed:', error?.message || error);
+    startupMessage('Не удалось загрузить данные. Данные для входа сохранены. Проверьте соединение и повторите попытку.', true);
+  }finally{ startupBusy = false; }
+}
+initApp();
 
 // ==== ANTI-STALE (BroadcastChannel) ====
 function showStaleOverlay(){
@@ -12163,11 +12222,14 @@ async function sbResumeTab(){
   await showDash();toast('Откройте свой статблок из Хроники');return true;
  }
  const loader=$('app-loader');loader?.classList.remove('hidden');
+ let entered=false;
  try{
-  await enterChronicle(request.chronicle,String(context.chronicleName||'Хроника'),'gm',true);
+  if(await enterChronicle(request.chronicle,String(context.chronicleName||'Хроника'),'gm',true)===false)return true;
+  entered=true;
   await openStatblock(request.id);
  }finally{
-  if(!SB.record || SB.record.id!==request.id) showScreen('chronicle');
+  if(entered && (!SB.record || SB.record.id!==request.id) && S.chronicle?.id===request.chronicle)
+    await enterChronicle(request.chronicle,String(context.chronicleName||'Хроника'),S.role);
   loader?.classList.add('hidden');
  }
  return true;
@@ -12237,7 +12299,7 @@ async function readStatblocks(chronicleId){
 }
 async function loadStatblocks(){
   const panel=$('statblock-panel'),host=$('statblock-list');
-  const token=++SB.loadToken;
+  const token=++SB.loadToken,context=S.chronicle,user=S.user;
   panel.classList.toggle('hidden',!voxSession());
   host.innerHTML='';
   if (!voxSession()) return;
@@ -12245,14 +12307,14 @@ async function loadStatblocks(){
   host.innerHTML='<div class="empty">Загрузка…</div>';
   try {
     const collection=await readStatblocks(chronicleId);
-    if(token!==SB.loadToken || !voxSession() || S.chronicle.id!==chronicleId) return;
+    if(token!==SB.loadToken || !voxSession() || S.chronicle!==context || S.user!==user) return;
     const rows=Object.entries(collection).filter(([id,r])=>/^[0-9a-f-]{36}$/i.test(id)&&r&&['npc','vehicle'].includes(r.type)&&(S.role==='gm'||r.owner_id===S.user.id));
     rows.sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'ru'));
     host.innerHTML=rows.length?rows.map(([id,d])=>`<button type="button" class="list-item clickable" data-sb-open="${esc(id)}">
       <span style="min-width:0;flex:1"><span class="nm">${esc(d.name)}</span><span class="tags-row">${[d.race,d.category,...(Array.isArray(d.tags)?d.tags:[])].filter(Boolean).map(t=>`<span class="chr-tag">${esc(t)}</span>`).join('')}</span></span>
       <span class="badge gm">${sbIsVehicle(d)?'Техника':'НПЦ'}</span></button>`).join(''):'<div class="empty">НПЦ и техники пока нет.</div>';
   } catch(error){
-    if(token!==SB.loadToken || !voxSession() || S.chronicle.id!==chronicleId) return;
+    if(token!==SB.loadToken || !voxSession() || S.chronicle!==context || S.user!==user) return;
     host.innerHTML=`<div class="empty">Ошибка загрузки: ${esc(error.message)}<br><button type="button" class="sm" onclick="loadStatblocks()">Повторить</button></div>`;
   }
 }
@@ -16079,8 +16141,13 @@ async function voxConfirmImport(){
 }
 const VOX_ENTER_CHRONICLE=enterChronicle;
 enterChronicle=async function(id,name,role,...args){
- try{const actual=await voxMembership(id);const result=await VOX_ENTER_CHRONICLE(id,name,actual,...args);$('vox-members-btn').classList.toggle('hidden',actual!=='gm');return result;}
- catch(e){toast(voxMessage(e));await showDash();return false;}
+ const token=++chronicleEntryToken,user=S.user;
+ try{
+  const actual=await voxMembership(id);
+  if(token!==chronicleEntryToken || S.user!==user)return false;
+  $('vox-members-btn').classList.toggle('hidden',actual!=='gm');
+  return await VOX_ENTER_CHRONICLE(id,name,actual,...args);
+ }catch(e){if(token!==chronicleEntryToken || S.user!==user)return false;toast(voxMessage(e));await showDash();return false;}
 };
 // Route existing statblock writes through the membership/ownership-aware operation.
 const VOX_RPC=sb.rpc.bind(sb);
@@ -16097,7 +16164,13 @@ openSheet=async function(id,...args){
   if(S.chronicle?.id!==data.chronicle_id){const {data:chronicle,error:err}=await sb.from('chronicles').select('id,name').eq('id',data.chronicle_id).single();if(err)throw err;S.chronicle=chronicle;}
   S.role=role;
   return await VOX_OPEN_SHEET(id,...args);
- }catch(e){toast(voxMessage(e));return false;}
+ }catch(e){
+  failedSheetId=id;S.character=null;
+  $('sheet-load-error-text').textContent='Не удалось открыть лист: '+voxMessage(e);
+  $('sheet-root').classList.add('load-failed');
+  $('sheet-load-error').style.display='';
+  showScreen('sheet');return false;
+ }
 };
 $('chr-chpass-btn').insertAdjacentHTML('afterend','<button type="button" id="vox-members-btn" class="hidden">Участники</button><button type="button" id="vox-import-btn">Импорт JSON</button>');
 $('vox-members-btn').onclick=()=>voxMembers();$('vox-import-btn').onclick=voxImport;
