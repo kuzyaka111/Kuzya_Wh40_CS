@@ -18425,6 +18425,63 @@ showRollResult=function(result){
 renderDamageRoll=function(){PD_BASE.renderDamageRoll();if(!$('pd-weapon-source')){$('damage-weapon').closest('label').insertAdjacentHTML('beforebegin',pdSourceHtml('pd-weapon-source','weapon'));$('pd-weapon-source').onchange=()=>{if(DAMAGE.busy){$('pd-weapon-source').value='weapon';return;}pdOpenDamage();};}$('pd-weapon-source').value='weapon';};
 
 </script>
+<script data-feature="manual-deed-xp-cost">
+{
+  const previousShowRowInfo = showRowInfo;
+  const manualDeed = row => row && row.id == null && row.catalog_id == null && !row.catalog_key && (!row.source || row.source === 'custom');
+  const receipt = (data,row) => row.manual_deed_uid ? (data.xp_log || []).find(e=>e.manual_deed_uid === row.manual_deed_uid) : null;
+  const previousXpRefresh = xpRefresh;
+  xpRefresh = function(){
+    const data=S.character?.character_data;
+    for(const row of data?.deeds || []) if(manualDeed(row) && row.manual_deed_uid) row.cost=Number(receipt(data,row)?.cost)||0;
+    return previousXpRefresh();
+  };
+  showRowInfo = function(row,key){
+    const result = previousShowRowInfo(row,key);
+    const owner = S.character, data = owner?.character_data;
+    if (key !== 'deeds' || !manualDeed(row) || !(data?.deeds || []).includes(row)) return result;
+    const currentCost = () => Number(receipt(data,row)?.cost) || 0;
+    const valid = () => S.character === owner && owner.character_data === data && data.deeds.includes(row);
+    const host = document.createElement('div');
+    host.id = 'info-deed-cost';
+    host.style.cssText = 'margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:end';
+    const label = document.createElement('label');
+    label.className = 'renown-label';label.textContent = 'Стоимость в опыте (XP)';
+    host.append(label);
+    if (!editMode){
+      const value = document.createElement('div');value.textContent = currentCost() + ' XP';label.append(value);
+      $('info-edit').append(host);return result;
+    }
+    const input = document.createElement('input');
+    input.type = 'number';input.min = '0';input.step = '1';input.id = 'info-deed-xp';
+    input.value = String(currentCost());input.style.cssText = 'display:block;width:150px;margin-top:6px';
+    label.append(input);
+    const apply = document.createElement('button');apply.type = 'button';apply.className = 'modal-confirm';apply.textContent = 'Применить';
+    host.append(apply);$('info-edit').append(host);
+    const commit = () => {
+      if (!valid() || !editMode || !$('info-modal').classList.contains('active') || $('info-deed-xp') !== input) return;
+      const raw = input.value.trim(), cost = Number(raw);
+      if (!/^\d+$/.test(raw) || !Number.isSafeInteger(cost) || cost < 0){
+        toast('Стоимость должна быть целым неотрицательным числом');return;
+      }
+      let entry = receipt(data,row);
+      if (cost === currentCost()) return;
+      if (!entry){
+        row.manual_deed_uid ||= crypto.randomUUID();
+        entry = {table_id:null,manual_deed_uid:row.manual_deed_uid,name:row.name,cost:0,date:new Date().toISOString().slice(0,10)};
+        (data.xp_log ||= []).push(entry);
+      }
+      entry.name = row.name;entry.cost = cost;row.cost = cost;
+      xpRefresh();
+      if (honourAvailable(data) < 0) toast('Внимание: потрачено больше опыта, чем получено');
+    };
+    apply.addEventListener('click',commit);
+    input.addEventListener('keydown',e=>{if(e.key === 'Enter'){e.preventDefault();commit();}});
+    return result;
+  };
+}
+</script>
+
 </body>
 </html>
 
