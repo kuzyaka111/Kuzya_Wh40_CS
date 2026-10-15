@@ -17989,6 +17989,37 @@ pickManual=function(){
 };
 
 </script>
+
+<script data-feature="manual-deed-description">
+{
+  const manualDeedShowRowInfo = showRowInfo;
+  showRowInfo = function(row, key){
+    const result = manualDeedShowRowInfo(row, key);
+    if (!editMode || key !== 'deeds' || !row || row.id != null || row.catalog_id != null || row.catalog_key || row.source && row.source !== 'custom') return result;
+    const owner = S.character, data = owner?.character_data;
+    if (!(data?.deeds || []).includes(row)) return result;
+    const label = document.createElement('label');
+    label.className = 'renown-label';
+    label.textContent = 'Описание';
+    const input = document.createElement('textarea');
+    input.id = 'info-deed-description';
+    input.rows = 6;
+    input.style.cssText = 'display:block;box-sizing:border-box;width:100%;max-width:100%;margin-top:6px;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit;resize:vertical';
+    input.value = row.desc || '';
+    label.appendChild(input);
+    $('info-edit').appendChild(label);
+    input.addEventListener('input', () => {
+      if (!editMode || S.character !== owner || owner.character_data !== data || !data.deeds.includes(row) || !$('info-modal').classList.contains('active') || $('info-deed-description') !== input) return;
+      if (input.value === (row.desc || '')) return;
+      row.desc = input.value;
+      $('info-desc').innerHTML = descHtml(row.desc || 'Описание отсутствует.');
+      renderList('deeds');
+      debouncedSave();
+    });
+    return result;
+  };
+}
+</script>
 </body>
 </html>
 
