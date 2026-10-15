@@ -1403,6 +1403,19 @@ body:has(#advancement-modal.active) #info-modal{z-index:1000;}
   }
 .sheet.load-failed > :not(#sheet-load-error){display:none!important;}
 .combi-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 0}.combi-controls label{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.combi-controls select{max-width:100%;min-width:0;background:var(--bg-main,#10110d);color:var(--text-main);border:1px solid var(--border-dark);padding:5px}.combi-secondary .g-name{font-size:13px}
+
+/* Notes: chapter reference and personal text share a 1:2 row. */
+#tab-notes > .body-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+#tab-notes .panel{min-width:0;}
+.primarch-curse{font-size:14px;line-height:1.5;overflow-wrap:anywhere;}
+.primarch-curse p{white-space:pre-wrap;margin:0 0 12px;}
+.primarch-curse details{border-top:1px solid var(--line);padding:10px 0;}
+.primarch-curse summary{cursor:pointer;color:var(--gold);font-weight:600;}
+.primarch-curse details p{margin:10px 0 0;}
+.notes-panel{display:flex;flex-direction:column;}
+.notes-panel .panel-body{display:flex;flex:1;}
+.notes-panel textarea{width:100%;min-height:180px;resize:vertical;}
+@media(max-width:900px){#tab-notes > .body-grid{grid-template-columns:minmax(0,1fr);}#tab-notes .panel{grid-column:span 1;}}
 </style>
 <style data-feature="compact-statblocks">
 /* Compact sheets reuse the character sheet's typography and components. */
@@ -2590,10 +2603,14 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
           <textarea class="editable-field" rows="6" readonly data-info-field="demeanour"></textarea>
         </div>
       </div>
-      <div class="panel col-span-3" style="padding:0">
+      <div class="panel col-span-1" style="padding:0">
         <div class="section-title" data-no-collapse="1"><span>Проклятье примарха</span></div>
+        <div class="panel-body primarch-curse" id="primarch-curse" style="padding:12px 16px 16px"></div>
+      </div>
+      <div class="panel col-span-2 notes-panel" style="padding:0">
+        <div class="section-title" data-no-collapse="1"><span>Заметки</span></div>
         <div class="panel-body" style="padding:12px 16px 16px">
-          <textarea class="editable-field" rows="4" readonly data-info-field="primarch_curse"></textarea>
+          <textarea class="editable-field" rows="8" readonly aria-label="Заметки" data-info-field="primarch_curse"></textarea>
         </div>
       </div>
       <div class="panel col-span-3" style="padding:0">
@@ -3679,7 +3696,7 @@ function showSpecializationModal(advancedOnly){
 // ========== LOAD CHAPTERS FROM DB ==========
 async function loadChapters(){
   return cachedModalCatalog('chapters',()=>CHAPTERS.length>0,async()=>{
-    const {data,error}=await sb.from('chapters').select('id, name, bonus, orden_type').order('name');
+    const {data,error}=await sb.from('chapters').select('id, name, bonus, orden_type, curse').order('name');
     if(error) throw error;
     CHAPTERS=data || [];
   });
@@ -8105,7 +8122,41 @@ function renderPsySupported(){
     }));
 }
 
+function renderPrimarchCurse(){
+  const host = $('primarch-curse');
+  if (!host || !S.character) return;
+  const info = S.character.character_data.info;
+  const chapter = chapterByIdOrName(info.chapter_id ?? info.chapter);
+  const text = String(chapter?.curse || '').trim();
+  const key = JSON.stringify([S.character.id, chapter?.id, info.chapter, text]);
+  if (host.dataset.curseKey === key) return;
+  host.dataset.curseKey = key;
+  host.replaceChildren();
+  const paragraph = (parent, value) => {
+    const p = document.createElement('p'); p.textContent = value; parent.append(p);
+  };
+  if (!text){
+    paragraph(host, info.chapter ? 'Для этого ордена проклятье не указано.' : 'Выберите орден, чтобы увидеть проклятье.');
+    return;
+  }
+  const levels = [...text.matchAll(/^\s*([123])\.\s+(.+)$/gm)];
+  if (levels.length !== 3 || levels.some((m,i)=>Number(m[1]) !== i+1)){
+    paragraph(host,text); return;
+  }
+  const intro = text.slice(0,levels[0].index).trim();
+  if (intro) paragraph(host,intro);
+  levels.forEach((match,i)=>{
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = 'Уровень ' + match[1];
+    details.append(summary);
+    paragraph(details,text.slice(match.index,levels[i+1]?.index ?? text.length).trim().replace(/^[123]\.\s+/,''));
+    host.append(details);
+  });
+}
+
 function renderNotes(){
+  renderPrimarchCurse();
   const info = S.character.character_data.info;
   document.querySelectorAll('[data-info-field]').forEach(el => {
     el.value = info[el.dataset.infoField] || '';
@@ -10592,6 +10643,7 @@ async function changeChapter(name){
     grantChapterBonus(d, ch && ch.id != null ? Number(ch.id) : name);
     Object.keys(SECTIONS).forEach(renderList);
     closeChapterModal();
+    renderNotes();
     renderAltSpeeds();
     updateStatsOnly();
     debouncedSave();
