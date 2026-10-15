@@ -5108,8 +5108,13 @@ async function openSheet(id){
   renderSheet();
 }
 
+let sheetRenderData=null, sheetHonourResync=false;
 function renderSheet(){
   const c = S.character, d = c.character_data;
+  const previousRenderData=sheetRenderData;sheetRenderData=d;
+  try {
+  if(sheetHonourResync)hfxSync(d);
+  normalizePsySupported(d);
   $('sh-name').textContent = c.name;
   document.querySelector('[data-selector="race"]').textContent = d.info.race || 'Адептус Астартес';
   renderHeaderTags();
@@ -5146,6 +5151,7 @@ function renderSheet(){
     debouncedSave();
   };
   setEditButtons();
+  } finally { sheetRenderData=previousRenderData; }
 }
 
 function updateStatsOnly(){
@@ -6201,15 +6207,17 @@ function gearRowHtml(r, i, g, key){
 }
 let gearMeasureContext=null;
 function gearTextWidth(text,header=false){
-  if(!gearMeasureContext)gearMeasureContext=document.createElement('canvas').getContext('2d');
-  const family=getComputedStyle($('screen-sheet')).fontFamily || 'sans-serif';
-  gearMeasureContext.font=`${header?'400 10':'600 13'}px ${family}`;
-  const value=String(text ?? '');
-  return Math.ceil(gearMeasureContext.measureText(value).width)+(header?value.length:0);
+ if(!gearMeasureContext)gearMeasureContext=document.createElement('canvas').getContext('2d');
+ const pass=currentGearViewPass(),family=pass?(pass.font??=(getComputedStyle($('screen-sheet')).fontFamily||'sans-serif')):(getComputedStyle($('screen-sheet')).fontFamily||'sans-serif');
+ const font=`${header?'400 10':'600 13'}px ${family}`,value=String(text??''),key=font+'\0'+value;
+ if(pass?.widths.has(key))return pass.widths.get(key);
+ gearMeasureContext.font=font;const width=Math.ceil(gearMeasureContext.measureText(value).width)+(header?value.length:0);
+ if(pass)pass.widths.set(key,width);return width;
 }
 function gearColumnText(row,field){
-  const w=gearEffWeapon(row,gearResolve(row)) || {};
   if(field==='name')return row.name || '';
+  if(field==='qty')return '';
+  const w=gearColumnWeapon(row);
   if(field==='dmg'){
     const damage=String(w.dmg ?? ''),letter=DMG_TYPE_LETTER[w.dmg_type] || w.dmg_type || '';
     const psy=gearPsyDamageBonus(w,S.character?.character_data);
@@ -6226,7 +6234,6 @@ function gearColumnText(row,field){
     const select=document.createElement('select');select.innerHTML=gearAmmoOptions(row,w);
     return select.selectedOptions[0]?.textContent || '— не выбран —';
   }
-  if(field==='qty')return '';
   return String(w[field] ?? '—');
 }
 function gearColumnLayout(rows,g,withName=true,readOnly=false){
@@ -6474,7 +6481,7 @@ function renderList(key){
   const style = SECTIONS[key][2];
   if (!rows.length || (key === 'aug_chapter' && !effectiveChapterAugmentations().length)){
     host.innerHTML = '<div class="desc" style="padding:6px 4px">Записей нет.</div>';
-    if (style === 'gear'){renderEquipped();updateArmour();}
+    if (style === 'gear'){if(!sheetRenderData || key==='gear')renderEquipped();updateArmour();}
     return;
   }
   let ammoLoadedByWeapon = {};
@@ -6484,7 +6491,7 @@ function renderList(key){
   if (style === 'gear'){
     host.innerHTML = gearTableHtml(rows, key);
     bindListEvents(host);
-    renderEquipped();
+    if(!sheetRenderData || key==='gear')renderEquipped();
     renderArmourAux();
     updateArmour();
     return;
@@ -8027,7 +8034,7 @@ function renderPsy(){
 function updatePsyRating(){
   const d = S.character.character_data;
   $('psy-rating-display').textContent = dwPsyRating(d);
-  renderList('gear');
+  if(sheetRenderData!==d)renderList('gear');
 }
 function renderPsySupported(){
   const host = $('psy-supported');
@@ -17927,8 +17934,13 @@ showRowInfo=function(row,key){HFX.context=null;const result=HFX_BASE.showRowInfo
 function hfxRefresh(c){if(!hfxValid(c))return;hfxDuelEnemyDefault(c.d,c.row,c.key);hfxPersist(c.d,c.row,c.key);hfxSync(c.d);HFX_BASE.renderSheet();hfxDraw(c);if($('roll-modal')?.classList.contains('active')){const found=rollOptions().find(x=>x.id===ROLL.sel?.id);if(found)ROLL.sel=found;renderRollMods();renderRollTotal();}if($('damage-modal')?.classList.contains('active')&&!DAMAGE.busy&&DAMAGE.owner===S.character)renderDamageRoll();debouncedSave();}
 document.addEventListener('change',event=>{const el=event.target,c=HFX.context;if(!el.closest('#hfx-card-controls')||!hfxValid(c))return;const state=hfxState(c.row,true);if(el.matches('[data-hfx-enabled]'))state.enabled=el.checked;else if(el.dataset.hfxChoice){const choice=hfxChoices({key:c.ruleKey||c.key,id:hfxId(c.row,c.key),row:c.row},c.d).find(x=>x.field===el.dataset.hfxChoice);if(!choice||choice.kind==='select'&&!choice.values.some(([k])=>String(k)===el.value)&&el.value!=='')return;state.choices[choice.field]=el.value.trim().slice(0,120);}else if(el.dataset.hfxCondition)state.conditions[el.dataset.hfxCondition]=el.checked;else if(el.matches('[data-hfx-duel-plus]')){state.choices.duelPlus=el.checked;state.choices.duel=String(Number(state.choices.duelRaw)+(el.checked?1:0));}else return;hfxRefresh(c);});
 document.addEventListener('click',event=>{if(!event.target.closest('[data-hfx-duel]'))return;const c=HFX.context;if(!hfxValid(c))return;const state=hfxState(c.row,true);if(state.choices.duel)return;const raw=sbRandomDie(5);state.choices.duelRaw=raw;state.choices.duel=String(raw);hfxRefresh(c);});
-renderSheet=function(...args){if(S.character?.character_data)hfxSync(S.character.character_data);return HFX_BASE.renderSheet(...args);};
-renderList=function(key,...args){const d=S.character?.character_data,changed=[...HONOUR_KEYS,'features'].includes(key)&&hfxSync(d);const r=HFX_BASE.renderList(key,...args);if(changed){updateStatsOnly();updateDerived();for(const k of ['talents','skills_basic','skills_adv'])HFX_BASE.renderList(k);}return r;};
+renderSheet=function(...args){
+ const d=S.character?.character_data,previous=sheetHonourResync;
+ // Advanced specializations can replace grants between this wrapper and the base render.
+ sheetHonourResync=!!(d&&SPECIALIZATIONS.length&&SPEC_ABILITIES.length&&(advancedSpecRows(d).length||['spec_abilities','talents','features','aug_personal'].some(k=>(d[k]||[]).some(r=>String(r.source||'').startsWith(ADV_SPEC_PREFIX)))));
+ try{if(d)hfxSync(d);return HFX_BASE.renderSheet(...args);}finally{sheetHonourResync=previous;}
+};
+renderList=function(key,...args){const d=S.character?.character_data,changed=sheetRenderData!==d&&[...HONOUR_KEYS,'features'].includes(key)&&hfxSync(d);const r=HFX_BASE.renderList(key,...args);if(changed){updateStatsOnly();updateDerived();for(const k of ['talents','skills_basic','skills_adv'])HFX_BASE.renderList(k);}return r;};
 
 </script>
 
@@ -17937,7 +17949,7 @@ renderList=function(key,...args){const d=S.character?.character_data,changed=[..
   const sizeMovementRenderList = renderList;
   renderList = function(key, ...args){
     const result = sizeMovementRenderList(key, ...args);
-    if (key === 'features' && S.character?.character_data) updateDerived();
+    if (key === 'features' && S.character?.character_data && sheetRenderData!==S.character.character_data) updateDerived();
     return result;
   };
 }
@@ -18104,6 +18116,40 @@ window.addEventListener('resize',wmHideTip);window.addEventListener('scroll',wmH
 document.addEventListener('click',e=>{const cycle=e.target.closest('[data-wm-cycle]');if(cycle){wmCycle(cycle.dataset.wmCycle);return;}if(e.target.closest('[data-wm-close]'))wmClose();if(e.target.closest('[data-wm-price-cancel]'))wmPriceClose();});
 document.addEventListener('submit',e=>{if(e.target.id==='wm-price-form'){e.preventDefault();wmPriceConfirm();}});
 document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if($('weapon-modification-price')?.classList.contains('active')){e.preventDefault();e.stopImmediatePropagation();wmPriceClose();}else if($('weapon-modifications-modal')?.classList.contains('active')){e.preventDefault();e.stopImmediatePropagation();wmClose();}else if(WM_TIP_BUTTON){e.preventDefault();e.stopImmediatePropagation();wmHideTip();}},true);
+
+</script>
+<script id="render-optimization-runtime">
+// Reuse derived values only during one synchronous equipment-table operation.
+// Nothing survives a user edit, another render, a font load or a resize.
+let gearViewPass=null;
+function withGearViewPass(fn){
+ if(gearViewPass)return fn();
+ gearViewPass={owner:S.character,data:S.character?.character_data,profiles:new WeakMap(),texts:new WeakMap(),derived:new WeakMap(),widths:new Map(),font:null};
+ try{return fn();}finally{gearViewPass=null;}
+}
+function currentGearViewPass(){return gearViewPass&&gearViewPass.owner===S.character&&gearViewPass.data===S.character?.character_data?gearViewPass:null;}
+function gearViewValue(data,key,compute){
+ const pass=currentGearViewPass();if(!pass||!data||typeof data!=='object')return compute();
+ let values=pass.derived.get(data);if(!values){values=new Map();pass.derived.set(data,values);}
+ if(!values.has(key))values.set(key,compute());return values.get(key);
+}
+function gearColumnWeapon(row){
+ const pass=currentGearViewPass();if(!pass)return gearEffWeapon(row,gearResolve(row))||{};
+ if(!pass.profiles.has(row))pass.profiles.set(row,gearEffWeapon(row,gearResolve(row))||{});
+ return pass.profiles.get(row);
+}
+const gearViewOriginal={group:gearGroupTableHtml,profile:gearProfileTableHtml,refit:refitGearTables,column:gearColumnText,layout:gearColumnLayout,packages:hfxPackages,mods:permMods};
+gearGroupTableHtml=function(...args){return withGearViewPass(()=>gearViewOriginal.group(...args));};
+gearProfileTableHtml=function(...args){return withGearViewPass(()=>gearViewOriginal.profile(...args));};
+refitGearTables=function(...args){return withGearViewPass(()=>gearViewOriginal.refit(...args));};
+gearColumnLayout=function(...args){return withGearViewPass(()=>gearViewOriginal.layout(...args));};
+gearColumnText=function(row,field){
+ const pass=currentGearViewPass();if(!pass)return gearViewOriginal.column(row,field);
+ let values=pass.texts.get(row);if(!values){values=new Map();pass.texts.set(row,values);}
+ if(!values.has(field))values.set(field,gearViewOriginal.column(row,field));return values.get(field);
+};
+hfxPackages=function(d){return gearViewValue(d,'honour-packages',()=>gearViewOriginal.packages(d));};
+permMods=function(d){return gearViewValue(d,'permanent-modifiers',()=>gearViewOriginal.mods(d));};
 
 </script>
 </body>
