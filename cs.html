@@ -10044,19 +10044,20 @@ function updateHonourPreview(){
   $('honour-buy-confirm').textContent=owned ? 'На листе' : paid ? 'Вернуть на лист' : item.key==='honors' ? 'Добавить почесть' : 'Приобрести';
 }
 // Cards and the journal entry change together; catalog IDs never enter table_id.
-function addHonourPurchase(d,item,variant,note){
+function addHonourPurchase(d,item,variant,note,free=false){
+  if(free && item.key!=='deeds')return {error:'Бесплатное добавление доступно только для деяний'};
   if (honourOwned(item,d)) return {error:'Уже добавлено на лист'};
   const paid=honourPurchase(item,d);
   const valid=honourVariants(item).find(x=>x.code===variant?.code);
   if (!valid) return {error:'Выберите вариант приобретения'};
-  const cost=paid ? 0 : Number(valid.cost);
+  const cost=paid || free ? 0 : Number(valid.cost);
   if (!Number.isFinite(cost) || cost<0) return {error:'Некорректная стоимость'};
   if (cost>0 && honourAvailable(d)<cost) return {error:'Недостаточно опыта'};
   const ironSkull=item.key==='deeds' && Number(item.id)===15 ? (HONOUR_CATALOG || []).find(x=>x.key==='honors' && Number(x.id)===7 && x.code==='iron-skull') : null;
   if(item.key==='deeds' && Number(item.id)===15 && !ironSkull) return {error:'Описание почести «Железный череп» не загружено'};
   const annotation=String(paid?.catalog_note || note || '').trim().slice(0,500);
   const row={id:item.id,catalog_key:item.key,catalog_id:item.id,catalog_code:item.code || null,
-    catalog_name:item.name,name:item.name,source:'shop',desc:item.description || '',cost:paid ? paid.cost : cost,
+    catalog_name:item.name,name:item.name,source:free?'editor':'shop',desc:item.description || '',cost:free?0:paid ? paid.cost : cost,
     catalog_note:annotation,variant_code:paid?.catalog_variant || valid.code};
   if (annotation) row.desc+='\n\nУточнение: '+annotation;
   if (item.key==='deeds' && honourVariants(item).length>1){
@@ -10069,7 +10070,7 @@ function addHonourPurchase(d,item,variant,note){
   if(ironSkull && !honourOwned(ironSkull,d)){
     (d.honors || (d.honors=[])).push({id:ironSkull.id,catalog_key:'honors',catalog_id:ironSkull.id,catalog_code:ironSkull.code,catalog_name:ironSkull.name,name:ironSkull.name,source:'shop',desc:ironSkull.description || '',cost:0,granted_by_deed_id:15});
   }
-  if (!paid && item.key!=='honors'){
+  if (!paid && !free && item.key!=='honors'){
     (d.xp_log || (d.xp_log=[])).push({table_id:null,catalog_key:item.key,catalog_id:item.id,
       catalog_code:item.code || null,catalog_variant:valid.code,catalog_note:annotation,
       name:item.name,cost,date:new Date().toISOString().slice(0,10)});
@@ -17865,7 +17866,7 @@ normalize=function(raw){const d=HFX_BASE.normalize(raw);if(raw?.honour_effects)d
 loadHonourCatalog=async function(){const catalog=await HFX_BASE.loadHonourCatalog();await Promise.all([loadSkillsFromDB(),loadTalentsFromDB()]);if(!DB_SKILLS.length||!DB_TALENTS.length)throw Error('Не удалось загрузить умения и таланты. Повторите загрузку каталога.');if(S.character?.character_data)hfxSync(S.character.character_data);return catalog;};
 function hfxPersist(d,row,key){const item={...row,key:key==='features'?'deeds':key,id:row.catalog_id??row.id};const paid=honourPurchase(item,d);if(paid&&(key!=='features'||paid.honour_effects?.uid===hfxState(row).uid))paid.honour_effects=hfxClone(hfxState(row));}
 function hfxDuelEnemyDefault(d,row,key){if((key==='deeds'||key==='features')&&hfxId(row,key)===5){const s=hfxState(row,true);if(!s.choices.duelEnemy&&[3,5].includes(Number(d.info?.chapter_id)))s.choices.duelEnemy=Number(d.info.chapter_id)===3?'Космические Волки':'Тёмные Ангелы';}}
-addHonourPurchase=function(d,item,variant,note){if(!DB_SKILLS.length||!DB_TALENTS.length)return {error:'Умения и таланты ещё не загружены. Опыт не списан.'};const paid=honourPurchase(item,d),saved=paid?.honour_effects&&hfxClone(paid.honour_effects),result=HFX_BASE.addHonourPurchase(d,item,variant,note);if(result.error)return result;if(saved)result.row.honour_effects=saved;else hfxState(result.row,true).enabled=!result.restored;hfxDuelEnemyDefault(d,result.row,item.key);hfxPersist(d,result.row,item.key);hfxSync(d);return result;};
+addHonourPurchase=function(d,item,variant,note,free=false){if(!DB_SKILLS.length||!DB_TALENTS.length)return {error:'Умения и таланты ещё не загружены. Опыт не списан.'};const paid=honourPurchase(item,d),saved=paid?.honour_effects&&hfxClone(paid.honour_effects),result=HFX_BASE.addHonourPurchase(d,item,variant,note,free);if(result.error)return result;if(saved)result.row.honour_effects=saved;else hfxState(result.row,true).enabled=!result.restored;hfxDuelEnemyDefault(d,result.row,item.key);hfxPersist(d,result.row,item.key);hfxSync(d);return result;};
 const hfxOldAdvGrantApply=advGrantApply;
 advGrantApply=function(d,item,resolved,group,receipt){const owned=!resolved.skill&&(d.talents||[]).find(r=>Number(r.id)===Number(resolved.row.id)&&hfxNorm(r.group)===hfxNorm(group)&&String(r.source||'').startsWith('honour:'));const result=hfxOldAdvGrantApply(d,item,resolved,group,receipt);if(result&&owned){owned.source='advancement';owned.auto=false;owned.honour_independent=true;owned.grant_receipt=receipt;owned.table_id=item.id;delete owned.honour_owners;}return result;};
 function hfxStatMods(d){const out=[];for(const p of hfxPackages(d))for(const [i,a]of p.effects.stats.entries())if(hfxCondition(p,a.condition))out.push({name:p.row.name,target:'stat',target_name:a.key,mode:'add',timing:'pre',effect:a.value,source:'honour:'+p.state.uid+':stat:'+i});return out.filter(m=>!dwActive(d)||dwModifierAllowed(d,m));}
@@ -17929,6 +17930,54 @@ renderList=function(key,...args){const d=S.character?.character_data,changed=[..
     return result;
   };
 }
+</script>
+<script id="deed-editor-runtime">
+// The edit-mode Add button grants a deed; the advancement shop still purchases it.
+const DEED_EDITOR_BASE={openHonourStore,openPicker,drawPickResults,pickManual};
+let deedEditorContext=null;
+function deedEditorValid(context){return !!context&&context===deedEditorContext&&editMode&&S.character===context.owner&&S.character?.character_data===context.data&&pickTarget==='deeds'&&$('pick-modal').classList.contains('active');}
+openHonourStore=function(key){if(key==='deeds'&&editMode)return openPicker('deeds');return DEED_EDITOR_BASE.openHonourStore(key);};
+openPicker=async function(key){
+ deedEditorContext=null;
+ if(key!=='deeds')return DEED_EDITOR_BASE.openPicker(key);
+ if(!editMode||!S.character)return;
+ const context={owner:S.character,data:S.character.character_data,rows:[],loading:true};deedEditorContext=context;pickTarget='deeds';pickRows=[];pickRowsAll=[];
+ $('ai-history-table')?.remove();
+ $('pick-title').textContent='Добавить деяние бесплатно';$('pick-search').value='';
+ for(const id of ['pick-ammo-class-wrap','pick-type-wrap','pick-param-wrap'])$(id).hidden=true;
+ $('pick-results').innerHTML='<p class="desc">Загрузка деяний… Можно также ввести своё название и добавить вручную.</p>';
+ openSheetModal('pick-modal');
+ try{
+  const [catalog]=await Promise.all([loadHonourCatalog(),loadSkillsFromDB(),loadTalentsFromDB()]);
+  if(!deedEditorValid(context))return;
+  if(!DB_SKILLS.length||!DB_TALENTS.length)throw Error('Справочник эффектов не загружен');
+  context.rows=catalog.filter(item=>item.key==='deeds').flatMap(item=>honourVariants(item).map(variant=>({item,variant})));
+  context.loading=false;drawPickResults($('pick-search').value);
+ }catch(error){if(deedEditorValid(context)){context.loading=false;$('pick-results').innerHTML='<p class="desc">Не удалось загрузить каталог. Можно добавить своё деяние вручную или повторно открыть список.</p>';}}
+};
+drawPickResults=function(query){
+ if(pickTarget!=='deeds')return DEED_EDITOR_BASE.drawPickResults(query);
+ const context=deedEditorContext;if(!deedEditorValid(context)||context.loading)return;
+ const rows=context.rows.filter(({item})=>honourNorm(item.name).includes(honourNorm(query)));
+ $('pick-results').innerHTML=rows.map(({item,variant})=>{
+  const owned=honourOwned(item,context.data),title=item.name+(honourVariants(item).length>1?' · '+variant.name:'');
+  return '<button type="button" class="gear-item pick-row" style="width:100%;text-align:left;background:transparent;color:var(--text-main);border:0;border-bottom:1px solid var(--border-dark);font:inherit;white-space:normal" data-deed-free="'+item.id+':'+escAttr(variant.code)+'" '+(owned?'disabled':'')+'><span class="g-name">'+esc(title)+'</span><span class="desc">'+(owned?'Уже на листе':'Бесплатно')+'</span></button>';
+ }).join('')||'<p class="desc">Ничего не найдено. Введите своё название и нажмите «Добавить вручную».</p>';
+ $('pick-results').querySelectorAll('[data-deed-free]').forEach(button=>button.addEventListener('click',()=>{
+  if(!deedEditorValid(context))return toast('Откройте добавление деяния заново в режиме редактирования.');
+  const entry=context.rows.find(({item,variant})=>item.id+':'+variant.code===button.dataset.deedFree);if(!entry)return;
+  const result=addHonourPurchase(context.data,entry.item,entry.variant,'',true);
+  if(result.error)return toast(result.error);
+  closeSheetModal('pick-modal');deedEditorContext=null;renderSheet();debouncedSave();toast('Деяние добавлено бесплатно: '+entry.item.name);
+ }));
+};
+pickManual=function(){
+ if(pickTarget!=='deeds')return DEED_EDITOR_BASE.pickManual();
+ const context=deedEditorContext;if(!deedEditorValid(context))return toast('Откройте добавление деяния заново в режиме редактирования.');
+ const name=$('pick-search').value.trim();if(!name)return toast('Введите название');
+ addRow('deeds',{name,desc:'',source:'custom',cost:0});deedEditorContext=null;debouncedSave();
+};
+
 </script>
 </body>
 </html>
