@@ -2018,6 +2018,19 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 }
 
 </style>
+<style data-feature="weapon-modifications">
+#weapon-modifications-modal{z-index:1400;}#weapon-modification-price{z-index:1500;}
+#weapon-modifications-modal .wm-box{width:min(850px,calc(100vw - 24px));max-width:100%;max-height:calc(100dvh - 24px);padding:20px;box-sizing:border-box;overflow:auto;}
+.wm-budget{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0;color:var(--text-dim);font-size:13px;}.wm-budget strong{display:block;color:var(--text-main);font-size:22px;}
+#wm-search{box-sizing:border-box;width:100%;margin:8px 0 12px;}#wm-message{white-space:pre-line;margin:8px 0;}
+#wm-list details{min-width:0;}#wm-list summary{display:list-item;list-style-position:inside;cursor:pointer;overflow-wrap:anywhere;}#wm-list .rq-description{font-size:13px;line-height:1.6;overflow-wrap:anywhere;}#wm-list .rq-description p{margin:8px 0;}
+#wm-list .wm-state{display:block;min-width:98px;white-space:normal;font-size:13px;letter-spacing:0;text-transform:none;padding:7px 10px;}#wm-list .wm-bought{color:#a5ddaf;background:#78b78818;border-color:#78b788;}#wm-list .wm-personal{color:#b5c8ed;background:#7899ca18;border-color:#7899ca;}#wm-list .wm-none{color:var(--text-dim);}
+.wm-footer{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px;}.wm-modified{cursor:pointer;color:#e6b66e!important;}.wm-modified:focus-visible{outline:2px solid #e6b66e;outline-offset:2px;}
+#wm-tooltip{position:fixed;z-index:20000;box-sizing:border-box;width:max-content;max-width:calc(100vw - 24px);max-height:60dvh;overflow:auto;white-space:pre-line;overflow-wrap:anywhere;padding:10px 13px;border:1px solid var(--border-gold);background:#151517;color:var(--text-main);font:13px/1.65 'Roboto Condensed',Arial,sans-serif;box-shadow:0 5px 20px #0009;}#wm-tooltip[hidden]{display:none;}
+#weapon-modification-price .wm-price-box{width:min(500px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;box-sizing:border-box;}#wm-price-warnings{white-space:pre-line;margin:12px 0;}#wm-price-value{box-sizing:border-box;width:100%;margin-top:8px;padding:9px;background:#101012;color:var(--text-main);border:1px solid var(--border-gold);font:inherit;}
+@media(max-width:600px){#weapon-modifications-modal .wm-box{padding:14px;}#wm-list .rq-head{display:none;}#wm-list .rq-item{grid-template-columns:minmax(0,1fr) auto;gap:8px;}#wm-list details{grid-column:1/-1;}#wm-list .rq-cell{grid-column:1;}#wm-list .wm-state{grid-column:2;grid-row:2/4;}#wm-list .rq-cell::before{content:attr(data-label) ': ';color:var(--text-dim);}.wm-budget strong{font-size:19px;}}
+
+</style>
 </head>
 <body data-vox-art="on" data-sheet-art="off">
 <div class="vox-art-decor" aria-hidden="true"><div class="vox-art-scale left"></div><div class="vox-art-scale right"></div><div class="vox-art-corner bl">|||||||||||| ▪ 01</div><div class="vox-art-corner br">SANCTUS ▪ ▪ |||||||</div><div class="vox-art-scan"></div></div>
@@ -18007,6 +18020,91 @@ pickManual=function(){
     return result;
   };
 }
+</script>
+<script data-feature="weapon-modifications">
+// Installed modifications belong to one weapon instance; their receipts use the existing budget.
+const WM_LEGACY_IDS=new Set([56,59,106,231,232,233,234,235,236]);
+let WM_CONTEXT=null,WM_PRICE=null,WM_TIP_BUTTON=null,WM_TIP_STICKY=false;
+function wmWeapon(row){return !!row&&['weapon_ranged','weapon_melee','shield'].includes(gearRowType(row));}
+function wmInstalled(row){return Array.isArray(row?.weapon_modifications)?row.weapon_modifications.filter(m=>m&&['bought','personal'].includes(m.state)):[];}
+function wmCatalog(){return Object.values(GEAR_MAP).filter(item=>item.stats?.subtype==='weapon_upgrade'||WM_LEGACY_IDS.has(Number(item.id))).sort((a,b)=>a.name.localeCompare(b.name,'ru'));}
+function wmItem(id){return wmCatalog().find(item=>String(item.id)===String(id));}
+function wmRecord(row,id){return wmInstalled(row).find(m=>String(m.equipment_id)===String(id));}
+function wmCurrent(){const c=WM_CONTEXT;return c&&S.character?.id===c.charId&&S.character.character_data===c.d&&(c.d.gear||[]).includes(c.row)&&wmWeapon(c.row)?c:null;}
+function wmChip(row){const mods=wmInstalled(row);if(!mods.length||!wmWeapon(row))return '';const names=mods.map(m=>wmItem(m.equipment_id)?.name||m.name||'Модификация').join('\n');return '<button type="button" class="gw-q-chip snack wm-modified" data-wm-names="'+escAttr(names)+'" aria-label="Модифицировано: '+escAttr(names.replaceAll('\n','; '))+'" aria-expanded="false">Модифицировано</button>';}
+const WM_BASE_QUALITIES=gearQualitiesHtml;
+gearQualitiesHtml=function(row,i,w,editable){const html=WM_BASE_QUALITIES(row,i,w,editable),chip=wmChip(row);if(!chip)return html;return html.endsWith('</div></div>')?html.slice(0,-12)+chip+'</div></div>':html+'<div class="gw-quals"><div>'+chip+'</div></div>';};
+const WM_BASE_INFO=showGearInfo;
+showGearInfo=function(row,key,idx){WM_BASE_INFO(row,key,idx);if(key!=='gear'||!wmWeapon(row)||!(S.character?.character_data.gear||[]).includes(row))return;const button=document.createElement('button');button.type='button';button.id='wm-open';button.className='modal-confirm';button.textContent='Модификации';button.addEventListener('click',()=>wmOpen(row));$('info-edit').append(button);};
+function wmElement(id,markup){let el=$(id);if(!el){el=document.createElement('div');el.id=id;el.className='modal-overlay';el.innerHTML=markup;document.body.append(el);}return el;}
+async function wmOpen(row){
+ if(!S.character||(S.character.character_data.gear||[]).indexOf(row)<0||!wmWeapon(row))return;
+ const c={row,d:S.character.character_data,charId:S.character.id};WM_CONTEXT=c;wmHideTip();
+ wmElement('weapon-modifications-modal','<div class="modal-box wm-box" role="dialog" aria-modal="true" aria-labelledby="wm-title"><h3 id="wm-title">Модификации оружия</h3><div id="wm-weapon" class="desc"></div><div id="wm-budget" class="wm-budget"></div><p class="desc">Нет → Куплено → Личное → Нет. «Личное» — установлено бесплатно. При переходе из «Куплено» стоимость возвращается.</p><input id="wm-search" class="chapter-search-input" type="search" placeholder="Поиск модификаций…" aria-label="Поиск модификаций"><div id="wm-message" class="rq-warning" role="status"></div><div id="wm-list"></div><div class="wm-footer"><button type="button" class="modal-close" data-wm-close>Закрыть</button></div></div>');
+ $('wm-weapon').textContent=row.name;$('wm-search').value='';$('wm-message').textContent='';$('wm-list').textContent='Загрузка справочника…';openSheetModal('weapon-modifications-modal');
+ const loaded=await loadGearCache();if(WM_CONTEXT!==c||!wmCurrent()||!$('weapon-modifications-modal').classList.contains('active'))return;if(!loaded){$('wm-list').textContent='Не удалось загрузить справочник.';return;}wmRender();$('wm-search').focus();
+}
+function wmClose(){wmPriceClose();if($('weapon-modifications-modal'))closeSheetModal('weapon-modifications-modal');WM_CONTEXT=null;$('wm-open')?.focus();}
+function wmQuote(c,item){return rqQuote({key:'e:'+item.id,item,type:item.stats?.type||'combat_gear'},c.d,{quality:rqBaseQuality({item,type:item.stats?.type||'combat_gear'}),qty:1});}
+function wmRender(){
+ const c=wmCurrent();if(!c){$('wm-message').textContent='Оружие больше недоступно. Откройте его заново.';return;}
+ $('wm-budget').innerHTML='<div>Выделено<strong>'+rqFormat(rqState(c.d).limit)+'</strong></div><div>Потрачено<strong>'+rqFormat(rqSpent(c.d))+'</strong></div><div>Доступно<strong>'+rqFormat(rqAvailable(c.d))+'</strong></div>';
+ const opened=new Set([...$('wm-list').querySelectorAll('details[open]')].map(el=>el.dataset.wmDescription)),query=honourNorm($('wm-search').value),items=wmCatalog();
+ for(const m of wmInstalled(c.row))if(!items.some(item=>String(item.id)===String(m.equipment_id)))items.push({id:m.equipment_id,name:m.name||'Модификация',description:'Эта установленная модификация отсутствует в текущем справочнике.',stats:{cost:m.catalog_cost??m.cost,glory:null},wmMissing:true});
+ $('wm-list').innerHTML='<div class="rq-head"><span>Название</span><span>Слава</span><span>Реквизиция</span><span>Состояние</span></div>'+items.filter(item=>honourNorm(item.name).includes(query)).map(item=>{
+  const current=wmRecord(c.row,item.id),state=current?.state||'none',label={none:'Нет',bought:'Куплено',personal:'Личное'}[state],entry={item,type:item.stats?.type||'combat_gear'},special=rqAcquisition(entry),price=rqNumber(item.stats?.cost);
+  return '<article class="rq-item wm-item"><details data-wm-description="'+escAttr(item.id)+'" '+(opened.has(String(item.id))?'open':'')+'><summary class="rq-name">'+esc(item.name)+'</summary><div class="rq-description">'+descBody(item.description||'Описание отсутствует.')+(special?'<p class="rq-warning">'+esc(special.detail)+'</p>':'')+'</div></details><span class="rq-cell" data-label="Слава">'+esc(item.stats?.glory||'—')+'</span><span class="rq-cell" data-label="Реквизиция">'+rqFormat(price)+'</span><button type="button" class="adv-buy-btn wm-state wm-'+state+'" data-wm-cycle="'+escAttr(item.id)+'" aria-label="'+escAttr(item.name+': '+label)+'">'+label+'</button></article>';
+ }).join('')||'<p class="desc">Ничего не найдено.</p>';
+}
+function wmRefund(c,record){if(!record?.receipt_id)return;const ledger=rqState(c.d,true);ledger.purchases=ledger.purchases.filter(p=>!(p.id===record.receipt_id&&p.kind==='weapon_modification'&&p.weapon_modification_owner===c.row.weapon_modifications_id&&String(p.modification_id)===String(record.equipment_id)));}
+function wmChanged(c){
+ wmHideTip();renderList('gear');rqBudget();if($('info-modal').classList.contains('active'))showGearInfo(c.row,'gear',c.d.gear.indexOf(c.row));wmRender();debouncedSave();
+}
+function wmBuy(c,item,amount,quote,manual=false){
+ if(wmCurrent()!==c||wmRecord(c.row,item.id)||!Number.isFinite(amount)||amount<0||amount>Number.MAX_SAFE_INTEGER)return false;
+ c.row.weapon_modifications_id||=crypto.randomUUID();const id=crypto.randomUUID();
+ const receipt={id,key:'e:'+item.id,name:item.name,quality:quote.quality,qty:1,cost:amount,unit:amount,at:new Date().toISOString(),kind:'weapon_modification',weapon_modification_owner:c.row.weapon_modifications_id,modification_id:item.id,weapon_name:c.row.name};
+ if(manual)Object.assign(receipt,{manual_price:true,catalog_cost:quote.cost,rule_warnings:[...quote.warnings]});
+ rqState(c.d,true).purchases.push(receipt);(c.row.weapon_modifications||=[]).push({equipment_id:item.id,name:item.name,state:'bought',receipt_id:id,cost:amount,catalog_cost:quote.cost});wmPriceClose();wmChanged(c);return true;
+}
+function wmCycle(id){
+ const c=wmCurrent();if(!c)return;const record=wmRecord(c.row,id);$('wm-message').textContent='';
+ if(record?.state==='bought'){wmRefund(c,record);record.state='personal';record.receipt_id=null;record.cost=0;wmChanged(c);return;}
+ if(record?.state==='personal'){c.row.weapon_modifications=c.row.weapon_modifications.filter(m=>String(m.equipment_id)!==String(id));wmChanged(c);return;}
+ const item=wmItem(id);if(!item){$('wm-message').textContent='Этой модификации больше нет в справочнике.';return;}const q=wmQuote(c,item);
+ if(q.validationErrors.length){$('wm-message').textContent=q.validationErrors.join(' ');return;}if(q.warnings.length||q.cost==null){wmPriceOpen(c,item,q);return;}wmBuy(c,item,q.cost,q);
+}
+function wmPriceSignature(c,item,q){return JSON.stringify([c.charId,c.row.name,item.id,item.stats,q.cost,q.warnings,rqAvailable(c.d),wmRecord(c.row,item.id)||null]);}
+function wmPriceOpen(c,item,q){
+ WM_PRICE={c,id:item.id,signature:wmPriceSignature(c,item,q)};
+ const modal=wmElement('weapon-modification-price','<div class="modal-box wm-price-box" role="dialog" aria-modal="true" aria-labelledby="wm-price-title"><form id="wm-price-form" novalidate><h3 id="wm-price-title">Стоимость модификации</h3><div id="wm-price-name" class="desc"></div><div id="wm-price-warnings" class="rq-warning"></div><label for="wm-price-value">Сколько Реквизиции потратить?</label><input id="wm-price-value" type="number" min="0" step="any" inputmode="decimal"><p class="desc">Можно указать 0. Сумма больше доступной Реквизиции приведёт к отрицательному остатку.</p><p id="wm-price-error" class="rq-warning" role="status"></p><div class="wm-footer"><button type="submit" class="modal-confirm">Подтвердить покупку</button><button type="button" class="modal-close" data-wm-price-cancel>Отмена</button></div></form></div>');
+ $('wm-price-name').textContent=item.name+' · Доступно: '+rqFormat(rqAvailable(c.d));$('wm-price-warnings').textContent=q.warnings.join('\n');$('wm-price-value').value=rqAcquisition({item,type:item.stats?.type||'combat_gear'})?'':q.cost??'';$('wm-price-error').textContent='';openSheetModal(modal.id);$('wm-price-value').focus();
+}
+function wmPriceClose(){if($('weapon-modification-price'))closeSheetModal('weapon-modification-price');WM_PRICE=null;}
+function wmPriceConfirm(){
+ const p=WM_PRICE,c=wmCurrent(),item=p&&wmItem(p.id);if(!p||c!==p.c||!item){wmPriceClose();return;}const q=wmQuote(c,item);
+ if(wmPriceSignature(c,item,q)!==p.signature){wmPriceClose();$('wm-message').textContent='Условия покупки изменились. Выберите модификацию ещё раз.';return;}
+ const amount=rqNumber($('wm-price-value').value);if(amount==null||amount<0||amount>Number.MAX_SAFE_INTEGER){$('wm-price-error').textContent='Введите неотрицательную сумму Реквизиции.';return;}wmBuy(c,item,amount,q,true);
+}
+function wmHideTip(){if(WM_TIP_BUTTON){WM_TIP_BUTTON.setAttribute('aria-expanded','false');WM_TIP_BUTTON.removeAttribute('aria-describedby');}if($('wm-tooltip'))$('wm-tooltip').hidden=true;WM_TIP_BUTTON=null;WM_TIP_STICKY=false;}
+function wmShowTip(button,sticky=false){
+ wmHideTip();let tip=$('wm-tooltip');if(!tip){tip=document.createElement('div');tip.id='wm-tooltip';tip.role='tooltip';document.body.append(tip);}tip.textContent=button.dataset.wmNames;tip.hidden=false;WM_TIP_BUTTON=button;WM_TIP_STICKY=sticky;button.setAttribute('aria-expanded','true');button.setAttribute('aria-describedby',tip.id);
+ const value=getComputedStyle(document.body).zoom,zoom=(parseFloat(value)/(String(value).endsWith('%')?100:1))||1,viewport=window.visualViewport,vx=viewport?.offsetLeft||0,vy=viewport?.offsetTop||0,vw=viewport?.width||document.documentElement.clientWidth,vh=viewport?.height||document.documentElement.clientHeight;
+ tip.style.maxWidth=Math.min(340,(vw-24)/zoom)+'px';tip.style.maxHeight=Math.max(1,vh-24)/zoom+'px';tip.style.left='0px';tip.style.top='0px';
+ const rect=button.getBoundingClientRect(),box=tip.getBoundingClientRect(),x=Math.max(vx+12,Math.min(rect.left,vx+vw-box.width-12)),y=Math.max(vy+12,Math.min(vy+vh-box.height-12,rect.bottom+8+box.height<=vy+vh?rect.bottom+8:rect.top-box.height-8));tip.style.left=(x-box.left)/zoom+'px';tip.style.top=(y-box.top)/zoom+'px';
+}
+BACKDROP_CLOSE['weapon-modifications-modal']=wmClose;BACKDROP_CLOSE['weapon-modification-price']=wmPriceClose;
+document.addEventListener('input',e=>{if(e.target.id==='wm-search')wmRender();});
+document.addEventListener('click',e=>{const chip=e.target.closest('[data-wm-names]');if(chip){e.preventDefault();e.stopPropagation();const close=WM_TIP_BUTTON===chip&&WM_TIP_STICKY;wmHideTip();if(!close)wmShowTip(chip,true);return;}if(WM_TIP_STICKY&&!e.target.closest('#wm-tooltip'))wmHideTip();},true);
+document.addEventListener('pointerover',e=>{const chip=e.target.closest('[data-wm-names]');if(e.pointerType!=='touch'&&chip&&!chip.contains(e.relatedTarget)&&!WM_TIP_STICKY)wmShowTip(chip);});
+document.addEventListener('pointerout',e=>{if(!WM_TIP_STICKY&&WM_TIP_BUTTON&&!WM_TIP_BUTTON.contains(e.relatedTarget))wmHideTip();});
+document.addEventListener('focusin',e=>{if(e.target.matches('[data-wm-names]'))wmShowTip(e.target);});
+document.addEventListener('focusout',e=>{if(!WM_TIP_STICKY&&e.target===WM_TIP_BUTTON)wmHideTip();});
+window.addEventListener('resize',wmHideTip);window.addEventListener('scroll',wmHideTip,true);
+document.addEventListener('click',e=>{const cycle=e.target.closest('[data-wm-cycle]');if(cycle){wmCycle(cycle.dataset.wmCycle);return;}if(e.target.closest('[data-wm-close]'))wmClose();if(e.target.closest('[data-wm-price-cancel]'))wmPriceClose();});
+document.addEventListener('submit',e=>{if(e.target.id==='wm-price-form'){e.preventDefault();wmPriceConfirm();}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if($('weapon-modification-price')?.classList.contains('active')){e.preventDefault();e.stopImmediatePropagation();wmPriceClose();}else if($('weapon-modifications-modal')?.classList.contains('active')){e.preventDefault();e.stopImmediatePropagation();wmClose();}else if(WM_TIP_BUTTON){e.preventDefault();e.stopImmediatePropagation();wmHideTip();}},true);
+
 </script>
 </body>
 </html>
