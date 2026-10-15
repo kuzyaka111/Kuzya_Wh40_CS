@@ -5935,15 +5935,6 @@ function gearBaseQuality(row){
   return GEAR_QUALITIES.some(x=>x.code===q) ? q : 'С';
 }
 function gearItemQuality(row){ return gearHasRelicProperty(row) ? 'И' : gearBaseQuality(row); }
-function gearQualityBadge(row,hideOnWeaponCard=false){
-  if(isArmourRow(row))return '';
-  if(hideOnWeaponCard){
-    const type=gearPrimaryProfile(row)?.type || gearRowType(row);
-    if(['weapon_ranged','weapon_melee'].includes(type))return '';
-  }
-  const q=GEAR_QUALITIES.find(x=>x.code===gearItemQuality(row));
-  return `<span class="g-quality-badge q-${q.tone}" title="${q.name}">${q.code}</span>`;
-}
 function gearCardClasses(row){
   const q=GEAR_QUALITIES.find(x=>x.code===gearItemQuality(row));
   return `gear-quality-card gq-${q.tone}${gearHasRelicProperty(row) ? ' gear-relic' : ''}`;
@@ -6038,7 +6029,7 @@ function gearItemHtml(r, i, key){
   const wcls = (w && w.class) ? String(w.class).trim() : '';
   return `<div class="gear-item gear-weapon-row ${gearCardClasses(r)}">${gearDeleteButtonHtml(key,i,r.name)}
     <div class="gear-head" data-open="${key}:${i}">
-      <span class="g-name">${esc(r.name)}${gearQualityBadge(r,true)}${wcls ? `<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>` : ''}</span>
+      <span class="g-name">${esc(r.name)}${wcls ? `<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>` : ''}</span>
       ${r.source === 'custom' ? `<span class="g-src-custom">самодел</span>` : ''}
     </div>${gearQualitiesHtml(r,i,w || {},false)}
   </div>`;
@@ -6191,7 +6182,7 @@ function gearStatsCellsHtml(r,i,g,key,w,editable){
 function gearRowHtml(r, i, g, key){
   const w=gearResolve(r),editable=editMode && r.source==='custom' && w!=null && !gearActiveAlternateProfile(r);
   const wclsv=String(w?.class || '').trim(),quals=gearQualitiesHtml(r,i,w || {},editable);
-  let html=`<tr class="gw-tr"><td class="gw-name-td"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r,true)}${wclsv?`<span class="ammo-class">${esc(gearAmmoClassLabel(wclsv))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span></td>${gearStatsCellsHtml(r,i,g,key,w,editable)}${gearQtyCell(r,i,g,key)}</tr>`;
+  let html=`<tr class="gw-tr"><td class="gw-name-td"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${wclsv?`<span class="ammo-class">${esc(gearAmmoClassLabel(wclsv))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span></td>${gearStatsCellsHtml(r,i,g,key,w,editable)}${gearQtyCell(r,i,g,key)}</tr>`;
   if(quals)html+=`<tr class="gw-qual-tr"><td colspan="${g.fields.length+1+(g.qty || g.qtyCurMax?1:0)}">${quals}</td></tr>`;
   return html;
 }
@@ -6292,7 +6283,7 @@ function gearCardHtml(r,i,g,key,layout=gearColumnLayout([r],g)){
   if(!multi)return `<div class="gw-card ${gearCardClasses(r)}">${remove}<table class="gw-table">${gearColgroupHtml(g,true,layout)}<tbody>${gearRowHtml(r,i,g,key)}</tbody></table></div>`;
   const w=gearResolve(r),wcls=String(w?.class || '').trim();
   const editable=editMode && r.source==='custom' && !gearActiveAlternateProfile(r);
-  return `<div class="gw-card gw-multi-card ${gearCardClasses(r)}">${remove}<div class="gw-card-head"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${gearQualityBadge(r,true)}${wcls?`<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span>${gearProfileSelectorHtml(r,i)}</div>${gearCombiConfig(r)?`<div class="gear-profile-config">${gearCombiControls(r,i)}</div>`:''}${gearProfileTableHtml(r,i,key)}<div class="gw-card-properties">${gearQualitiesHtml(r,i,w || {},editable)}</div></div>`;
+  return `<div class="gw-card gw-multi-card ${gearCardClasses(r)}">${remove}<div class="gw-card-head"><span class="g-name" data-open="${key}:${i}">${esc(r.name)}${wcls?`<span class="ammo-class">${esc(gearAmmoClassLabel(wcls))}</span>`:''}${r.source==='custom'?'<span class="g-src-custom">самодел</span>':''}</span>${gearProfileSelectorHtml(r,i)}</div>${gearCombiConfig(r)?`<div class="gear-profile-config">${gearCombiControls(r,i)}</div>`:''}${gearProfileTableHtml(r,i,key)}<div class="gw-card-properties">${gearQualitiesHtml(r,i,w || {},editable)}</div></div>`;
 }
 
 function gearQtyCell(r, i, g, key){
@@ -6503,14 +6494,11 @@ function renderList(key){
     }
     const abTbl = isAbilityKey(key) ? abilityTableForKey(key) : null;
     const tName = key === 'talents' ? talentDisplayName(r) : r.name;
-    // Бейдж качества — то же поле, что и у оружия. Пустая строка у всех
-    // остальных разделов, так что лишних элементов они не получают.
-    const qBadge = key==='aug_personal' || r.quality ? gearQualityBadge(r) : '';
     const equipmentClasses=key==='aug_personal' ? ' '+gearCardClasses(r) : '';
     return `<div class="talent-item${equipmentClasses}" data-open="${key}:${i}">
       ${key==='aug_personal'?gearDeleteButtonHtml(key,i,r.name):''}
       <div class="t-head">
-        <div class="t-name">${esc(tName)}${qBadge}${abTbl ? abilityReqBadge(r.name, abTbl) : ''}</div>
+        <div class="t-name">${esc(tName)}${abTbl ? abilityReqBadge(r.name, abTbl) : ''}</div>
         ${key==='aug_personal'?'':`<button class="remove-row-btn" data-del="${key}:${i}">✕</button>`}
       </div>
       ${abTbl ? `<div class="solo-item-meta">${abilityCardMeta(r.name, abTbl)}</div>` : ''}
@@ -7583,7 +7571,7 @@ function renderArmourAux(){
     const i = gear.indexOf(r);
     return `<div class="gear-item ${gearCardClasses(r)}">${gearDeleteButtonHtml('gear',i,r.name)}
       <div class="gear-head" data-open="gear:${i}">
-        <span class="g-name">${esc(r.name)}${gearQualityBadge(r)}</span>
+        <span class="g-name">${esc(r.name)}</span>
         ${r.source === 'custom' ? '<span class="g-src-custom">самодел</span>' : ''}
       </div>${gearQualitiesHtml(r,i,catalogItemStats(r),false)}
     </div>`;
@@ -15579,7 +15567,7 @@ gearTableHtml=function(rows,key,opts){
   if(key!=='gear' || opts?.equippedOnly || opts?.groupsOnly || opts?.excludeGroups)return html;
   const d=S.character?.character_data;aiEnsure(d);const armours=aiRows(d);
   html+='<div class="gw-group ai-armour-group"><div class="gw-group-title">Броня</div><button type="button" class="add-row-btn" data-ai-add>+ Добавить броню</button>';
-  html+=armours.length?armours.map((r,n)=>{const i=d.gear.indexOf(r),worn=r.armour_instance.stats.category==='primary'?aiActive(d)===r:gearIsEquipped(r);return '<div class="gear-item '+gearCardClasses(r)+'">'+gearDeleteButtonHtml('gear',i,r.name)+'<div class="gear-head" data-open="gear:'+i+'"><span class="g-name">'+esc(r.name)+gearQualityBadge(r)+' <small>· экземпляр '+(n+1)+'</small></span><span class="desc ai-armour-status">'+(worn?'Надета':'В Арсенале')+'</span>'+(worn?'':'<button type="button" class="xp-row-btn" data-ai-wear="'+escAttr(r.armour_instance.id)+'">Надеть</button>')+'</div></div>';}).join(''):'<div class="desc">Броня ещё не добавлена.</div>';
+  html+=armours.length?armours.map((r,n)=>{const i=d.gear.indexOf(r),worn=r.armour_instance.stats.category==='primary'?aiActive(d)===r:gearIsEquipped(r);return '<div class="gear-item '+gearCardClasses(r)+'">'+gearDeleteButtonHtml('gear',i,r.name)+'<div class="gear-head" data-open="gear:'+i+'"><span class="g-name">'+esc(r.name)+' <small>· экземпляр '+(n+1)+'</small></span><span class="desc ai-armour-status">'+(worn?'Надета':'В Арсенале')+'</span>'+(worn?'':'<button type="button" class="xp-row-btn" data-ai-wear="'+escAttr(r.armour_instance.id)+'">Надеть</button>')+'</div></div>';}).join(''):'<div class="desc">Броня ещё не добавлена.</div>';
   return html+'</div>';
 };
 renderList=function(key){
