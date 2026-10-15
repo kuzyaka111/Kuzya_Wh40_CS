@@ -16617,10 +16617,10 @@ showScreen=function(...args){const result=sqShowScreenBefore(...args);queueMicro
 <script data-feature="weapon-damage">
 // Deathwatch Core pp. 245/276; Living Errata 1.1 p. 5.
 // Shared by the sheet's local NPC rolls and the server. Natural dice are retained.
-function damageParseExpression(value){
+function damageParseExpression(value,maxDice=20){
   const s=String(value||'').trim().toLowerCase().replace(/[кд]/g,'d').replace(/[−–]/g,'-').replace(/\s+/g,'');
-  const m=/^(\d{1,2})d(5|10)((?:[+-]\d{1,4})*)$/.exec(s);
-  if(!m||Number(m[1])<1||Number(m[1])>20)throw Error('Укажите урон в формате 1к10+5 или 1к5−3 (используйте знак -).');
+  const m=/^(\d{1,3})d(5|10)((?:[+-]\d{1,4})*)$/.exec(s);
+  if(!m||Number(m[1])<1||Number(m[1])>maxDice)throw Error('Укажите урон в формате 1к10+5 или 1к5−3 (используйте знак -).');
   const flat=(m[3].match(/[+-]\d+/g)||[]).reduce((n,x)=>n+Number(x),0);
   if(Math.abs(flat)>9999)throw Error('Слишком большой бонус профиля.');
   return {count:Number(m[1]),sides:Number(m[2]),flat,expression:s};
@@ -16629,7 +16629,7 @@ function damageInteger(value,min,max,label){
   const n=Number(value);if(!Number.isSafeInteger(n)||n<min||n>max)throw Error('Некорректное значение: '+label);return n;
 }
 function damageResolve(input,die){
-  const p=damageParseExpression(input.expression);
+  const p=damageParseExpression(input.expression,input.psychic===true?200:20);
   const bonus=damageInteger(input.bonus??0,-9999,9999,'бонус урона');
   const extra=damageInteger(input.extra_dice??0,0,20,'дополнительные к10');
   const accurate=damageInteger(input.accurate_dice??0,0,2,'Точное');
@@ -18210,6 +18210,151 @@ gearColumnText=function(row,field){
 };
 hfxPackages=function(d){return gearViewValue(d,'honour-packages',()=>gearViewOriginal.packages(d));};
 permMods=function(d){return gearViewValue(d,'permanent-modifiers',()=>gearViewOriginal.mods(d));};
+
+</script>
+
+<script data-feature="psychic-damage">
+// Psychic damage profiles: catalogue formulas; PR denotes the number of dice.
+// Fixed damage, defences and narrative consequences remain in the power description.
+const PD_PROFILES = {
+  21:[['use','Урон вихря','pr10']],22:[['use','Урон психического удара','pr10']],
+  25:[['use','Основная цель','blood'],['secondary','Вторичный взрыв','2d10']],
+  26:[['use','Урон копья','pr10']],30:[['use','Урон пламени','pr10']],
+  37:[['use','Урон молнии','pr10']],39:[['use','Урон грома','pr5']],
+  40:[['freki','Укус Фреки','pr10'],['geri','Укус Гери','pr5']],
+  43:[['use','Первоначальное попадание','pr10'],['attack','Урон при поддержании','2d10']],
+  45:[['structures','Урон сооружениям','triple'],['debris','Урон от обломков','3d10']],
+  48:[['use','Урон демонам','pr10']],52:[['use','Урон призрачного зверя','pr5']],
+  58:[['use','Урон волны','pr10']],60:[['use','Урон психосилы','pr10']],
+  61:[['use','Урон психосилы','pr5']],64:[['damage','Урон одной цели','pr10']],
+  65:[['use','Урон пламени','3d10+5']],67:[['use','Урон пламени','pr10']],
+  70:[['attack','Разряд молнии','storm']],71:[['lightning','Урон молнии','pr10']],
+  81:[['creatures','Урон существам — фиксированный, без броска',null],['objects','Урон объектам','pr10']],83:[['use','Урон психосилы','flay']],
+  98:[['first','Первое попадание — режущий урон','1d10'],['next','Следующий раунд — ударный урон','1d10']],
+  100:[['use','Урон молнии','pr10']]
+};
+const PD = {owner:null,npcId:null,power:null,profile:null,context:null,busy:false,last:new WeakMap(),automatic:null,chooser:null};
+function pdProfileChoices(power){return PD_PROFILES[Number(power?.id)] || [];}
+function pdProfiles(power){return pdProfileChoices(power).filter(profile=>profile[2]!==null);}
+function pdExpression(profile,pr){
+  damageInteger(pr,1,200,'Пси-рейтинг');
+  const formula=profile[2];
+  const expression=formula==='pr10'?pr+'d10':formula==='pr5'?pr+'d5':formula==='triple'?(3*pr)+'d10':formula==='blood'?'1d10+'+Math.min(20,2*pr):formula==='storm'?'2d10+'+pr:formula==='flay'?'1d10+'+pr:formula;
+  damageParseExpression(expression,200);return expression;
+}
+function pdKnown(power){return !!S.character&&(S.character.character_data.psi||[]).some(row=>String(row.id)===String(power?.id));}
+function pdValid(){return !!PD.owner&&S.character===PD.owner&&!editMode&&(!sbActorActive()||SB.record?.id===PD.npcId)&&(!PD.power||pdKnown(PD.power));}
+function pdLast(power){return PD.last.get(S.character?.character_data)?.get(Number(power.id)) || null;}
+function pdRemember(context,result){
+  if(!context||context.owner!==S.character)return;
+  const data=S.character.character_data;let map=PD.last.get(data);if(!map){map=new Map();PD.last.set(data,map);}
+  const previous=map.get(Number(context.power.id));
+  const r=result.location_only?previous?.result||result:result;
+  map.set(Number(context.power.id),{...context,result:r});
+}
+function pdMetaHtml(description){
+  const {parts}=psiMetaParts(description);
+  return '<dl class="pd-meta">'+['Действие','Встречное','Дальность','Поддержание'].map(key=>'<div><dt>'+esc(key==='Встречное'?'Встречная проверка':key)+'</dt><dd>'+esc(parts[key]||'—')+'</dd></div>').join('')+'</dl>';
+}
+function pdError(error){toast(error?.message || String(error));}
+function pdSourceHtml(id,value){return '<label>Источник урона<select id="'+id+'"><option value="weapon"'+(value==='weapon'?' selected':'')+'>Оружие</option><option value="psychic"'+(value==='psychic'?' selected':'')+'>Психосила</option></select></label>';}
+function pdMount(){
+  if($('pd-damage-modal'))return;
+  const style=document.createElement('style');style.textContent='.pd-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.pd-meta>div{min-width:0;padding:8px;border:1px solid #68562f80}.pd-meta dt{font-size:11px;color:#aaa493}.pd-meta dd{margin:4px 0 0;overflow-wrap:anywhere}.pd-card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.pd-card-actions button{flex:1;white-space:normal}#pd-damage-modal{z-index:1300}#pd-profile-modal{z-index:1400}#pd-damage-modal .modal-box,#pd-profile-modal .modal-box{box-sizing:border-box;max-width:620px;max-height:90dvh;overflow:auto}#pd-damage-modal input,#pd-damage-modal select{box-sizing:border-box;max-width:100%;width:100%}#pd-damage-modal .damage-check input{width:auto}#pd-trigger{width:54px!important;min-width:54px;margin-left:6px;text-align:center;border-radius:9px}#pd-damage-modal .roll-lines{white-space:pre-wrap}#pd-profile-list{display:flex;flex-direction:column;gap:10px;margin:15px 0}#pd-profile-list button{white-space:normal;text-align:left}#pd-damage-modal .action-foot{position:static;display:flex;gap:10px}#pd-damage-modal .action-foot button{flex:1;white-space:normal;margin:0}@media(max-width:480px){.pd-card-actions{flex-direction:column}.pd-card-actions button{width:100%;min-width:0;word-break:normal;overflow-wrap:normal}.pd-meta{grid-template-columns:1fr}#pd-damage-modal .action-foot{flex-direction:column}}';document.head.append(style);
+  const modal=document.createElement('div');modal.id='pd-damage-modal';modal.className='modal-overlay';
+  modal.innerHTML='<div class="modal-box"><h3>Урон психосилы</h3>'+pdSourceHtml('pd-source','psychic')+'<label>Психосила<select id="pd-power"></select></label><div id="pd-damage-fields"></div><p id="pd-damage-error" class="action-error" role="alert"></p><div class="action-foot"><button type="button" class="modal-close" id="pd-close">Закрыть</button><button type="button" class="modal-confirm" id="pd-go" disabled>Бросить урон</button></div><div id="pd-result" role="status" aria-live="polite"></div></div>';
+  document.body.append(modal);
+  $('pd-source').onchange=()=>{if(PD.busy){$('pd-source').value='psychic';return;}closeSheetModal('pd-damage-modal');openDamageRoll();};
+  $('pd-close').onclick=()=>{if(!PD.busy)closeSheetModal('pd-damage-modal');};$('pd-go').onclick=pdRollDamage;
+  $('pd-power').onchange=()=>{if(PD.busy){$('pd-power').value=String(PD.power?.id||'');return;}const p=WARP.catalog?.find(p=>String(p.id)===$('pd-power').value);if(p){$('pd-power').value=String(PD.power?.id||'');pdChooseDamage(p);}else{PD.power=null;PD.profile=null;PD.context=null;pdRenderDamage();}};
+  const chooser=document.createElement('div');chooser.id='pd-profile-modal';chooser.className='modal-overlay';chooser.innerHTML='<div class="modal-box"><h3>Профиль урона</h3><p id="pd-profile-power"></p><div id="pd-profile-list"></div><button type="button" class="modal-close" id="pd-profile-close">Закрыть</button></div>';document.body.append(chooser);$('pd-profile-close').onclick=()=>{PD.chooser=null;closeSheetModal('pd-profile-modal');};
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!PD.busy){closeSheetModal('pd-damage-modal');closeSheetModal('pd-profile-modal');PD.chooser=null;}});
+}
+async function pdOpenDamage(power=null,profile=null,context=null){
+  if(!S.character||editMode||PD.busy||DAMAGE.busy||ROLL.busy)return;
+  const owner=S.character;try{await warpCatalog();}catch(error){return pdError(error);}
+  if(S.character!==owner||editMode||power&&!pdKnown(power))return;
+  pdMount();PD.owner=owner;PD.npcId=sbActorActive()?SB.record?.id:null;PD.power=power;PD.profile=profile;PD.context=context;$('pd-source').value='psychic';
+  closeSheetModal('info-modal');closeSheetModal('action-modal');closeSheetModal('damage-modal');closeSheetModal('warp-modal');closeSheetModal('pd-profile-modal');
+  $('pd-damage-modal').classList.add('active');pdRenderDamage();
+}
+function pdChooseDamage(power,context=null){
+  if(!S.character||editMode||PD.busy||!pdKnown(power))return;
+  const profiles=pdProfileChoices(power);if(!pdProfiles(power).length)return;
+  if(profiles.length===1)return pdOpenDamage(power,profiles[0],context);
+  pdMount();const choice={owner:S.character,data:S.character.character_data,power,context};PD.chooser=choice;
+  $('pd-profile-power').textContent=power.name;$('pd-profile-list').innerHTML=profiles.map(profile=>'<button type="button" class="modal-confirm" data-pd-profile="'+escAttr(profile[0])+'"'+(profile[2]===null?' disabled':'')+'>'+esc(profile[1])+'</button>').join('');openSheetModal('pd-profile-modal');
+  $('pd-profile-list').querySelectorAll('[data-pd-profile]').forEach(button=>button.onclick=()=>{if(PD.chooser!==choice||S.character!==choice.owner||S.character.character_data!==choice.data||editMode||!pdKnown(power)||!$('pd-profile-modal').classList.contains('active'))return;const profile=profiles.find(p=>p[0]===button.dataset.pdProfile);if(profile[2]===null)return;PD.chooser=null;pdOpenDamage(power,profile,context);});
+}
+function pdRenderDamage(){
+  if(!pdValid())return;
+  $('pd-power').innerHTML='<option value="">Выберите психосилу…</option>'+warpKnown().filter(x=>pdProfiles(x.power).length).map(x=>'<option value="'+x.power.id+'"'+(x.power===PD.power?' selected':'')+'>'+esc(x.row.name||x.power.name)+'</option>').join('');
+  $('pd-result').innerHTML='';$('pd-damage-error').textContent='';$('pd-go').disabled=!PD.profile;$('pd-damage-fields').innerHTML='';if(!PD.power||!PD.profile)return;
+  const pr=PD.context?.pr??warpUsedPr(PD.power),r=PD.context?.result,threshold=r?.threshold??(effStat(S.character.character_data,'sv')+5*pr);
+  const field=(id,label,value,attrs='')=>'<label>'+label+'<input id="'+id+'" value="'+escAttr(String(value))+'" '+attrs+'></label>';
+  $('pd-damage-fields').innerHTML='<p class="desc">Профиль: <b>'+esc(PD.profile[1])+'</b></p>'+(pdProfileChoices(PD.power).length>1?'<button type="button" class="modal-close" id="pd-change-profile">Выбрать другой профиль</button>':'')+'<div class="damage-grid">'+field('pd-pr','Используемый Пси-рейтинг',pr,'type="number" min="1" max="200" step="1"')+field('pd-expression','Формула урона','','readonly')+field('pd-bonus','Бонусы к урону',0,'type="number" min="-9999" max="9999" step="1"')+field('pd-extra','Дополнительные к10',0,'type="number" min="0" max="20" step="1"')+field('pd-confirm','Порог подтверждения ярости',threshold,'type="number" min="-1998" max="1998" step="1"')+field('pd-degrees','Степени успеха проверки',r?.success?r.degrees||0:0,'type="number" min="0" max="1998" step="1"')+'</div><label class="damage-check"><input type="checkbox" id="pd-fury"'+(r?.success===false?'':' checked')+'> Праведная ярость <input type="number" id="pd-trigger" value="10" min="1" max="10" step="1" aria-label="Порог Праведной ярости"></label>'+damageCheckbox('pd-replace','Заменить один низкий кубик степенями успеха',true);
+  const update=()=>{try{$('pd-expression').value=pdExpression(PD.profile,Number($('pd-pr').value));$('pd-damage-error').textContent='';$('pd-go').disabled=false;}catch(error){$('pd-expression').value='';$('pd-damage-error').textContent=error.message;$('pd-go').disabled=true;}};$('pd-pr').oninput=update;update();
+  if($('pd-change-profile'))$('pd-change-profile').onclick=()=>pdChooseDamage(PD.power,PD.context);
+}
+async function pdRollDamage(){
+  if(PD.busy||!pdValid()||!PD.power||!PD.profile)return;
+  const owner=PD.owner,power=PD.power,profile=PD.profile;
+  const input={psychic:true,expression:pdExpression(profile,Number($('pd-pr').value)),bonus:$('pd-bonus').value,extra_dice:$('pd-extra').value,confirm_target:$('pd-confirm').value,degrees:$('pd-degrees').value,hit:true,fury_allowed:$('pd-fury').checked,fury_trigger:$('pd-trigger').value,replace_degrees:$('pd-replace').checked,notes:['Пси-сила: '+power.name,'Профиль: '+profile[1],'Используемый ПР: '+$('pd-pr').value]};
+  PD.busy=true;$('pd-go').disabled=true;$('pd-damage-error').textContent='';$('pd-result').innerHTML='';
+  try{
+    damageResolve({...input,hit:false},()=>1);
+    const body={action:'roll-damage',character_id:owner.id,chronicle_id:S.chronicle?.id,weapon_name:'Пси-сила · '+power.name+' · '+profile[1],damage:input};let result;
+    if(sbActorActive()&&!await mwNpcSend())result={...damageResolve(input,sbRandomDie),skip:'npc_local'};
+    else{if(sbActorActive()){if(!await sbFlushQuick())throw Error('Не удалось сохранить НПЦ перед броском.');if(!pdValid())throw Error('Персонаж изменился.');body.statblock_id=SB.record.id;body.chronicle_id=SB.chronicleId;delete body.character_id;}result=await sbOriginalRuntime.callRollApi(body);}
+    if(!pdValid()||PD.power!==power||PD.profile!==profile)return;
+    $('pd-result').innerHTML='<div class="roll-big ok">'+result.ordinary+'</div><div class="roll-verdict">Праведная ярость: <b>+'+result.fury+'</b></div><div class="roll-eq">С яростью: <b>'+result.total+'</b></div><div class="roll-lines">'+esc(damageResultLines(result).slice(3).join('\n'))+'</div><div class="desc">'+esc(mwDeliveryText(result)||(result.skip==='npc_local'?'Бросок НПЦ · результат только на листе':result.delivered?'Отправлено в Discord':rollSkipText(result.skip)))+'</div>';
+  }catch(error){if(owner===S.character)$('pd-damage-error').textContent='Бросок не выполнен: '+error.message;}
+  finally{PD.busy=false;if($('pd-go'))$('pd-go').disabled=!pdValid();}
+}
+async function pdApply(power,attack){
+  if(!pdKnown(power)||editMode||ROLL.busy)return;
+  const owner=S.character;closeSheetModal('info-modal');await warpOpen();if(S.character!==owner||!pdKnown(power)||editMode)return;
+  WARP.power=power;const variants=warpVariants(power);WARP.variant=(attack?variants.find(v=>v.attack):null)||variants[0];warpDraw();
+  if(attack&&!variants.some(v=>v.attack)&&power.combat_rules.continuation?.some(v=>v.attack)&&warpSupported(power))warpContinuation();
+}
+const PD_BASE={showRowInfo,warpDraw,warpAutomatic,showRollResult,renderDamageRoll};
+showRowInfo=function(row,key){
+  const result=PD_BASE.showRowInfo(row,key);if(key!=='psi')return result;
+  $('info-desc').innerHTML='<details class="pd-info-description"><summary>Описание</summary><div>'+descHtml(row.desc||'Описание отсутствует.')+'</div></details>';
+  $('info-params').style.display='block';$('info-params').innerHTML=pdMetaHtml(row.desc||'');
+  if(editMode)return result;
+  const owner=S.character,host=document.createElement('div');host.className='pd-card-actions';$('info-edit').append(host);
+  warpCatalog().then(()=>{
+    if(S.character!==owner||!host.isConnected||!$('info-modal').classList.contains('active')||editMode)return;
+    const power=WARP.catalog?.find(power=>String(power.id)===String(row.id));if(!power||!pdKnown(power))return;
+    const all=[...(power.combat_rules?.variants||[]),...(power.combat_rules?.continuation||[])],attack=all.some(v=>v.attack),apply=power.combat_rules?.variants?.some(v=>!v.attack);
+    host.innerHTML=(apply?'<button type="button" class="modal-confirm" data-pd-use>Применить пси-силу</button>':'')+(attack?'<button type="button" class="modal-confirm" data-pd-attack>Совершить атаку</button>':'')+(pdProfiles(power).length?'<button type="button" class="modal-confirm" data-pd-damage>Бросить урон</button>':'');
+    const valid=()=>S.character===owner&&host.isConnected&&$('info-modal').classList.contains('active')&&!editMode&&pdKnown(power);
+    host.querySelector('[data-pd-use]')?.addEventListener('click',()=>{if(valid())pdApply(power,false).catch(pdError);});
+    host.querySelector('[data-pd-attack]')?.addEventListener('click',()=>{if(valid())pdApply(power,true).catch(pdError);});
+    host.querySelector('[data-pd-damage]')?.addEventListener('click',()=>{if(valid())pdChooseDamage(power);});
+  }).catch(error=>{if(host.isConnected&&S.character===owner)host.textContent='Не удалось загрузить действия психосилы. Откройте карточку повторно.';});return result;
+};
+warpDraw=function(){PD_BASE.warpDraw();const power=WARP.power;if(!power||S.character!==WARP.owner)return;const details=$('warp-content').querySelector('.warp-details');if(!details)return;const first=details.querySelector(':scope > .desc');if(first)first.outerHTML=pdMetaHtml(power.description);for(const p of details.querySelectorAll(':scope > p.desc'))if(/^Поддержание:/.test(p.textContent))p.remove();};
+warpAutomatic=async function(context,attackResult=null){
+  if(S.character!==context.owner)throw Error('Персонаж изменился. Откройте силу заново.');
+  if(context.variant.hit==='bs')return PD_BASE.warpAutomatic(context,attackResult);
+  const body={action:'roll-location',character_id:S.character.id,chronicle_id:S.chronicle?.id,stat_label:context.power.name+' · '+context.variant.label,target:100,mod:0,is_attack:true,zone_mode:context.variant.zone||'reverse'};
+  const result=await callRollApi(body);if(S.character!==context.owner)return;
+  closeSheetModal('warp-modal');openRoll({kind:'stat',sel:{kind:'stat',statKey:'db',name:context.power.name}});ROLL.action=null;
+  const previous=PD.automatic;PD.automatic=context;
+  try{showRollResult(attackResult?{...attackResult,hit_location:result.hit_location,location_d100:result.d100}:result);}finally{PD.automatic=previous;}
+  for(const id of ['roll-again','roll-reset']){const old=$(id);if(!old)continue;const fresh=old.cloneNode(true);old.replaceWith(fresh);
+    fresh.onclick=id==='roll-again'?()=>warpAutomatic(context,attackResult).catch(pdError):()=>warpOpen().then(()=>{if(S.character!==context.owner)return;WARP.power=context.power;WARP.variant=warpVariants(context.power)[0];WARP.turns=context.turns||0;warpDraw();});}
+};
+showRollResult=function(result){
+  PD_BASE.showRollResult(result);const context=ROLL.action?.warp||PD.automatic;if(!context)return;
+  $('roll-damage')?.remove();$('pd-result-damage')?.remove();pdRemember(context,result);
+  if(!context.variant.attack||!pdProfiles(context.power).length)return;
+  const button=document.createElement('button');button.type='button';button.id='pd-result-damage';button.className='modal-confirm';button.textContent='Бросить урон';const owner=S.character,saved=pdLast(context.power);
+  button.onclick=()=>{if(S.character===owner&&!editMode)pdChooseDamage(context.power,saved);};($('roll-result').querySelector('.roll-result-acts')||$('roll-result')).append(button);
+};
+renderDamageRoll=function(){PD_BASE.renderDamageRoll();if(!$('pd-weapon-source')){$('damage-weapon').closest('label').insertAdjacentHTML('beforebegin',pdSourceHtml('pd-weapon-source','weapon'));$('pd-weapon-source').onchange=()=>{if(DAMAGE.busy){$('pd-weapon-source').value='weapon';return;}pdOpenDamage();};}$('pd-weapon-source').value='weapon';};
 
 </script>
 </body>
