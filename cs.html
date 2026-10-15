@@ -1494,7 +1494,7 @@ body:has(#advancement-modal.active) #info-modal{z-index:1000;}
 #sb-entry-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 #sb-entry-fields .sb-wide{grid-column:1/-1;}
 #sb-entry-fields textarea{min-height:130px;}
-#statblock-list .list-item{width:100%;text-align:left;text-transform:none;letter-spacing:normal;white-space:normal;}
+#statblock-list .list-item{width:100%;box-sizing:border-box;text-align:left;text-transform:none;letter-spacing:normal;white-space:normal;justify-content:space-between;gap:10px;}
 #statblock-list .nm{overflow-wrap:anywhere;}
 #statblock-list .badge{flex-shrink:0;}
 @media(max-width:900px){
@@ -1659,8 +1659,8 @@ body[data-vox-art="on"] .tpanel h2{letter-spacing:.035em;color:#f5c347;text-shad
 body[data-vox-art="on"] .tpanel h2::before{content:"";display:inline-block;width:3px;height:16px;background:linear-gradient(#f8cd54 0 20%,transparent 20% 30%,#d3a526 30% 75%,transparent 75% 85%,#f8cd54 85%);margin-right:10px;vertical-align:-1px;}
 body[data-vox-art="on"] .list-item{background:linear-gradient(110deg,#23281588,#141b0ce0);border-color:#4e502b;border-left:3px solid #dfae30;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);transition:background .2s,border-color .2s;}
 body[data-vox-art="on"] .clickable:hover{background:#2a3016;border-left-color:#ffe07a;border-top-color:#967b2b;}
-body[data-vox-art="on"] :is(button,.tab){border-color:#a18126;box-shadow:inset 0 0 0 2px #090d0866;transition:background .18s,border-color .18s,box-shadow .18s;color:#edbc3c;}
-body[data-vox-art="on"] button:hover{border-color:#ffcf4c;box-shadow:inset 0 0 0 2px #090d0866,0 0 12px #d5a72d22;}
+body[data-vox-art="on"] :is(button:not([data-sb-open]),.tab){border-color:#a18126;box-shadow:inset 0 0 0 2px #090d0866;transition:background .18s,border-color .18s,box-shadow .18s;color:#edbc3c;}
+body[data-vox-art="on"] button:not([data-sb-open]):hover{border-color:#ffcf4c;box-shadow:inset 0 0 0 2px #090d0866,0 0 12px #d5a72d22;}
 body[data-vox-art="on"] button.ghost{color:#d1cba9;}
 body[data-vox-art="on"] button.danger{color:#e86d48;border-color:#9b4a25;}
 body[data-vox-art="on"] :is(input,select,textarea){border-color:#555431;background-color:#11170d;}
@@ -1700,11 +1700,11 @@ body[data-vox-art="on"] .list-item .meta{margin-top:0;font-size:10px;}
 body[data-vox-art="on"] :is(.chr-tag,.badge){display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-height:20px;padding:3px 6px;font-size:9px;}
 body[data-vox-art="on"] .tags-row{align-items:center;gap:4px;margin-top:5px;}
 body[data-vox-art="on"] :is(button,input,select,textarea,.tab){font-family:'Unbounded',Arial,sans-serif;line-height:1.4;}
-body[data-vox-art="on"] button{font-size:10px;letter-spacing:.025em;align-items:center;justify-content:center;gap:7px;}
+body[data-vox-art="on"] button:not([data-sb-open]){font-size:10px;letter-spacing:.025em;align-items:center;justify-content:center;gap:7px;}
 body[data-vox-art="on"] .list-item{border:0;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);padding:11px 13px;}
 body[data-vox-art="on"] .list-item::before{content:"";position:absolute;inset:0;pointer-events:none;border:8px solid transparent;border-image-source:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M6 1H34L39 6V34L34 39H6L1 34V6Z' fill='none' stroke='%23706c36' stroke-width='1'/%3E%3Cpath d='M6 1L1 6V34L6 39' fill='none' stroke='%23e8b839' stroke-width='2'/%3E%3C/svg%3E");border-image-slice:8;border-image-width:8px;border-image-repeat:stretch;}
-body[data-vox-art="on"] button:not(.chr-delete){position:relative;border:1px solid transparent;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px);}
-body[data-vox-art="on"] button:not(.chr-delete)::before{content:"";position:absolute;inset:0;pointer-events:none;border:8px solid transparent;border-image-source:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M5 1H35L39 5V35L35 39H5L1 35V5Z' fill='none' stroke='%23b89734' stroke-width='1'/%3E%3C/svg%3E");border-image-slice:8;border-image-width:8px;border-image-repeat:stretch;}
+body[data-vox-art="on"] button:not(.chr-delete):not([data-sb-open]){position:relative;border:1px solid transparent;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px);}
+body[data-vox-art="on"] button:not(.chr-delete):not([data-sb-open])::before{content:"";position:absolute;inset:0;pointer-events:none;border:8px solid transparent;border-image-source:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M5 1H35L39 5V35L35 39H5L1 35V5Z' fill='none' stroke='%23b89734' stroke-width='1'/%3E%3C/svg%3E");border-image-slice:8;border-image-width:8px;border-image-repeat:stretch;}
 body[data-vox-art="on"] button.danger::before{border-image-source:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M5 1H35L39 5V35L35 39H5L1 35V5Z' fill='none' stroke='%239b4a25' stroke-width='1'/%3E%3C/svg%3E");}
 body[data-vox-art="on"] button:hover::before{filter:brightness(1.4);}
 body[data-vox-art="on"] .vox-ui-icon{display:block;flex:0 0 18px;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
@@ -2092,9 +2092,9 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
       <div class="mono-sm" id="chr-role">—</div>
     </div>
     <div class="row tight">
-      <button class="ghost sm" onclick="showDash()">← Инфо-панель</button>
-      <button id="chr-chpass-btn" class="ghost sm hidden" onclick="openChpass()">Изменить пароль</button>
-      <button id="chr-delete-btn" class="danger sm" onclick="openModal('modal-delete')">Удалить хронику</button>
+      <button onclick="showDash()">← Инфо-панель</button>
+      <button id="chr-chpass-btn" class="hidden" onclick="openChpass()">Изменить пароль</button>
+      <button id="chr-delete-btn" onclick="openModal('modal-delete')">Удалить хронику</button>
     </div>
   </div>
 
@@ -12249,7 +12249,7 @@ async function loadStatblocks(){
     const rows=Object.entries(collection).filter(([id,r])=>/^[0-9a-f-]{36}$/i.test(id)&&r&&['npc','vehicle'].includes(r.type)&&(S.role==='gm'||r.owner_id===S.user.id));
     rows.sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'ru'));
     host.innerHTML=rows.length?rows.map(([id,d])=>`<button type="button" class="list-item clickable" data-sb-open="${esc(id)}">
-      <span style="min-width:0"><span class="nm">${esc(d.name)}</span><span class="tags-row">${[d.race,d.category,...(Array.isArray(d.tags)?d.tags:[])].filter(Boolean).map(t=>`<span class="chr-tag">${esc(t)}</span>`).join('')}</span></span>
+      <span style="min-width:0;flex:1"><span class="nm">${esc(d.name)}</span><span class="tags-row">${[d.race,d.category,...(Array.isArray(d.tags)?d.tags:[])].filter(Boolean).map(t=>`<span class="chr-tag">${esc(t)}</span>`).join('')}</span></span>
       <span class="badge gm">${sbIsVehicle(d)?'Техника':'НПЦ'}</span></button>`).join(''):'<div class="empty">НПЦ и техники пока нет.</div>';
   } catch(error){
     if(token!==SB.loadToken || !voxSession() || S.chronicle.id!==chronicleId) return;
