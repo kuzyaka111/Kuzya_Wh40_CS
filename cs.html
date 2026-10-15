@@ -4972,8 +4972,19 @@ function statBonus(d, k){
   const b = bonusOf(base + modsAdd(d, 'stat', k, 'pre'));
   return Math.floor(b * modsMul(d, 'stat', k)) + (k === 'sil' ? bonusOf(modsAdd(d, 'stat', k, 'post')) : 0);
 }
+// Deathwatch Core, p. 134: Size changes base movement before other modifiers.
+function sizeMovementBonus(d){
+  const categories = {'крошечный':-3,'маленький':-2,'небольшой':-1,'средний':0,'крупный':1,'большой':2,'огромный':3,'miniscule':-3,'puny':-2,'scrawny':-1,'average':0,'hulking':1,'enormous':2,'massive':3};
+  for (const row of d?.features || []){
+    const match = String(row?.name || '').trim().match(/^(?:Размер|Size)\s*(?:\(([^)]+)\))?$/i);
+    if (!match) continue;
+    const key = String(row.param || match[1] || '').trim().toLowerCase();
+    if (Object.hasOwn(categories, key)) return categories[key];
+  }
+  return 0;
+}
 function effSpeed(d, mult){
-  const base = statBonus(d, 'lov');
+  const base = statBonus(d, 'lov') + sizeMovementBonus(d);
   const v = (base + modsAdd(d, 'indicator', 'speed', 'pre'))
             * modsMul(d, 'indicator', 'speed')
             + modsAdd(d, 'indicator', 'speed', 'post');
@@ -17907,6 +17918,17 @@ document.addEventListener('click',event=>{if(!event.target.closest('[data-hfx-du
 renderSheet=function(...args){if(S.character?.character_data)hfxSync(S.character.character_data);return HFX_BASE.renderSheet(...args);};
 renderList=function(key,...args){const d=S.character?.character_data,changed=[...HONOUR_KEYS,'features'].includes(key)&&hfxSync(d);const r=HFX_BASE.renderList(key,...args);if(changed){updateStatsOnly();updateDerived();for(const k of ['talents','skills_basic','skills_adv'])HFX_BASE.renderList(k);}return r;};
 
+</script>
+
+<script data-feature="size-movement-refresh">
+{
+  const sizeMovementRenderList = renderList;
+  renderList = function(key, ...args){
+    const result = sizeMovementRenderList(key, ...args);
+    if (key === 'features' && S.character?.character_data) updateDerived();
+    return result;
+  };
+}
 </script>
 </body>
 </html>
