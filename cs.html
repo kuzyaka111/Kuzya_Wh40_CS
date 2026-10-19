@@ -5058,7 +5058,7 @@ function effStat(d, k){
 function statBonus(d, k){
   const base = (Number(d.stats[k]) || 0) + 5 * (((d.stat_adv || {})[k] || 0));
   const b = bonusOf(base + modsAdd(d, 'stat', k, 'pre'));
-  return Math.floor(b * modsMul(d, 'stat', k)) + (k === 'sil' ? bonusOf(modsAdd(d, 'stat', k, 'post')) : 0);
+  return Math.floor(b * modsMul(d, 'stat', k)) + bonusOf(base + modsAdd(d, 'stat', k, 'pre') + modsAdd(d, 'stat', k, 'post')) - b;
 }
 // Deathwatch Core, p. 134: Size changes base movement before other modifiers.
 function sizeMovementBonus(d){
@@ -6875,7 +6875,7 @@ function rollMods(d, k){
     const isStat  = m.target === 'stat' && (m.target_name === k || m.target_name === 'all');
     if (!isCheck && !isStat) return;
     const label = m.name || (isCheck ? 'Проверки' : (statFullName(k) || 'Характеристика'));
-    out.push({ label, value: Number(m.effect) || 0, section, locked, source:m.source || '', ...(isArmourAutoSenses(m) ? armourAutoSenses(d) : {}) });
+    out.push({ label, value: Number(m.effect) || 0, section, locked, source:m.source || '', includedInSkillBase:isStat && section === 'perm' && !isArmourAutoSenses(m), ...(isArmourAutoSenses(m) ? armourAutoSenses(d) : {}) });
   };
   const mm = d.modifiers || {};
   (mm.perm || []).forEach(m => add(m, 'perm', true));
@@ -6892,7 +6892,7 @@ function skillBadgeInfo(d, row, level, basicish, chName){
   const lvl = level || 'untrained';
   const gifted = !!row.gifted;
   const k = CH_KEY[chName || row.characteristic || ''] || null;
-  const base = charBase(d, k);
+  const base = k ? effStat(d, k) : 0;
 
   if (lvl === 'untrained' && !basicish){
     return { value:null, text:'Нет', cls:'untrained', title:'Не тренирован', charKey:k };
@@ -8655,7 +8655,8 @@ function rollCharKey(){
 function rollModRows(){
   const rows = rollMods(S.character.character_data, rollCharKey())
     .map((m, i) => ({ label:m.label, value:m.value, locked:m.locked, mi:i,
-                      on: !m.unavailable && (m.locked ? true : ROLL.on[i] === true), unavailable:!!m.unavailable, scope:m.scope || '' }));
+                      on: !m.unavailable && (m.locked ? true : ROLL.on[i] === true), unavailable:!!m.unavailable, scope:m.scope || '', includedInSkillBase:!!m.includedInSkillBase }))
+    .filter(r => ROLL.sel?.kind !== 'skill' || !r.includedInSkillBase);
   ROLL.temp.forEach((m, i) => rows.push({label:m.label,value:m.value,locked:false,temp:i,
     on:m.actionPreset ? m.enabled!==false && actionModifierApplies(m) : true,
     actionPreset:!!m.actionPreset,applicable:!m.actionPreset || actionModifierApplies(m),
@@ -16778,7 +16779,7 @@ function damageFlatMods(d,w,target){
 function damageStrength(d){
   if(dwActive(d))return statBonus(d,'sil');
   const pre=charBase(d,'sil')+modsAdd(d,'stat','sil','pre');
-  return Math.floor(Math.floor(pre/10)*modsMul(d,'stat','sil'))+Math.floor(modsAdd(d,'stat','sil','post')/10);
+  return Math.floor(Math.floor(pre/10)*modsMul(d,'stat','sil'))+Math.floor((pre+modsAdd(d,'stat','sil','post'))/10)-Math.floor(pre/10);
 }
 function damageDefaults(w){
   const d=S.character.character_data,melee=['weapon_melee','shield','unarmed'].includes(w.type),npc=sbActorActive(),p=w.profile;
@@ -17390,14 +17391,13 @@ function eaStatic(a){return !a.condition||a.activated;}
 function eaActive(d,a){return eaEnabled(d,a)&&(!a.activated||eaState(d).active?.['symbol:iron-cage-icon:active']);}
 function eaGenerated(d){return eaRules(d).filter(a=>eaStatic(a)&&eaActive(d,a)&&['stat','skill','indicator'].includes(a.target));}
 permMods=function(d){const base=EA_ORIG.permMods(d),generated=eaGenerated(d),suppressed=new Set(eaReplacedManual(d).map(eaFingerprint));return base.filter(m=>!suppressed.has(eaFingerprint(m))).concat(generated.filter(a=>a.target!=='skill'||!a.group));};
-statBonus=function(d,k){const value=EA_ORIG.statBonus(d,k),post=eaGenerated(d).filter(a=>a.target==='stat'&&a.target_name===k&&a.timing==='post').reduce((n,a)=>n+a.effect,0);if(!post)return value;const effective=charBase(d,k)+modsAdd(d,'stat',k,'pre')+modsAdd(d,'stat',k,'post');return value+Math.floor(effective/10)-Math.floor((effective-post)/10);};
+// Post-calculation equipment modifiers are handled by the common characteristic formula.
 skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){
  const matched=eaGenerated(d).filter(a=>a.target==='skill'&&a.group&&String(a.target_name)===String(row.skill_id??row.id)&&eaNorm(a.group)===eaNorm(groupName));
  const suppress=new Set(matched.filter(a=>eaDecision(d,a)==='auto').flatMap(a=>eaConflicts(d,a).map(eaFingerprint)));
  const input=suppress.size?{...d,modifiers:{perm:(d.modifiers?.perm||[]).filter(m=>!suppress.has(eaFingerprint(m))),cond:d.modifiers?.cond||[]}}:d;
  const result=EA_ORIG.skillBadgeInfo(input,row,level,basicish,chName);if(result.value==null)return result;
- const key=CH_KEY[chName||row.characteristic],stat=eaGenerated(d).filter(a=>a.target==='stat'&&a.target_name===key).reduce((n,a)=>n+a.effect,0),base=charBase(d,key);
- const statDelta=basicish&&(level||'untrained')==='untrained'?Math.ceil((base+stat)/2)-Math.ceil(base/2):stat;
+ const statDelta=0; // Characteristic modifiers are already included by effStat.
  const id=String(row.skill_id??row.id),grouped=eaGenerated(d).filter(a=>a.target==='skill'&&a.group&&String(a.target_name)===id&&eaNorm(a.group)===eaNorm(groupName));
  const value=Number(result.value)+statDelta+grouped.reduce((n,a)=>n+a.effect,0);return value===Number(result.value)?result:{...result,value,text:String(value),title:result.title+' · Бонус символа '+(value-Number(result.value))};
 };
@@ -17488,10 +17488,7 @@ const eaRenderStatblockBefore=renderStatblock;renderStatblock=function(...args){
 
 <script id="equipment-auto-damage-bridge">
 // Keep the sheet and the independently published damage workflow on one calculation.
-if(typeof damageStrength==='function'){
- const eaDamageStrengthBefore=damageStrength;
- damageStrength=function(d){const value=eaDamageStrengthBefore(d),post=eaGenerated(d).filter(a=>a.target==='stat'&&a.target_name==='sil'&&a.timing==='post').reduce((n,a)=>n+a.effect,0);if(!post||dwActive(d)||d._statblock)return value;const current=modsAdd(d,'stat','sil','post');return value+(statBonus(d,'sil')-EA_ORIG.statBonus(d,'sil'))-(Math.floor(current/10)-Math.floor((current-post)/10));};
-}
+// The shared damage Strength formula already includes equipment post-calculation modifiers.
 if(typeof damageDefaults==='function'){
  const eaDamageDefaultsBefore=damageDefaults;
  damageDefaults=function(w){const c=eaDamageDefaultsBefore(w),suppressed=new Set(eaReplacedManual(S.character?.character_data||{}).map(eaFingerprint));return {...c,situation:c.situation.filter(m=>!suppressed.has(eaFingerprint(m)))};};
@@ -17520,7 +17517,7 @@ function sqEffectCache(data,user){const key=sqCacheKey(user,data.chronicle_id),o
 function sqActorCache(d){if(!S.character||S.character._statblock||sbActorActive()||d!==S.character.character_data)return null;return SQ_EFFECT.cache.get(sqCacheKey(S.user?.id,S.character.chronicle_id))?.data||null;}
 function sqMember(d){const data=sqActorCache(d);if(!data)return null;const envelope=sqState(data.state),state=envelope.squads.find(g=>g.members.some(m=>String(m.id)===String(S.character.id))),m=state?.members.find(m=>String(m.id)===String(S.character.id));return m?{data,state,m}:null;}
 function sqActive(d){const ctx=sqMember(d);if(!ctx)return [];const c=ctx.data.characters.find(c=>String(c.id)===String(ctx.m.id));if(!c)return [];const solo=ctx.m.solo.map(ref=>{const row=squadArray(c[ref.list_key]).find(r=>String(r.id??'')===String(ref.ability_id??'')&&r.name===ref.name),db=SQ_CATALOG.solo.find(a=>String(a.id)===String(ref.ability_id));return row&&(!db||db.ability_type==='Активная')?{ref,row,db,c,kind:'solo',rank:rankFromXp(calcTotalXpSpent(d))}:null;}).filter(a=>a&&a.rank>=Number(String(a.db?.requirements||'').match(/ранг\s*:\s*(\d+)/i)?.[1]||1));return solo.concat(sqShared(ctx.state,ctx.data.characters,ctx.m.group_id).map(x=>({...x,kind:'squad',rank:sqRank(x.c)})));}
-function sqBaseBonus(d,key){const mods=SQ_ORIG.permMods(d||{}).filter(m=>m.target==='stat'&&[key,'all'].includes(m.target_name));const base=Number(d?.stats?.[key]||0)+5*Number(d?.stat_adv?.[key]||0);const pre=mods.filter(m=>m.mode!=='mul'&&(m.timing||'pre')==='pre').reduce((n,m)=>n+Number(m.effect||0),0),mult=mods.filter(m=>m.mode==='mul').reduce((n,m)=>n*Number(m.effect||1),1);return Math.floor(Math.floor((base+pre)/10)*mult)+(key==='sil'?Math.floor(mods.filter(m=>m.mode!=='mul'&&m.timing==='post').reduce((n,m)=>n+Number(m.effect||0),0)/10):0);}
+function sqBaseBonus(d,key){const mods=SQ_ORIG.permMods(d||{}).filter(m=>m.target==='stat'&&[key,'all'].includes(m.target_name));const base=Number(d?.stats?.[key]||0)+5*Number(d?.stat_adv?.[key]||0);const pre=mods.filter(m=>m.mode!=='mul'&&(m.timing||'pre')==='pre').reduce((n,m)=>n+Number(m.effect||0),0),mult=mods.filter(m=>m.mode==='mul').reduce((n,m)=>n*Number(m.effect||1),1);return Math.floor(Math.floor((base+pre)/10)*mult)+Math.floor((base+pre+mods.filter(m=>m.mode!=='mul'&&m.timing==='post').reduce((n,m)=>n+Number(m.effect||0),0))/10)-Math.floor((base+pre)/10);}
 function sqRule(a,type,key,value,condition='',extra={}){return {id:a.kind+':'+String(a.ref.ability_id||a.ref.name)+':'+type+':'+key+':'+condition,name:a.row.name,type,key,value,condition,source:'squad-effect:'+a.kind+':'+String(a.ref.ability_id||a.ref.name),...extra};}
 function sqOathRules(d){const ctx=sqMember(d);if(!ctx)return [];const oath=sqOath(ctx.state);if(!oath)return [];const rules=[],add=(key,value,condition='',extra={})=>rules.push({id:'oath:'+oath.id+':'+key+':'+condition,name:oath.name,type:'check',key,value,condition,source:'squad-oath:'+oath.id,...extra});
  if(oath.id==='emperor')add('sv',10);
@@ -17593,7 +17590,7 @@ permMods=function(d){const base=SQ_ORIG.permMods(d),rules=sqRules(d);const extra
 modsMul=function(d,target,name){const n=SQ_ORIG.modsMul(d,target,name);return target==='stat'?n+sqUnconditional(d,'mulstep',name).reduce((s,r)=>s+r.value,0):n;};
 statBonus=function(d,key){return SQ_ORIG.statBonus(d,key)+sqUnconditional(d,'bonus',key).reduce((s,r)=>s+r.value,0);};
 effSpeed=function(d,mult){let n=SQ_ORIG.effSpeed(d,mult)+sqUnconditional(d,'speed_bonus').reduce((s,r)=>s+r.value,0)*(mult||1);if(sqUnconditional(d,'speed_half').length)n=Math.ceil(n/2);const cap=sqUnconditional(d,'movement_cap')[0];if(cap)n=Math.min(n,cap.value);if(mult===3){const cm=sqUnconditional(d,'charge_mult')[0];if(cm)n=SQ_ORIG.effSpeed(d,1)*cm.value;}return n;};
-skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){const result=SQ_ORIG.skillBadgeInfo(d,row,level,basicish,chName,groupName);if(result.value==null)return result;const key=CH_KEY[chName||row.characteristic||''],addStat=sqUnconditional(d,'stat',key).reduce((s,r)=>s+r.value,0);let add=addStat;if((level||'untrained')==='untrained'&&basicish){const base=charBase(d,key);add=Math.ceil((base+addStat)/2)-Math.ceil(base/2);}add+=sqUnconditional(d,'skill',row.name).reduce((s,r)=>s+r.value,0);return add?{...result,value:result.value+add,text:String(result.value+add),title:result.title+' · Активная способность '+(add>=0?'+':'')+add}:result;};
+skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){const result=SQ_ORIG.skillBadgeInfo(d,row,level,basicish,chName,groupName);if(result.value==null)return result;let add=0;add+=sqUnconditional(d,'skill',row.name).reduce((s,r)=>s+r.value,0);return add?{...result,value:result.value+add,text:String(result.value+add),title:result.title+' · Активная способность '+(add>=0?'+':'')+add}:result;};
 function sqRuleForRoll(r){if(r.oathTactics&&!(ROLL.sel?.kind==='skill'&&/тактик/i.test(ROLL.sel?.name||'')))return false;const key=rollCharKey(),a=ROLL.action?.code||'',name=ROLL.sel?.name||'';if(r.type==='stat')return r.key===key&&ROLL.sel?.kind!=='skill';if(r.type==='skill')return ROLL.sel?.kind==='skill'&&(r.knowledge?/знани/i.test(name):name.toLowerCase().startsWith(r.key.toLowerCase()));if(r.type!=='check'||![key,'all'].includes(r.key))return false;if(r.action&&r.action!==a)return false;if(r.actions&&!r.actions.includes(a))return false;if(r.attack&&!actionAttackCheck())return false;if(r.single&&a&&['semi_auto','full_auto','suppressing_fire'].includes(a))return false;if(r.bolter&&!/болт/i.test(ROLL.action?.weapon_name||''))return false;return true;}
 rollModRows=function(){let rows=SQ_ORIG.rollModRows();const d=S.character?.character_data;if(!d)return rows;for(const r of sqRules(d).filter(sqRuleForRoll)){if(r.type==='skill'&&!r.condition)continue;const on=!r.condition||!!SQ_EFFECT.rollOn[r.id];let value=r.count?r.value*Number(SQ_EFFECT.rollOn[r.id+':count']||1):r.environment?(Number(SQ_EFFECT.rollOn[r.id+':penalty']||0)*(r.rank>=4?1:.5)):r.value;if(r.cancelActionPenalty){value=-rows.filter(x=>x.on&&x.value===-20&&/Огонь на подавление|Контроль сектора/i.test(x.label)).reduce((n,x)=>n+x.value,0);if(!value)continue;}if(on)rows=rows.filter(x=>x.sqRule||String(x.label||'').trim().toLowerCase()!==r.name.trim().toLowerCase()||Number(x.value)!==value);rows.push({label:r.name,value,locked:!r.condition,on,sqRule:r.id,scope:r.condition||'Активная способность',count:r.count,environment:r.environment});}return rows;};
 rollModRowHtml=function(r){if(!r.sqRule||r.locked)return SQ_ORIG.rollModRowHtml(r);return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope)+'</span></span>'+(r.count?'<input type="number" min="1" max="200" value="'+Number(SQ_EFFECT.rollOn[r.sqRule+':count']||1)+'" data-sq-roll-count="'+esc(r.sqRule)+'" aria-label="Количество поддерживающих или целей">':r.environment?'<input type="number" min="0" max="100" value="'+Number(SQ_EFFECT.rollOn[r.sqRule+':penalty']||0)+'" data-sq-roll-penalty="'+esc(r.sqRule)+'" aria-label="Величина штрафа за условия">':'')+'<span class="vl">'+(r.on&&r.value>0?'+':'')+r.value+'</span><input type="checkbox" data-sq-roll="'+esc(r.sqRule)+'" '+(r.on?'checked':'')+' aria-label="Подтверждены условия '+esc(r.label)+'"></div>';};
@@ -17808,8 +17805,8 @@ permMods=function(d){
  if(DM2.frenzy.has(d)&&dm2Has(d,95,/Неистовство|Frenzy/i))for(const [key,value]of [['bb',10],['sil',10],['wyn',10],['sv',10],['db',-20],['int',-20]])add(95,/Неистовство|Frenzy/i,'Неистовство',key,value,'pre');
  return mods;
 };
-const dm2BaseBonus=statBonus;
-statBonus=function(d,key){const n=dm2BaseBonus(d,key);if(key==='sil'||dwActive(d)||!dm2Has(d,82,/Машинное облачение|Machinator Array/i))return n;const m=permMods(d).find(m=>m.target==='stat'&&m.target_name===key&&dm2Named(m,82,/Машинное облачение|Machinator Array/i));if(!m||!['wyn','lov','obsh'].includes(key))return n;const pre=charBase(d,key)+modsAdd(d,'stat',key,'pre');return n+Math.floor((pre+Number(m.effect))/10)-Math.floor(pre/10);};
+// No separate Machinator characteristic-bonus correction is required.
+// Machinator post-calculation modifiers are handled by the common characteristic formula.
 const dm2OldActionRows=actionRows;
 actionRows=function(){const d=S.character?.character_data;const rows=dm2OldActionRows().filter(r=>!['hand_omni','frenzy','force_surge'].includes(r.code));
  const row=(code,name,description)=>({key:'dm2:'+code,code,name,description,requires_weapon:false,action_types:['free'],subtypes:[],modifiers:[]});
@@ -17835,7 +17832,7 @@ function dm2OpenForce(){
 const dm2OldApi=callRollApi;
 callRollApi=function(body){return dm2OldApi(body.action==='roll'&&ROLL.action?.forceSurge?{...body,psychic_test:true,is_attack:false}:body);};
 const dm2OldRollMods=rollModRows;
-rollModRows=function(){const rows=dm2OldRollMods(),d=S.character?.character_data,key=rollCharKey();if(d)for(const m of permMods(d)){if(!['talent:82','talent:95'].includes(m.source)||m.target!=='stat'||![key,'all'].includes(m.target_name))continue;if(rows.some(r=>r.label===m.name&&Number(r.value)===Number(m.effect)))continue;rows.push({label:m.name,value:Number(m.effect),locked:true,on:true});}if(ROLL.action?.forceSurge){const pr=warpUsedPr({id:null});rows.push({label:'Пси-рейтинг: 5 × '+pr,value:5*pr,locked:true,on:true});}return rows;};
+rollModRows=function(){const rows=dm2OldRollMods(),d=S.character?.character_data,key=rollCharKey();if(d&&ROLL.sel?.kind!=='skill')for(const m of permMods(d)){if(!['talent:82','talent:95'].includes(m.source)||m.target!=='stat'||![key,'all'].includes(m.target_name))continue;if(rows.some(r=>r.label===m.name&&Number(r.value)===Number(m.effect)))continue;rows.push({label:m.name,value:Number(m.effect),locked:true,on:true});}if(ROLL.action?.forceSurge){const pr=warpUsedPr({id:null});rows.push({label:'Пси-рейтинг: 5 × '+pr,value:5*pr,locked:true,on:true});}return rows;};
 const dm2OldShowResult=showRollResult;
 showRollResult=function(r){dm2OldShowResult(r);if(!ROLL.action?.forceSurge)return;$('roll-damage')?.remove();const weapon=ROLL.action.forceSurge,owner=S.character;
  $('roll-result').insertAdjacentHTML('beforeend','<div class="dm2-force-result"><p>Сравните результат с проверкой Силы воли цели. Дополнительный урон применяется только после победы во встречной проверке.</p>'+(!r.success?'<p>Проверка Варпа провалена.</p>':'<label><input type="checkbox" id="dm2-force-won"> Встречная проверка выиграна, оружие нанесло урон</label><label>Степени успеха разрешённой встречной проверки<input type="number" id="dm2-force-degrees" min="1" max="20" step="1" value="'+Math.max(1,r.degrees||1)+'"></label><button type="button" class="modal-confirm" id="dm2-force-damage">Бросить дополнительный урон</button><div id="dm2-force-output" role="status"></div>')+'</div>');
@@ -18018,7 +18015,7 @@ permMods=function(d){return HFX_BASE.permMods(d).concat(hfxStatMods(d));};
 function hfxBonus(d,k){if(dwActive(d)&&['sil','wyn','lov'].includes(k))return 0;let n=0;for(const p of hfxPackages(d)){for(const a of p.effects.bonuses)if(a.key===k&&hfxCondition(p,a.condition))n+=a.value;}return n;}
 statBonus=function(d,k){let n=HFX_BASE.statBonus(d,k)+hfxBonus(d,k);const p=hfxHas(d,'distinctions',22),labels={int:'Удвоить БИ для одного эффекта',vos:'Удвоить БВос для одного эффекта',sv:'Удвоить БСВ для одного эффекта'};if(p&&labels[k]&&hfxState(p.row).conditions[labels[k]])n*=2;return n;};
 damageStrength=function(d){const n=HFX_BASE.damageStrength(d);return dwActive(d)?n:n+hfxBonus(d,'sil');};
-skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){const old=HFX_BASE.skillBadgeInfo(d,row,level,basicish,chName,groupName);if(old.value==null)return old;const key=CH_KEY[chName||row.characteristic||''],stat=hfxStatMods(d).filter(m=>m.target_name===key).reduce((n,m)=>n+m.effect,0),other=(typeof eaGenerated==='function'?eaGenerated(d).filter(a=>a.target==='stat'&&a.target_name===key).reduce((n,a)=>n+a.effect,0):0)+(typeof sqUnconditional==='function'?sqUnconditional(d,'stat',key).reduce((n,a)=>n+a.value,0):0),base=charBase(d,key)+other;let add=basicish&&(level||'untrained')==='untrained'?Math.ceil((base+stat)/2)-Math.ceil(base/2):stat;
+skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){const old=HFX_BASE.skillBadgeInfo(d,row,level,basicish,chName,groupName);if(old.value==null)return old;let add=0;
  const target=groupName?(row.groups||[]).find(g=>hfxNorm(hfxGroup(row.id,g.name))===hfxNorm(hfxGroup(row.id,groupName))):row;add+=Number(target?.hfx_extra)||0;const gifts=hfxPackages(d).flatMap(p=>p.effects.talents).map(t=>t.gift).concat((d.talents||[]).filter(t=>t.honour_independent&&Number(t.id)===7).map(t=>t.hfx_gift)).filter(Boolean),gifted=!row.gifted&&gifts.some(g=>hfxGiftMatches(g,row,groupName));if(gifted)add+=10;return add?{...old,value:Number(old.value)+add,text:String(Number(old.value)+add),cls:(gifted?'g ':'')+old.cls,title:old.title+' · Деяния и отличия '+(add>0?'+':'')+add}:old;};
 function hfxCheckApplies(a,key){if(!a.keys.includes('all')&&!a.keys.includes(key))return false;const s=ROLL.sel,name=s?.name||'';if(a.skillId)return s?.kind==='skill'&&hfxNorm(name).startsWith(hfxNorm(skillById(a.skillId)?.name))&&(!a.group||hfxNorm(name).includes(hfxNorm(a.group)));if(a.skills)return s?.kind==='skill'&&a.skills.some(n=>hfxNorm(name).startsWith(hfxNorm(n)))||a.leadership&&s?.kind==='stat';if(a.interaction)return s?.kind==='skill'&&['Обаяние','Обман','Запугивание'].some(n=>hfxNorm(name).startsWith(hfxNorm(n)));return true;}
 rollModRows=function(){const d=S.character?.character_data,rows=HFX_BASE.rollModRows();if(!d)return rows;const key=rollCharKey();for(const p of hfxPackages(d)){const checks=[...p.effects.checks,...(ROLL.sel?.kind==='stat'?p.effects.stats.map(a=>({keys:[a.key],value:a.value,condition:a.condition,stat:true})):[])];for(const [i,a]of checks.entries()){
@@ -18027,7 +18024,7 @@ rollModRows=function(){const d=S.character?.character_data,rows=HFX_BASE.rollMod
  const precision=hfxHas(d,'deeds',22);if(precision&&hfxState(precision.row).conditions['Обменять Прицеливание на +1 Бронебойность']&&key==='db'&&actionAttackCheck()){const aim=rows.find(r=>r.prepared==='aim'&&r.on);if(aim){aim.on=false;rows.push({label:'Смертоносное прицеливание: +1 Бронебойность вместо бонуса попадания',value:0,on:true,locked:true,hfxPrecision:true});}}
  if(key==='sv'&&hfxHas(d,'distinctions',23)){const sum=rows.filter(r=>r.on).reduce((n,r)=>n+Number(r.value||0),0);if(sum< -20)rows.push({label:'Решимость и воля: предел штрафа',value:-20-sum,locked:true,on:true});}return rows;};
 rollModRowHtml=function(r){if(!r.hfxRule||r.locked)return HFX_BASE.rollModRowHtml(r);return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope)+'</span></span><span class="vl">'+(r.value>0?'+':'')+r.value+'</span><input type="checkbox" data-hfx-roll="'+escAttr(r.hfxRule)+'" '+(r.on?'checked':'')+' aria-label="'+escAttr(r.scope)+'"></div>';};
-rollBaseTarget=function(){let n=HFX_BASE.rollBaseTarget();const d=S.character?.character_data,p=hfxHas(d,'distinctions',20);if(p&&hfxState(p.row).conditions['Использовать Интеллект вместо Силы или Ловкости']&&['sil','lov'].includes(rollCharKey())){const base=charBase(d,rollCharKey()),replacement=charBase(d,'int'),parts=String(ROLL.sel?.id||'').split(':'),row=d[parts[0]]?.[Number(parts[1])],target=parts.length>2?row?.groups?.[Number(parts[2])]:row,halved=ROLL.sel?.kind==='skill'&&target?.level==='untrained'&&(parts[0]==='skills_basic'||row?.counts_as_basic);n+=halved?Math.ceil(replacement/2)-Math.ceil(base/2):replacement-base;}return n;};
+rollBaseTarget=function(){let n=HFX_BASE.rollBaseTarget();const d=S.character?.character_data,p=hfxHas(d,'distinctions',20);if(p&&hfxState(p.row).conditions['Использовать Интеллект вместо Силы или Ловкости']&&['sil','lov'].includes(rollCharKey())){const base=effStat(d,rollCharKey()),replacement=effStat(d,'int'),parts=String(ROLL.sel?.id||'').split(':'),row=d[parts[0]]?.[Number(parts[1])],target=parts.length>2?row?.groups?.[Number(parts[2])]:row,halved=ROLL.sel?.kind==='skill'&&target?.level==='untrained'&&(parts[0]==='skills_basic'||row?.counts_as_basic);n+=halved?Math.ceil(replacement/2)-Math.ceil(base/2):replacement-base;}return n;};
 openRoll=function(...args){HFX.rollOn={};return HFX_BASE.openRoll(...args);};
 document.addEventListener('change',e=>{if(!e.target.matches('[data-hfx-roll]'))return;HFX.rollOn[e.target.dataset.hfxRoll]=e.target.checked;renderRollMods();renderRollTotal();rollResultReset();});
 function hfxWeaponStyle(row,d){const p=hfxHas(d,'distinctions',16);if(!p)return null;const c=hfxState(p.row).choices,a=GEAR_MAP[c.weapon1],b=GEAR_MAP[c.weapon2];if(!a||!b||Number(a.id)===Number(b.id)||a.stats?.type!=='weapon_melee'||b.stats?.type!=='weapon_melee'||hfxNorm(a.stats.class)!==hfxNorm(b.stats.class)||![Number(a.id),Number(b.id)].includes(Number(row.item_id)))return null;return c.style==='second'?b:c.style==='first'?a:null;}
