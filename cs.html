@@ -10290,6 +10290,7 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'pick-search') drawPickResults(e.target.value);
   if (e.target.id === 'honour-search') renderHonourCatalog();
+  if (e.target.id === 'adv-search') renderAdvCatalog();
   if (e.target.id === 'psy-rating-base'){
     const d = S.character.character_data;
     d.psy.base = (Number(e.target.value) || 0) - psiRatingBonus(d);
@@ -11161,12 +11162,18 @@ function renderAdvCatalog(){
   const list = $('adv-list');
   if (!list) return;
   if (!items.length){
-    list.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:30px 0">Нет улучшений для отображения</div>';
+    list.innerHTML = honourNorm($('adv-search')?.value) ? '<div class="desc" role="status" style="text-align:center;padding:30px 0">По вашему запросу улучшения не найдены</div>' : '<div style="color:var(--text-dim);text-align:center;padding:30px 0">Нет улучшений для отображения</div>';
     return;
   }
 
+  // Search within the selected source; ownership and purchase rules remain unchanged.
+  const search = honourNorm($('adv-search')?.value);
+  const visible = items.filter(item => advRemaining(item, d) > 0 && (!search || honourNorm(item.name).includes(search)));
+  if (search && !visible.length){
+    list.innerHTML = '<div class="desc" role="status" style="text-align:center;padding:30px 0">По вашему запросу улучшения не найдены</div>';
+    return;
+  }
   // Group by rank
-  const visible = items.filter(item => advRemaining(item, d) > 0);
   const groups = {};
   visible.forEach(item => {
     const r = item.rank || 0;
@@ -11441,6 +11448,7 @@ function updateAdvFilter(){
           </select>
         </div>
 
+        <input type="search" class="chapter-search-input" id="adv-search" placeholder="Поиск по названию…" aria-label="Поиск улучшений по названию">
         <div id="adv-list" class="advancement-list"></div>
       </div>
 
