@@ -3856,6 +3856,7 @@ function abilityRowsForChapter(chapterRef, table){
   const ch = chapterByIdOrName(chapterRef);
   if (!ch || ch.id == null) return [];
   const id = Number(ch.id);
+  if (ch.orden_type?.kind === 'custom') return [];
   return (abilityDbFor(table) || []).filter(a =>
     Array.isArray(a.chapter_ids) && a.chapter_ids.some(v => Number(v) === id));
 }
@@ -4224,7 +4225,7 @@ function abilityCardMeta(name, table){
   if (!db) return '';
   const sust = db.sustained ? 'Да' : 'Нет';
   const act = db.subtype || '—';
-  let out = `<span class="solo-m"><b>Поддерживаемая:</b> ${esc(sust)}</span><span class="solo-m"><b>Действие:</b> ${esc(act)}</span>`;
+  let out = (db.scope === 'custom' ? '<span class="solo-m"><b>Кастомная</b></span>' : '') + `<span class="solo-m"><b>Поддерживаемая:</b> ${esc(sust)}</span><span class="solo-m"><b>Действие:</b> ${esc(act)}</span>`;
   if (table === 'squad_abilities'){
     const cost = (db.cost != null && Number(db.cost) > 0) ? String(db.cost) : '—';
     const cat = db.category || '—';
@@ -5150,7 +5151,7 @@ async function openSheet(id){
     ? Number(cinfo.chapter_id)
     : (cinfo.chapter || '');
   if (chapRef){
-    const chRow = chapterByIdOrName(chapRef);
+    const chRow = chapterForInfo(cinfo);
     if (chRow && chRow.id != null) cinfo.chapter_id = Number(chRow.id);
     if (chRow && !cinfo.chapter) cinfo.chapter = chRow.name;
     const currentChapterRef = chRow && chRow.id != null ? Number(chRow.id) : chapRef;
@@ -7273,10 +7274,10 @@ async function openPicker(key){
 }
 
 function drawPickResults(q){
-  const rows = pickRows.filter(r => r.name.toLowerCase().includes(q.toLowerCase())).slice(0, 80);
+  const rows = pickRows.filter(r => (r.name + (r.scope === 'custom' ? ' Кастомные' : '')).toLowerCase().includes(q.toLowerCase())).slice(0, 80);
   $('pick-results').innerHTML = rows.length
     ? rows.map(r => `<div class="gear-item pick-row" data-pick="${esc(r.name)}"${r.id != null ? ` data-pick-id="${esc(r.id)}"` : ''}>
-        <span class="g-name">${esc(r.name)}</span>${r.used_for ? `<span class="ammo-class">${esc(r.used_for)}</span>` : ''}</div>`).join('')
+        <span class="g-name">${esc(r.name)}</span>${r.scope === 'custom' ? '<span class="ammo-class">Кастомные</span>' : ''}${r.used_for ? `<span class="ammo-class">${esc(r.used_for)}</span>` : ''}</div>`).join('')
     : '<div class="desc">Ничего не найдено.</div>';
   $('pick-results').querySelectorAll('[data-pick]').forEach(el =>
     el.addEventListener('click', () => {
@@ -10626,7 +10627,8 @@ async function changeChapter(name){
   if (!S.character || S.chapterChanging) return;
   if(S.chapterCatalogLoading) return toast('Справочник орденов ещё загружается');
   const character = S.character;
-  const ch = chapterByIdOrName(name);
+  const ch = chapterForTypedName(name);
+  if (!ch) return toast('Тип ордена не найден в справочнике');
   S.chapterChanging = true;
   try {
     const grants = ch?.bonus?.augmentations;
@@ -10651,6 +10653,9 @@ async function changeChapter(name){
   } finally { S.chapterChanging = false; }
 }
 
+function customChapterRow(){ return (CHAPTERS || []).find(ch => ch.orden_type?.kind === 'custom') || null; }
+function chapterForTypedName(name){ return chapterByIdOrName(name) || customChapterRow(); }
+function chapterForInfo(info){ return chapterByIdOrName(info.chapter_id != null && info.chapter_id !== '' ? info.chapter_id : info.chapter) || (info.chapter && (info.chapter_id == null || info.chapter_id === '') ? customChapterRow() : null); }
 function saveCustomChapter(){
   const v = $('custom-chapter-input').value.trim();
   if (!v) return toast('Введите название ордена');
@@ -16466,7 +16471,7 @@ function sgRetain(group,ref){if(!ref)return;group.retained=group.retained.filter
 function sgLeave(state,id){const member=state.members.find(m=>String(m.id)===String(id));if(!member)return;const group=sgGroup(state,member.group_id);member.group_id=null;if(group&&String(group.leader_id)===String(id)){sgRetain(group,group.ability);group.ability=null;group.leader_id=null;}}
 function sgCreate(state,id){sgLeave(state,id);const member=state.members.find(m=>String(m.id)===String(id));if(!member)return;const group={id:crypto.randomUUID(),number:state.next_group_number++,leader_id:member.id,ability:null,retained:[]};state.groups.push(group);member.group_id=group.id;}
 function sgJoin(state,id,gid){const group=sgGroup(state,gid);if(!group)throw Error('SQUAD_BAD_GROUP');sgLeave(state,id);const member=state.members.find(m=>String(m.id)===String(id));if(member)member.group_id=gid;}
-function sgChapter(c,db){const chapter=Number(c?.info?.chapter_id);return chapter?squadArray(db.chapter_ids).some(id=>Number(id)===chapter):String(db.chapter||'').toLowerCase().replaceAll('ё','е')===String(c?.info?.chapter||'').toLowerCase().replaceAll('ё','е');}
+function sgChapter(c,db){if(db?.scope==='custom')return squadArray(c?.squad_chapter).some(row=>String(row.id)===String(db.id));const chapter=Number(c?.info?.chapter_id);return chapter?squadArray(db.chapter_ids).some(id=>Number(id)===chapter):String(db.chapter||'').toLowerCase().replaceAll('ё','е')===String(c?.info?.chapter||'').toLowerCase().replaceAll('ё','е');}
 function sgActivate(state,gid,id,abilityId){const group=sgGroup(state,gid),member=state.members.find(m=>String(m.id)===String(id));if(!group||member?.group_id!==gid)throw Error('SQUAD_BAD_GROUP');const choice=squadChoices(state,SQUAD.characters,gid,id).find(x=>String(x.ref.ability_id)===String(abilityId)&&x.available);if(!choice)throw Error('SQUAD_BAD_ABILITY');if(group.ability&&sqAbilityKey(group.ability)!==sqAbilityKey(choice.ref))sgRetain(group,group.ability);group.retained=group.retained.filter(r=>sqAbilityKey(r)!==sqAbilityKey(choice.ref));group.ability=choice.ref;group.leader_id=member.id;}
 function sgInfo(unitId,gid,abilityId,status){const unit=sqCurrent(SQUAD.state,unitId),group=sgGroup(unit,gid),ref=status==='active'?group?.ability:group?.retained.find(r=>String(r.ability_id)===String(abilityId)),x=ref?sqResolve(unit,ref):null;if(!x)return;squadClosePicker();$('sq-picker-title').textContent=x.row.name;$('sq-picker-note').textContent='Группа '+group.number+' · '+(status==='active'?'Активна':'Поддерживаемая · эффекты отключены');$('sq-picker-search').hidden=true;$('sq-picker-filters').hidden=true;$('sq-picker-list').innerHTML='';$('sq-picker-description').innerHTML=sdDescription(x.row.desc,x.db,unit);$('sq-picker-apply').hidden=true;$('sq-picker-clear').hidden=true;$('squad-picker').showModal();}
 function sgMemberHtml(member,state,group){const c=squadCharacter(member.id),active=!!group?.ability,solo=member.solo.map(r=>'<button type="button" class="sq-effect sq-effect-solo" data-sq-picker="solo" data-sq-id="'+esc(member.id)+'">'+esc(r.name)+'</button>').join('')||'<button type="button" class="sq-effect sq-effect-solo sg-solo-add" data-sq-picker="solo" data-sq-id="'+esc(member.id)+'">+ Способность одиночки</button>',ability=active?'<button type="button" class="sq-effect" data-sg-info="'+esc(group.id)+'" data-sg-status="active" data-sg-ability="'+esc(group.ability.ability_id)+'">'+esc(group.ability.name)+'</button>':'';
