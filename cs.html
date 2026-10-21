@@ -11110,6 +11110,7 @@ function advMaxPurchases(item, charData){
 }
 
 function advRemaining(item, charData){
+  if (advGrantOwned(charData, item)) return 0;
   return advMaxPurchases(item, charData) - advPurchasedCount(item, charData);
 }
 
@@ -15248,14 +15249,32 @@ function advGrantGroup(resolved, saved){
   }
   return group;
 }
+function advGrantMatches(row,meta){
+  const id=toId(row.id), expected=toId(meta.id);
+  return id!=null && expected!=null ? id===expected : normEgg(String(row.name || ''))===normEgg(String(meta.name || ''));
+}
 function advGrantPresent(d,resolved,group){
+  const label=normEgg(String(group || ''));
   if(resolved.skill){
-    const row=[...(d.skills_basic || []),...(d.skills_adv || [])].find(r=>toId(r.id)===toId(resolved.row.id));
-    const target=group ? row?.groups?.find(g=>normEgg(g.name)===normEgg(group)) : row;
-    return !!target && SKILL_LEVELS.indexOf(target.level)>=SKILL_LEVELS.indexOf(resolved.subject.level);
+    const level=SKILL_LEVELS.indexOf(resolved.subject.level);
+    if(level<=0) return false;
+    return [...(d.skills_basic || []),...(d.skills_adv || [])].filter(r=>advGrantMatches(r,resolved.row)).some(row=>{
+      const targets=label ? (row.groups || []).filter(g=>normEgg(String(g.name || ''))===label) : [row];
+      return targets.some(target=>SKILL_LEVELS.indexOf(target.level)>=level);
+    });
   }
   if(resolved.subject.psi) return permanentPsiRating(d)>=resolved.subject.psi;
-  return (d.talents || []).some(r=>toId(r.id)===toId(resolved.row.id) && normEgg(r.group || '')===normEgg(group));
+  return (d.talents || []).some(r=>advGrantMatches(r,resolved.row) && (!label || normEgg(String(r.group || ''))===label || (r.groups || []).some(g=>normEgg(String(g.name || g || ''))===label)));
+}
+// Sheet ownership is independent of XP receipts. Open group choices and cumulative talents remain purchasable.
+function advGrantOwned(d,item,selectedGroup){
+  const resolved=advGrantResolve(item);
+  if(!resolved) return false;
+  const name=normEgg(resolved.row.name);
+  if(!resolved.skill && (name==='крепкое телосложение' || name==='пси-рейтинг' && !resolved.subject.psi)) return false;
+  const group=selectedGroup ?? resolved.subject.group;
+  if(advGrantAny(group) || resolved.row.groups_enabled && !group) return false;
+  return advGrantPresent(d,resolved,group);
 }
 function advGrantApply(d,item,resolved,group,receipt){
   if(resolved.skill){
@@ -15302,6 +15321,7 @@ confirmBuy=function(){
   if(group===null) return;
   if(S.character!==ctx.character || S.character.character_data!==d || JSON.stringify(d)!==before || ctx.item!==JSON.stringify(item))
     return toast('Лист или покупка изменились. Откройте покупку заново.');
+  if(advGrantOwned(d,item,group)) return toast('Это улучшение для выбранной группы уже изучено');
   if(dwActive(d) && dwAdvanceOwned(d,item,group)) return toast('Это улучшение для выбранной группы уже изучено');
   const next=JSON.parse(before),receipt=crypto.randomUUID();
   try{if(!advGrantApply(next,item,resolved,group,receipt)) return toast('Не удалось добавить улучшение. Опыт не списан.');}
