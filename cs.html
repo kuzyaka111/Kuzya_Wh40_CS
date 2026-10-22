@@ -10648,7 +10648,7 @@ function renderCustomEmblemHeader(){
   const custom=customEmblemAllowed(d?.info) && !hasAdvancedSpec(d,18);
   const empty=custom && !customEmblemUrl(d.info), editable=custom && editMode;
   img.hidden=empty;
-  $('sh-emblem-placeholder').hidden=!empty;
+  $('sh-emblem-placeholder').hidden=!empty || !editable;
   button.classList.toggle('emblem-placeholder',empty);
   button.disabled=!editable;
   const label=editable ? (empty ? 'Загрузить эмблему ордена' : 'Изменить эмблему ордена') : 'Эмблема ордена';
