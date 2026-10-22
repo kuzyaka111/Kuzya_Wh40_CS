@@ -17392,7 +17392,7 @@ function eaRules(d){const out=[];for(const s of eaSymbols(d)){const {m,x,row}=s,
  switch(m.key){
  case 'devotion-chain':add('fear','test','sv',3,'Против Страха или урона Сплочённости');break;
  case 'tabard':if(has(1))add('pattern','test','obsh',2);break;
- case 'blood-drop':add('fate','test','all',13,'Трата очка Судьбы на бонус к этой проверке',{replacesFate:true});break;
+ case 'blood-drop':break; // Narrative: the player adds a one-off +13 when spending Fate.
  case 'golden-icons':if(has(1))skill('command','Командование',3);if(has(2))add('charge','damage','weapon_melee',1,'Урон при Натиске',{action:'charge'});break;
  case 'robe':if(has(1))chosen('scholar',['Учёное знание']);if(has(2))chosen('secrets',['Запретное знание']);if(has(3))skill('seeker','Проницательность',3);break;
  case 'wolf-pelt':skill('intimidate','Запугивание',2);break;
@@ -17417,7 +17417,7 @@ function eaQualityRules(d){const out=[];for(const row of d?.gear||[]){const w=EA
 function eaReplacedManual(d){return [...eaRules(d).filter(a=>!a.group&&eaEnabled(d,a)),...eaQualityRules(d)].filter(a=>eaDecision(d,a)==='auto').flatMap(a=>eaConflicts(d,a));}
 function eaRawMods(d){return [...(d.modifiers?.perm||[]),...(d.modifiers?.cond||[])];}
 function eaFingerprint(m){return JSON.stringify([m.name,m.target,m.target_name,m.mode,Number(m.effect),m.timing||'pre',m.source||'']);}
-function eaConflicts(d,a){return eaRawMods(d).filter(m=>!m.source||String(m.source).startsWith('roll-saved:')).filter(m=>m.mode!=='mul'&&Number(m.effect)===(a.replacesFate?10:Number(a.effect))&&((a.target==='skill'&&m.target==='skill'&&String(m.target_name)===String(a.target_name))||(['stat','test'].includes(a.target)&&['stat','check'].includes(m.target)&&(m.target==='check'||m.target_name===a.target_name||m.target_name==='all'||a.target_name==='all'))||(a.target==='damage'&&m.target==='weapon_damage'&&[a.target_name,'all'].includes(m.target_name))));}
+function eaConflicts(d,a){return eaRawMods(d).filter(m=>!m.source||String(m.source).startsWith('roll-saved:')).filter(m=>m.mode!=='mul'&&Number(m.effect)===Number(a.effect)&&((a.target==='skill'&&m.target==='skill'&&String(m.target_name)===String(a.target_name))||(['stat','test'].includes(a.target)&&['stat','check'].includes(m.target)&&(m.target==='check'||m.target_name===a.target_name||m.target_name==='all'||a.target_name==='all'))||(a.target==='damage'&&m.target==='weapon_damage'&&[a.target_name,'all'].includes(m.target_name))));}
 function eaDecision(d,a){const value=eaState(d).decisions?.[a.source];if(!value||typeof value==='string')return value;if(value.mode==='manual')return 'manual';return JSON.stringify(value.manual)===JSON.stringify(eaConflicts(d,a).map(eaFingerprint))?'auto':null;}
 function eaEnabled(d,a){if(a.needsBinding)return false;const choice=eaDecision(d,a);if(choice==='manual')return false;if(eaConflicts(d,a).length&&choice!=='auto')return false;return true;}
 function eaStatic(a){return !a.condition||a.activated;}
@@ -17453,7 +17453,7 @@ function eaRollItems(){const d=S.character?.character_data;if(!d)return [];const
 }
 openRoll=function(opts){ROLL.eaOn={};ROLL.eaWeapon='';return EA_ORIG.openRoll(opts);};
 rollModRows=function(){const rows=EA_ORIG.rollModRows(),d=S.character?.character_data;if(!d)return rows;const auto=eaRollItems(),suppressed=new Set(auto.filter(a=>a.on&&eaDecision(d,a)==='auto').flatMap(a=>eaConflicts(d,a).map(m=>m.name+'\0'+m.effect)));
- for(const m of eaReplacedManual(d))suppressed.add(m.name+'\0'+m.effect);const out=rows.filter(r=>!suppressed.has(r.label+'\0'+r.value));for(const a of auto){if(a.target==='stat'&&ROLL.sel?.kind==='skill')continue;if(a.replacesFate&&a.on)for(const r of out)if(Number(r.value)===10&&/судьб/i.test(r.label))r.on=false;
+ for(const m of eaReplacedManual(d))suppressed.add(m.name+'\0'+m.effect);const out=rows.filter(r=>!suppressed.has(r.label+'\0'+r.value));for(const a of auto){if(a.target==='stat'&&ROLL.sel?.kind==='skill')continue;/* Fate bonuses are added manually. */
   if(a.target==='ignore'){const matches=out.filter(r=>r.on&&r.value<0&&(a.source.endsWith(':light')?/освещ|темнот|хамелеолин|тенев.*пол/i.test(r.label):r.value===-30&&/полностью.*скрыт|невидим.*цел|скрыт.*цел/i.test(r.label)));if(a.ready&&matches.length&&ROLL.eaOn?.[a.source]!==false)a.on=true;a.effect=a.source.endsWith(':light')?-matches.reduce((n,r)=>n+r.value,0):matches.length?20:0;}
   out.push({label:a.name,value:a.target==='damage'?0:a.effect,ea:a.source,locked:false,on:a.on,unavailable:!a.ready,scope:(a.target==='damage'?'К урону +'+a.effect+' · ':'')+(a.condition||'Автоматический бонус')+(!a.ready?' · требуется выбор в бонусах символа':''),actualEffect:a.effect});
  }return out;
@@ -17574,7 +17574,7 @@ function sqRules(d){
    case 242:check('bb',10,'Сага о прирождённом воине: за каждого убитого врага в предыдущий ход',{count:true,attack:true});check('bb',1,'Сага о прирождённом воине: за каждую снятую единицу Численности в предыдущий ход',{count:true,attack:true});break;
    case 244:add('mulstep','wyn',r>=7?2:1);if(r>=5){skill('Уклонение',10);check('bb',10,'Парирование',{action:'parry'});}break;
    case 250:if(r>=3){check('all',10,'Цель ошеломлена или неподготовлена',{attack:true});add('damage','all',2,'Цель ошеломлена или неподготовлена');}if(r>=5)add('speed_bonus','all',1);break;
-   case 251:check('all',r>=3?20:10,'Успешная Встречная проверка Интеллекта: проверки против выбранной цели');break;
+   case 251:break; // Narrative: Foreknowledge bonuses are applied by the player.
    case 252:skill('Бдительность',10,'Порча цели больше 30; бонус разрешён Мастером');break;
    case 253:check('all',1,'Штраф за космические условия',{environment:true,rank:r});break;
    case 254:check('bb',10,'Натиск на кровоточащую цель',{action:'charge'});if(r>=4)add('damage','all',2,'В этом ходу был совершён Натиск');add('charge_extra','all',r>=7?7:5,'Натиск на кровоточащую цель');break;
@@ -17593,9 +17593,9 @@ function sqRules(d){
    case 73:check('db',r>=4?10:5,'Атака тяжёлым оружием/взрывчаткой по бронетехнике или укреплению: за каждого поддерживающего',{count:true,attack:true});break;
    case 75:for(const k of ['bb','sil','wyn'])add('stat',k,r>=4?20:10);break;
    case 77:check('bb',r>=4?20:10,'Численное превосходство',{attack:true});skill('Уклонение',r>=4?20:10,'Атака в ближнем бою');check('bb',10,'Парирование атаки в ближнем бою',{action:'parry'});break;
-   case 79:check('all',sqBaseBonus(source,'obsh')*(r>=4?2:1));break;
+   case 79:check('all',sqBaseBonus(source,'obsh')*(r>=4?2:1),'В радиусе поддержки; ситуативный бонус к этой проверке');break;
    case 85:check('bb',20,'Цель назначена неподвижным центром Форпоста',{attack:true});check('db',20,'Цель назначена неподвижным центром Форпоста',{attack:true});break;
-   case 86:check('all',r>=5?20:10,'Сопротивление психосиле');break;
+   case 86:break; // Narrative resistance, without an automatic check modifier.
    case 88:check('db',r>=4?20:10,'Персонаж остаётся неподвижным');skill('Уклонение',r>=4?20:10,'Персонаж остаётся неподвижным');add('armor','all',4,'Персонаж остаётся неподвижным',{persistentCondition:true});break;
    case 89:if(r>=3)check('bb',10,'Цель отвлечена Стайной тактикой',{attack:true});break;
    case 90:if(r>=5)check('bb',20,'Парирование',{action:'parry'});break;
@@ -17608,7 +17608,7 @@ function sqRules(d){
    case 114:if(String(S.character?.id)!==String(a.ref.character_id))add('damage','all',sqBaseBonus(source,'sv'),'Цель — осуждённый враг');break;
    case 115:add('damage','all',1,'Немедленное возмездие: за каждого поддерживающего',{count:true});break;
    case 117:if(r>=4)check('lov',30,'Встречная проверка при Выжидании');break;
-   case 119:check('all',r>=4?20:10,'Сопротивление Порче или Встречная проверка против Демона');break;
+   case 119:break; // Narrative resistance, without an automatic check modifier.
    case 122:if(r>=4)check('bb',10,'',{action:'charge'});if(r>=7)add('extra_dice','weapon_melee',1,'Первая атака Безрассудного натиска');break;
    case 126:if(r>=4)check('all',10,'Передано право хода: '+(r>=7?'любая проверка':'первая проверка'));break;
    case 127:skill('Уклонение',10,'Против стрелковой атаки; прикрывает видимый товарищ');check('bb',r>=5?20:10,'Парирование при численном превосходстве',{action:'parry'});break;
@@ -17625,8 +17625,8 @@ statBonus=function(d,key){return SQ_ORIG.statBonus(d,key)+sqUnconditional(d,'bon
 effSpeed=function(d,mult){let n=SQ_ORIG.effSpeed(d,mult)+sqUnconditional(d,'speed_bonus').reduce((s,r)=>s+r.value,0)*(mult||1);if(sqUnconditional(d,'speed_half').length)n=Math.ceil(n/2);const cap=sqUnconditional(d,'movement_cap')[0];if(cap)n=Math.min(n,cap.value);if(mult===3){const cm=sqUnconditional(d,'charge_mult')[0];if(cm)n=SQ_ORIG.effSpeed(d,1)*cm.value;}return n;};
 skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){const result=SQ_ORIG.skillBadgeInfo(d,row,level,basicish,chName,groupName);if(result.value==null)return result;let add=0;add+=sqUnconditional(d,'skill',row.name).reduce((s,r)=>s+r.value,0);return add?{...result,value:result.value+add,text:String(result.value+add),title:result.title+' · Активная способность '+(add>=0?'+':'')+add}:result;};
 function sqRuleForRoll(r){if(r.oathTactics&&!(ROLL.sel?.kind==='skill'&&/тактик/i.test(ROLL.sel?.name||'')))return false;const key=rollCharKey(),a=ROLL.action?.code||'',name=ROLL.sel?.name||'';if(r.type==='stat')return r.key===key&&ROLL.sel?.kind!=='skill';if(r.type==='skill')return ROLL.sel?.kind==='skill'&&(r.knowledge?/знани/i.test(name):name.toLowerCase().startsWith(r.key.toLowerCase()));if(r.type!=='check'||![key,'all'].includes(r.key))return false;if(r.action&&r.action!==a)return false;if(r.actions&&!r.actions.includes(a))return false;if(r.attack&&!actionAttackCheck())return false;if(r.single&&a&&['semi_auto','full_auto','suppressing_fire'].includes(a))return false;if(r.bolter&&!/болт/i.test(ROLL.action?.weapon_name||''))return false;return true;}
-rollModRows=function(){let rows=SQ_ORIG.rollModRows();const d=S.character?.character_data;if(!d)return rows;for(const r of sqRules(d).filter(sqRuleForRoll)){if(r.type==='skill'&&!r.condition)continue;const on=!r.condition||!!SQ_EFFECT.rollOn[r.id];let value=r.count?r.value*Number(SQ_EFFECT.rollOn[r.id+':count']||1):r.environment?(Number(SQ_EFFECT.rollOn[r.id+':penalty']||0)*(r.rank>=4?1:.5)):r.value;if(r.cancelActionPenalty){value=-rows.filter(x=>x.on&&x.value===-20&&/Огонь на подавление|Контроль сектора/i.test(x.label)).reduce((n,x)=>n+x.value,0);if(!value)continue;}if(on)rows=rows.filter(x=>x.sqRule||String(x.label||'').trim().toLowerCase()!==r.name.trim().toLowerCase()||Number(x.value)!==value);rows.push({label:r.name,value,locked:!r.condition,on,sqRule:r.id,scope:r.condition||'Активная способность',count:r.count,environment:r.environment});}return rows;};
-rollModRowHtml=function(r){if(!r.sqRule||r.locked)return SQ_ORIG.rollModRowHtml(r);return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope)+'</span></span>'+(r.count?'<input type="number" min="1" max="200" value="'+Number(SQ_EFFECT.rollOn[r.sqRule+':count']||1)+'" data-sq-roll-count="'+esc(r.sqRule)+'" aria-label="Количество поддерживающих или целей">':r.environment?'<input type="number" min="0" max="100" value="'+Number(SQ_EFFECT.rollOn[r.sqRule+':penalty']||0)+'" data-sq-roll-penalty="'+esc(r.sqRule)+'" aria-label="Величина штрафа за условия">':'')+'<span class="vl">'+(r.on&&r.value>0?'+':'')+r.value+'</span><input type="checkbox" data-sq-roll="'+esc(r.sqRule)+'" '+(r.on?'checked':'')+' aria-label="Подтверждены условия '+esc(r.label)+'"></div>';};
+rollModRows=function(){let rows=SQ_ORIG.rollModRows();const d=S.character?.character_data;if(!d)return rows;for(const r of sqRules(d).filter(sqRuleForRoll)){if(r.type==='skill'&&!r.condition)continue;const on=!r.condition||!!SQ_EFFECT.rollOn[r.id];let value=r.count?r.value*Number(SQ_EFFECT.rollOn[r.id+':count']||1):r.environment?0:r.value;if(r.cancelActionPenalty){value=-rows.filter(x=>x.on&&x.value===-20&&/Огонь на подавление|Контроль сектора/i.test(x.label)).reduce((n,x)=>n+x.value,0);if(!value)continue;}if(on)rows=rows.filter(x=>x.sqRule||String(x.label||'').trim().toLowerCase()!==r.name.trim().toLowerCase()||Number(x.value)!==value);rows.push({label:r.name,value,locked:!r.condition,on,sqRule:r.id,scope:r.condition||'Активная способность',count:r.count,environment:r.environment,environmentRank:r.environment?r.rank:undefined});}return rows;};
+rollModRowHtml=function(r){if(!r.sqRule||r.locked)return SQ_ORIG.rollModRowHtml(r);return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope)+'</span></span>'+(r.count?'<input type="number" min="1" max="200" value="'+Number(SQ_EFFECT.rollOn[r.sqRule+':count']||1)+'" data-sq-roll-count="'+esc(r.sqRule)+'" aria-label="Количество поддерживающих или целей">':/* Void penalties use selected rows below. */'')+'<span class="vl">'+(r.on&&r.value>0?'+':'')+r.value+'</span><input type="checkbox" data-sq-roll="'+esc(r.sqRule)+'" '+(r.on?'checked':'')+' aria-label="Подтверждены условия '+esc(r.label)+'"></div>';};
 openRoll=function(...args){SQ_EFFECT.rollOn={};SQ_EFFECT.lastRoll=null;SQ_EFFECT.rerolling=false;return SQ_ORIG.openRoll(...args);};
 rollBaseTarget=function(){if(ROLL.sel?.kind==='skill'){const latest=rollOptions().find(r=>r.id===ROLL.sel.id);if(latest)return latest.value;}return SQ_ORIG.rollBaseTarget();};
 damageDefaults=function(w){const c=SQ_ORIG.damageDefaults(w),d=S.character?.character_data;if(!d)return c;const melee=['weapon_melee','shield','unarmed'].includes(w.type),matches=r=>r.key==='all'||r.key===(melee?'weapon_melee':'weapon_ranged');for(const r of sqRules(d).filter(matches)){
@@ -17925,7 +17925,7 @@ const hfxClone=x=>JSON.parse(JSON.stringify(x));
 function hfxId(row,key){const ruleKey=key==='features'?'deeds':key,id=Number(row?.catalog_id??row?.id),spec=HFX_DATA[ruleKey]?.[id];return spec&&(!row.catalog_key||row.catalog_key===ruleKey||key==='features'&&row.catalog_key==='features')&&hfxNorm(row.catalog_name||row.honour_effects?.catalog_name||row.name)===hfxNorm(spec.name)?id:null;}
 function hfxRows(d){if(!d||d._statblock||d.schema_version===1)return [];const out=[];for(const section of [...HONOUR_KEYS,'features'])for(const row of d[section]||[]){const id=hfxId(row,section),key=section==='features'?'deeds':section,tag=key+':'+id;if(id==null)continue;out.push({key,section,id,row,tag});}return out;}
 function hfxState(row,create=false){const s=row.honour_effects,valid=s&&typeof s==='object'&&s.version===1&&typeof s.uid==='string'&&s.uid&&s.choices&&typeof s.choices==='object'&&!Array.isArray(s.choices)&&s.conditions&&typeof s.conditions==='object'&&!Array.isArray(s.conditions);if(create&&!valid)row.honour_effects={version:1,uid:crypto.randomUUID(),catalog_name:row.catalog_name||row.name,enabled:false,choices:{},conditions:{}};return valid?s:create?row.honour_effects:{enabled:false,choices:{},conditions:{}};}
-function hfxActive(d){const seen=new Set();return hfxRows(d).filter(x=>{if(!hfxState(x.row).enabled||seen.has(x.tag))return false;seen.add(x.tag);return true;});}
+function hfxActive(d){const seen=new Set();return hfxRows(d).filter(x=>{if((!(x.key==='distinctions'&&x.id===2)&&!hfxState(x.row).enabled)||seen.has(x.tag))return false;seen.add(x.tag);return true;});}
 function hfxHas(d,key,id){return hfxActive(d).find(x=>x.key===key&&x.id===id);}
 function hfxGroup(id,g){g=String(g||'').trim();if(id===2&&/^(ксенос|ксеносы)$/i.test(g))return 'Ксеносы';if(id===33&&/^(личное|personal|прыжковый ранец)$/i.test(g))return 'Прыжковый ранец';return g;}
 function hfxChoices(entry,d){const {key,id}=entry,c=hfxState(entry.row).choices;
@@ -17988,7 +17988,7 @@ function hfxEffects(entry,d){const {row,key,id}=entry,s=hfxState(row),c=s.choice
   }
  }else if(key==='distinctions')switch(id){
   case 1:out.notes.push('Один раз за сессию восстановите [Ранг] Сплочённости полудействием, если вы командир; общий запас ведётся вручную.');break;
-  case 2:if(c.chapter)check('all',20,'Руководство боевыми братьями выбранного ордена',{skills:['Командование','Тактика'],leadership:true});break;
+  case 2:check('all',20,'Проверка лидерства при командовании выбранным орденом',{perRoll:true});break;
   case 3:if(c.organization?.trim())check('all',10,'Взаимодействие с выбранной организацией или персоной',{interaction:true});out.notes.push('Дополнительная степень успеха при успешном подходящем взаимодействии.');break;
   case 4:out.notes.push('Союзникам +10 к проверкам СВ; известным вам врагам −10 при сопротивлении вашим эффектам. Вносится на их проверках.');break;
   case 5:out.indicators.push({key:'requisition',value:20},{key:'requisition_renown',value:10});break;
@@ -18012,7 +18012,7 @@ function hfxEffects(entry,d){const {row,key,id}=entry,s=hfxState(row),c=s.choice
   case 26:out.notes.push('Иммунитет к Страху. Получаемое Безумие делится на 2 с округлением вниз; журнал пополнений ведёт игрок.');break;
   case 27:check('vos',10);bonus('vos',1);out.notes.push('Один подходящий переброс союзнику за столкновение; лимит отмечает игрок.');break;
  }
- for(const a of [...out.stats,...out.bonuses,...out.checks,...out.indicators])if(a.condition&&!out.conditions.includes(a.condition))out.conditions.push(a.condition);
+ for(const a of [...out.stats,...out.bonuses,...out.checks,...out.indicators])if(a.condition&&!a.perRoll&&!out.conditions.includes(a.condition))out.conditions.push(a.condition);
  return out;
 }
 function hfxPackages(d){return hfxActive(d).map(e=>({...e,state:hfxState(e.row),effects:hfxEffects(e,d)}));}
@@ -18052,7 +18052,7 @@ skillBadgeInfo=function(d,row,level,basicish,chName,groupName=''){const old=HFX_
  const target=groupName?(row.groups||[]).find(g=>hfxNorm(hfxGroup(row.id,g.name))===hfxNorm(hfxGroup(row.id,groupName))):row;add+=Number(target?.hfx_extra)||0;const gifts=hfxPackages(d).flatMap(p=>p.effects.talents).map(t=>t.gift).concat((d.talents||[]).filter(t=>t.honour_independent&&Number(t.id)===7).map(t=>t.hfx_gift)).filter(Boolean),gifted=!row.gifted&&gifts.some(g=>hfxGiftMatches(g,row,groupName));if(gifted)add+=10;return add?{...old,value:Number(old.value)+add,text:String(Number(old.value)+add),cls:(gifted?'g ':'')+old.cls,title:old.title+' · Деяния и отличия '+(add>0?'+':'')+add}:old;};
 function hfxCheckApplies(a,key){if(!a.keys.includes('all')&&!a.keys.includes(key))return false;const s=ROLL.sel,name=s?.name||'';if(a.skillId)return s?.kind==='skill'&&hfxNorm(name).startsWith(hfxNorm(skillById(a.skillId)?.name))&&(!a.group||hfxNorm(name).includes(hfxNorm(a.group)));if(a.skills)return s?.kind==='skill'&&a.skills.some(n=>hfxNorm(name).startsWith(hfxNorm(n)))||a.leadership&&s?.kind==='stat';if(a.interaction)return s?.kind==='skill'&&['Обаяние','Обман','Запугивание'].some(n=>hfxNorm(name).startsWith(hfxNorm(n)));return true;}
 rollModRows=function(){const d=S.character?.character_data,rows=HFX_BASE.rollModRows();if(!d)return rows;const key=rollCharKey();for(const p of hfxPackages(d)){const checks=[...p.effects.checks,...(ROLL.sel?.kind==='stat'?p.effects.stats.map(a=>({keys:[a.key],value:a.value,condition:a.condition,stat:true})):[])];for(const [i,a]of checks.entries()){
-  if(!hfxCheckApplies(a,key)||a.stat&&(!hfxCondition(p,a.condition)||dwActive(d)&&!dwModifierAllowed(d,{target:'stat',target_name:key})))continue;const id=p.state.uid+':'+i,on=a.stat||!a.condition||Object.hasOwn(HFX.rollOn,id)?a.stat||!a.condition||HFX.rollOn[id]:hfxCondition(p,a.condition);rows.push({label:p.row.name,value:a.value,locked:!a.condition||!!a.stat,on,scope:a.condition||'Эффект карточки',hfxRule:id});
+  if(!hfxCheckApplies(a,key)||a.stat&&(!hfxCondition(p,a.condition)||dwActive(d)&&!dwModifierAllowed(d,{target:'stat',target_name:key})))continue;const id=p.state.uid+':'+i,on=a.perRoll?HFX.rollOn[id]===true:a.stat||!a.condition||Object.hasOwn(HFX.rollOn,id)?a.stat||!a.condition||HFX.rollOn[id]:hfxCondition(p,a.condition);rows.push({label:p.row.name,value:a.value,locked:!a.condition||!!a.stat,on,scope:a.condition||'Эффект карточки',hfxRule:id});
  }}
  const precision=hfxHas(d,'deeds',22);if(precision&&hfxState(precision.row).conditions['Обменять Прицеливание на +1 Бронебойность']&&key==='db'&&actionAttackCheck()){const aim=rows.find(r=>r.prepared==='aim'&&r.on);if(aim){aim.on=false;rows.push({label:'Смертоносное прицеливание: +1 Бронебойность вместо бонуса попадания',value:0,on:true,locked:true,hfxPrecision:true});}}
  if(key==='sv'&&hfxHas(d,'distinctions',23)){const sum=rows.filter(r=>r.on).reduce((n,r)=>n+Number(r.value||0),0);if(sum< -20)rows.push({label:'Решимость и воля: предел штрафа',value:-20-sum,locked:true,on:true});}return rows;};
@@ -18075,7 +18075,7 @@ rqQuote=function(e,d,draft={}){const q=HFX_BASE.rqQuote(e,d,draft),extra=hfxPack
 updateDerived=function(){const result=HFX_BASE.updateDerived(),d=S.character?.character_data;if(!d)return result;const packages=hfxPackages(d),extra=packages.reduce((n,p)=>n+p.effects.indicators.filter(a=>a.key==='initiative'&&hfxCondition(p,a.condition)).reduce((v,a)=>v+a.value,0),0),intellect=hfxHas(d,'distinctions',20);let el=$('hfx-initiative');const active=extra||intellect&&hfxState(intellect.row).conditions['Использовать БИ вместо БЛ для Инициативы'];if(active&&!el){el=document.createElement('div');el.id='hfx-initiative';el.className='ea-note';$('speed-half')?.closest('.param-chips')?.insertAdjacentElement('afterend',el);}if(el){el.hidden=!active;const base=intellect&&hfxState(intellect.row).conditions['Использовать БИ вместо БЛ для Инициативы']?statBonus(d,'int'):statBonus(d,'lov');const gear=typeof eaGenerated==='function'?eaGenerated(d).filter(a=>a.target==='indicator'&&a.target_name==='initiative').reduce((n,a)=>n+a.effect,0):0;el.textContent='Инициатива: 1к10 + '+(base+gear+extra);}return result;};
 function hfxValid(c){return c&&c.owner===S.character&&c.d===S.character?.character_data&&(c.d[c.key]||[]).includes(c.row)&&$('info-modal').classList.contains('active');}
 function hfxSummary(e,d){const f=hfxEffects(e,d),out=[];for(const a of f.stats)out.push((a.value>0?'+':'')+a.value+' '+statFullName(a.key)+' — до расчёта бонуса');for(const a of f.bonuses)out.push('+'+a.value+' к готовому бонусу '+statFullName(a.key));for(const a of f.checks)out.push((a.value>0?'+':'')+a.value+' к проверкам'+(a.condition?' · '+a.condition:''));for(const a of f.skills)out.push('Умение: '+(skillById(a.id)?.name||a.id)+(a.group?' ('+a.group+')':'')+' · '+(a.upgrade?'изучить / повысить имеющееся на +10':SKILL_LEVEL_TITLE[a.level]||a.level));for(const a of f.talents)out.push('Талант: '+(talentById(a.id)?.name||a.id)+(a.group?' ('+a.group+')':''));for(const [key,n]of Object.entries(f.vitals))out.push((n>0?'+':'')+n+' · '+(key==='max_wounds'?'максимум ран':'начальный максимум Судьбы'));return out;}
-function hfxPanel(e,d){const state=hfxState(e.row),choices=hfxChoices(e,d),f=hfxEffects(e,d);let html='<section id="hfx-card-controls" class="hfx-controls"><h4>Выбор и эффекты</h4><p class="desc">'+(state.enabled?'Эффекты карточки включены. Таланты и умения выдаются без дополнительной траты опыта.':'Эффекты ещё не включены. Если они уже внесены вручную, оставьте автоматическое применение выключенным.')+'</p>';
+function hfxPanel(e,d){if(e.key==='distinctions'&&e.id===2)return '<section id="hfx-card-controls" class="hfx-controls"><p>Ситуативный бонус +20 к подходящей проверке лидерства. Включается в окне броска; в каждом новом броске выключен.</p></section>';const state=hfxState(e.row),choices=hfxChoices(e,d),f=hfxEffects(e,d);let html='<section id="hfx-card-controls" class="hfx-controls"><h4>Выбор и эффекты</h4><p class="desc">'+(state.enabled?'Эффекты карточки включены. Таланты и умения выдаются без дополнительной траты опыта.':'Эффекты ещё не включены. Если они уже внесены вручную, оставьте автоматическое применение выключенным.')+'</p>';
  html+='<label class="hfx-check"><input type="checkbox" data-hfx-enabled '+(state.enabled?'checked':'')+'> Применять эффекты этой карточки</label>';
  for(const choice of choices){const value=state.choices[choice.field]||'';html+='<div class="spec-opt-group"><div class="spec-opt-header">'+esc(choice.label)+'</div><div class="spec-opt-body">';if(choice.kind==='select')html+='<select data-hfx-choice="'+choice.field+'" aria-label="'+escAttr(choice.label)+'"><option value="">— выберите —</option>'+choice.values.map(([k,n])=>'<option value="'+escAttr(k)+'" '+(String(k)===String(value)?'selected':'')+'>'+esc(n)+'</option>').join('')+'</select>';else if(choice.kind==='text')html+='<input type="text" maxlength="120" data-hfx-choice="'+choice.field+'" value="'+escAttr(value)+'" aria-label="'+escAttr(choice.label)+'">';else html+='<p>Результат: '+(value||'ещё не определён')+'</p><button type="button" data-hfx-duel '+(value?'disabled':'')+'>Бросить 1к5 один раз</button>'+(value&&Number(state.choices.duelRaw)<5&&/штурмовой десантник/i.test(d.info?.specialization||'')?'<label class="hfx-check"><input type="checkbox" data-hfx-duel-plus '+(state.choices.duelPlus?'checked':'')+'> Добавить +1 за Штурмового десантника</label>':'');html+='</div></div>';}
  const duplicate=hfxActive(d).find(p=>p.tag===e.key+':'+e.id&&p.row!==e.row);if(duplicate)html+='<p class="hfx-warning">Другая карточка этого же деяния или отличия уже активна. Совпадающие эффекты учитываются один раз; выключите другую карточку, чтобы использовать этот выбор.</p>';
@@ -18512,6 +18512,35 @@ renderDamageRoll=function(){PD_BASE.renderDamageRoll();if(!$('pd-weapon-source')
 }
 </script>
 
+<style id="void-penalty-style">.void-penalty-control{border-top:1px solid var(--border-dark);padding:10px 0}.void-penalty-choice{display:flex;align-items:flex-start;gap:8px;margin:8px 0;overflow-wrap:anywhere}.void-penalty-choice input{flex:none;width:auto;margin-top:3px}.void-penalty-choice span{min-width:0}</style>
+<script id="void-penalty-runtime">
+// Select actual active penalties; reducing a penalty never creates a positive modifier.
+const VOID_BASE={rollModRows,rollModRowHtml,openRoll};
+const VOID_STATE={context:'',selected:new Set()};
+function voidRollContext(){return JSON.stringify([S.character?.id,ROLL.sel?.id,ROLL.sel?.kind,ROLL.sel?.statKey,ROLL.sel?.name,ROLL.sel?.characteristic,ROLL.action?.row?.code,ROLL.action?.weapon_id]);}
+function voidPenaltyKey(row){return JSON.stringify([row.mi??null,row.temp??null,row.sqRule??null,row.hfxRule??null,row.ea??null,row.prepared??null,row.label,Number(row.value),row.scope||'']);}
+rollModRows=function(){
+ const rows=VOID_BASE.rollModRows(),context=voidRollContext();
+ if(VOID_STATE.context!==context){VOID_STATE.context=context;VOID_STATE.selected.clear();}
+ const controls=rows.filter(r=>r.environment);if(!controls.length){VOID_STATE.selected.clear();return rows;}
+ const rank=Math.max(...controls.map(r=>Number(r.environmentRank)||1));
+ const options=rows.filter(r=>!r.environment&&r.on===true&&!r.unavailable&&Number.isFinite(Number(r.value))&&Number(r.value)<0).map(row=>({row,key:voidPenaltyKey(row),original:Number(row.value)}));
+ const valid=new Set(options.map(o=>o.key));for(const key of VOID_STATE.selected)if(!valid.has(key))VOID_STATE.selected.delete(key);
+ for(const option of options){option.selected=VOID_STATE.selected.has(option.key);if(option.selected)option.row.value=rank>=4?0:option.original/2;option.result=Number(option.row.value);}
+ controls.forEach((row,index)=>{row.value=0;row.on=false;row.voidControl=true;row.voidSecondary=index>0;row.voidOptions=options;row.environmentRank=rank;});
+ return rows;
+};
+rollModRowHtml=function(row){
+ if(!row.voidControl)return VOID_BASE.rollModRowHtml(row);
+ if(row.voidSecondary)return '';
+ const title='<b>'+esc(row.label)+'</b><div class="desc">Отметьте только штрафы за космические условия. '+(row.environmentRank>=4?'Выбранные штрафы обнуляются.':'Выбранные штрафы уменьшаются вдвое.')+'</div>';
+ const list=row.voidOptions.length?row.voidOptions.map(o=>'<label class="void-penalty-choice"><input type="checkbox" data-void-penalty="'+escAttr(o.key)+'" '+(o.selected?'checked':'')+'><span>'+esc(o.row.label)+' <b>'+o.original+(o.selected?' → '+o.result:'')+'</b></span></label>').join(''):'<p class="desc">Нет включённых штрафов. Способность ничего не прибавляет.</p>';
+ return '<div class="void-penalty-control">'+title+list+'</div>';
+};
+openRoll=function(...args){VOID_STATE.context='';VOID_STATE.selected.clear();return VOID_BASE.openRoll(...args);};
+document.addEventListener('change',event=>{const el=event.target;if(!el.matches('[data-void-penalty]')||ROLL.busy)return;const available=rollModRows().filter(r=>r.voidControl).flatMap(r=>r.voidOptions);if(!available.some(o=>o.key===el.dataset.voidPenalty))return;if(el.checked)VOID_STATE.selected.add(el.dataset.voidPenalty);else VOID_STATE.selected.delete(el.dataset.voidPenalty);renderRollMods();renderRollTotal();rollResultReset();});
+
+</script>
 </body>
 </html>
 
