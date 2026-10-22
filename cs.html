@@ -2715,6 +2715,12 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
     <div style="margin-bottom:10px">
       <input id="pick-search" placeholder="введите название">
     </div>
+    <div id="pick-chapter-wrap" hidden style="margin:10px 0">
+      <label for="pick-chapter" class="desc">Орден</label>
+      <select id="pick-chapter" style="width:100%;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit" onchange="drawPickResults($('pick-search').value)">
+        <option value="all">Все</option>
+      </select>
+    </div>
     <div id="pick-type-wrap" hidden style="margin:10px 0">
       <select id="arsenal-type" style="width:100%;padding:8px;background:#101012;border:1px solid #3a3a3d;color:var(--gold);font-family:inherit">
         <option value="">— Тип предмета —</option>
@@ -4225,7 +4231,7 @@ function abilityCardMeta(name, table){
   if (!db) return '';
   const sust = db.sustained ? 'Да' : 'Нет';
   const act = db.subtype || '—';
-  let out = (db.scope === 'custom' ? '<span class="solo-m"><b>Кастомная</b></span>' : '') + `<span class="solo-m"><b>Поддерживаемая:</b> ${esc(sust)}</span><span class="solo-m"><b>Действие:</b> ${esc(act)}</span>`;
+  let out = `<span class="solo-m"><b>Поддерживаемая:</b> ${esc(sust)}</span><span class="solo-m"><b>Действие:</b> ${esc(act)}</span>`;
   if (table === 'squad_abilities'){
     const cost = (db.cost != null && Number(db.cost) > 0) ? String(db.cost) : '—';
     const cat = db.category || '—';
@@ -7217,9 +7223,15 @@ function pickCols(key, isSkillKey){
 }
 async function openPicker(key){
   pickTarget = key;
+  pickRows = [];
+  const generation = S.abilityPickerGeneration = (S.abilityPickerGeneration || 0) + 1;
   const [label, table] = SECTIONS[key];
   $('pick-title').textContent = 'Добавить: ' + label;
   $('pick-search').value = '';
+  $('pick-chapter-wrap').hidden = !isAbilityKey(key);
+  $('pick-chapter').innerHTML = '<option value="all">Все</option>';
+  $('pick-chapter').value = 'all';
+  $('pick-chapter').disabled = true;
   $('pick-ammo-class-wrap').hidden = key !== 'ammo';
   $('pick-ammo-class').innerHTML = '<option value="">— класс боеприпаса —</option>' +
     (key === 'ammo' ? ammoClassOptions.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('') : '');
@@ -7235,12 +7247,25 @@ async function openPicker(key){
   if (!table) return;
   const isSkillKey = (key === 'skills_basic' || key === 'skills_adv');
   const cols = pickCols(key, isSkillKey);
-  const { data, error } = await sb.from(table).select(cols).order('name').limit(400);
+  const [{ data, error }, chaptersReady] = await Promise.all([
+    sb.from(table).select(cols).order('name').limit(400),
+    isAbilityKey(key) ? loadChapters() : Promise.resolve(true)
+  ]);
+  if (S.abilityPickerGeneration !== generation || pickTarget !== key) return;
+  if (isAbilityKey(key) && !chaptersReady){
+    $('pick-results').innerHTML = '<div class="desc">Не удалось загрузить справочник орденов. Закройте окно и повторите попытку.</div>';
+    return;
+  }
   if (error){
     $('pick-results').innerHTML = `<div class="desc">Справочник недоступен: ${esc(error.message)}</div>`;
     return;
   }
   pickRows = data || [];
+  if (isAbilityKey(key)){
+    $('pick-chapter').innerHTML = '<option value="all">Все</option><option value="common">Общие</option><option value="custom">Кастомные</option>' +
+      CHAPTERS.filter(ch => ch.orden_type?.kind !== 'custom').slice().sort((a,b) => a.name.localeCompare(b.name,'ru')).map(ch => '<option value="chapter:' + esc(ch.id) + '">' + esc(ch.name) + '</option>').join('');
+    $('pick-chapter').disabled = false;
+  }
   if (key === 'aug_chapter') pickRows = pickRows.filter(r => chapterAugmentationAvailable(r));
   if (['gear','armour_aux','aug_personal','aug_chapter'].includes(key)) pickRows = pickRows.filter(r => !r.stats?.hidden_from_issue);
   if (key === 'gear') pickRows = pickRows.filter(r => !r.stats?.dread_compatible);
@@ -7274,10 +7299,16 @@ async function openPicker(key){
 }
 
 function drawPickResults(q){
-  const rows = pickRows.filter(r => (r.name + (r.scope === 'custom' ? ' Кастомные' : '')).toLowerCase().includes(q.toLowerCase())).slice(0, 80);
+  const chapter = isAbilityKey(pickTarget) ? $('pick-chapter').value : 'all';
+  const rows = pickRows.filter(r => {
+    if (!r.name.toLowerCase().includes(q.toLowerCase())) return false;
+    if (chapter === 'all') return true;
+    if (chapter === 'common' || chapter === 'custom') return r.scope === chapter;
+    return r.scope !== 'custom' && r.scope !== 'common' && Array.isArray(r.chapter_ids) && r.chapter_ids.some(id => String(id) === chapter.slice(8));
+  }).slice(0, 80);
   $('pick-results').innerHTML = rows.length
     ? rows.map(r => `<div class="gear-item pick-row" data-pick="${esc(r.name)}"${r.id != null ? ` data-pick-id="${esc(r.id)}"` : ''}>
-        <span class="g-name">${esc(r.name)}</span>${r.scope === 'custom' ? '<span class="ammo-class">Кастомные</span>' : ''}${r.used_for ? `<span class="ammo-class">${esc(r.used_for)}</span>` : ''}</div>`).join('')
+        <span class="g-name">${esc(r.name)}</span>${r.used_for ? `<span class="ammo-class">${esc(r.used_for)}</span>` : ''}</div>`).join('')
     : '<div class="desc">Ничего не найдено.</div>';
   $('pick-results').querySelectorAll('[data-pick]').forEach(el =>
     el.addEventListener('click', () => {
@@ -15789,6 +15820,7 @@ openPicker=async function(key){
   if(key!=='armour_history')return AI_ORIG.openPicker(key);
   pickTarget=key;aiPickerContext=S.character;
   $('pick-title').textContent='Добавить историю брони';$('pick-search').value='';
+  $('pick-chapter-wrap').hidden=true;
   for(const id of ['pick-ammo-class-wrap','pick-type-wrap','pick-param-wrap'])$(id).hidden=true;
   const field=document.createElement('div');field.id='ai-history-table';
   field.innerHTML='<label for="ai-history-select">Таблица истории</label><select id="ai-history-select">'+AI_HISTORY_TABLES.map(t=>'<option value="'+escAttr(t.key)+'">'+esc(t.source+' · '+t.title+' · '+t.number)+'</option>').join('')+'</select><p class="desc" id="ai-history-note"></p>';
@@ -18123,6 +18155,7 @@ openPicker=async function(key){
  const context={owner:S.character,data:S.character.character_data,rows:[],loading:true};deedEditorContext=context;pickTarget='deeds';pickRows=[];pickRowsAll=[];
  $('ai-history-table')?.remove();
  $('pick-title').textContent='Добавить деяние бесплатно';$('pick-search').value='';
+ $('pick-chapter-wrap').hidden=true;
  for(const id of ['pick-ammo-class-wrap','pick-type-wrap','pick-param-wrap'])$(id).hidden=true;
  $('pick-results').innerHTML='<p class="desc">Загрузка деяний… Можно также ввести своё название и добавить вручную.</p>';
  openSheetModal('pick-modal');
