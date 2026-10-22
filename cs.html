@@ -2976,7 +2976,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
     <textarea id="event-body" rows="4" placeholder="что произошло..."></textarea>
     <div class="row" style="margin-top:16px; justify-content:flex-end">
       <button class="ghost" onclick="closeModal('modal-event')">Отмена</button>
-      <button onclick="createEvent()">Добавить</button>
+      <button onclick="createChronicleEvent()">Добавить</button>
     </div>
   </div>
 </div>
@@ -3563,7 +3563,7 @@ async function loadEvents(){
     </div>`).join('') : '<div class="empty">События не записаны.</div>';
 }
 
-async function createEvent(){
+async function createChronicleEvent(){
   const title = $('event-title').value.trim();
   if (!title) return toast('Введите название события');
   const { error } = await sb.from('chronicle_events').insert({
