@@ -2200,7 +2200,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 
   <!-- HEADER -->
   <div class="header">
-    <div class="icon"><img id="sh-chapter-img" src="" alt="Chapter"></div>
+    <button id="sh-chapter-emblem" class="icon" type="button" disabled onclick="openCustomEmblemModal()" aria-label="Эмблема ордена"><img id="sh-chapter-img" src="" alt="Chapter"><span id="sh-emblem-placeholder" hidden aria-hidden="true">+</span></button>
     <div class="titles">
       <h1 id="sh-name" contenteditable="false" onblur="saveCharName()" style="outline:none;cursor:default;">—</h1>
       <div class="sub">
@@ -10631,7 +10631,7 @@ function customEmblemUrl(info){
 }
 function renderCustomEmblem(){
   const host = $('custom-emblem-controls'), info = S.character?.character_data?.info;
-  host.hidden = !editMode || !customEmblemAllowed(info) || !!S.chapterCatalogLoading;
+  host.hidden = !editMode || !customEmblemAllowed(info) || hasAdvancedSpec(S.character?.character_data,18);
   const url = customEmblemUrl(info), preview = $('custom-emblem-preview');
   preview.hidden = !url;
   if (url) preview.src = url; else preview.removeAttribute('src');
@@ -10640,8 +10640,42 @@ function renderCustomEmblem(){
 function customEmblemContext(owner, data, chapter, request){
   return request === customEmblemRequest && editMode && !editBusy &&
     S.character === owner && owner.character_data === data && data.info.chapter === chapter &&
-    customEmblemAllowed(data.info) && $('chapter-modal').classList.contains('active');
+    customEmblemAllowed(data.info) && !hasAdvancedSpec(data,18) && $('custom-emblem-modal').classList.contains('active');
 }
+function renderCustomEmblemHeader(){
+  const d=S.character?.character_data, button=$('sh-chapter-emblem'), img=$('sh-chapter-img');
+  if (!button || !img) return;
+  const custom=customEmblemAllowed(d?.info) && !hasAdvancedSpec(d,18);
+  const empty=custom && !customEmblemUrl(d.info), editable=custom && editMode;
+  img.hidden=empty;
+  $('sh-emblem-placeholder').hidden=!empty;
+  button.classList.toggle('emblem-placeholder',empty);
+  button.disabled=!editable;
+  const label=editable ? (empty ? 'Загрузить эмблему ордена' : 'Изменить эмблему ордена') : 'Эмблема ордена';
+  button.setAttribute('aria-label',label);button.title=label;
+  if ($('custom-emblem-modal').classList.contains('active') && !editable) closeCustomEmblemModal(false);
+}
+function openCustomEmblemModal(){
+  const d=S.character?.character_data;
+  if (!editMode || editBusy || !customEmblemAllowed(d?.info) || hasAdvancedSpec(d,18)) return;
+  ++customEmblemRequest;
+  $('custom-emblem-file').value='';$('custom-emblem-status').textContent='';
+  renderCustomEmblem();openSheetModal('custom-emblem-modal');
+  $('custom-emblem-file').focus();
+}
+function closeCustomEmblemModal(restoreFocus=true){
+  ++customEmblemRequest;
+  closeSheetModal('custom-emblem-modal');
+  $('custom-emblem-file').value='';
+  if (restoreFocus && !$('sh-chapter-emblem').disabled) $('sh-chapter-emblem').focus();
+}
+BACKDROP_CLOSE['custom-emblem-modal']=()=>closeCustomEmblemModal();
+document.addEventListener('keydown',event=>{
+  if (event.key==='Escape' && $('custom-emblem-modal')?.classList.contains('active')){
+    event.preventDefault();event.stopImmediatePropagation();closeCustomEmblemModal();
+  }
+},true);
+
 async function prepareCustomEmblem(file){
   if (!['image/png','image/jpeg','image/webp'].includes(file.type)) throw Error('Выберите PNG, JPG или WebP.');
   if (!file.size || file.size > 10 * 1024 * 1024) throw Error('Размер картинки должен быть не больше 10 МБ.');
@@ -10672,7 +10706,7 @@ async function prepareCustomEmblem(file){
 }
 async function uploadCustomEmblem(input){
   const file=input.files?.[0];input.value='';
-  if (!file || !editMode || editBusy || S.chapterChanging || S.chapterCatalogLoading || !customEmblemAllowed(S.character?.character_data?.info)) return;
+  if (!file || !editMode || editBusy || S.chapterChanging || S.chapterCatalogLoading || !customEmblemAllowed(S.character?.character_data?.info) || hasAdvancedSpec(S.character?.character_data,18) || !$('custom-emblem-modal').classList.contains('active')) return;
   const owner=S.character, data=owner.character_data, chapter=data.info.chapter, request=++customEmblemRequest;
   const status=$('custom-emblem-status');status.textContent='Обработка картинки…';
   try {
@@ -10689,7 +10723,7 @@ async function uploadCustomEmblem(input){
   }
 }
 function removeCustomEmblem(){
-  if (!editMode || editBusy || S.chapterChanging || S.chapterCatalogLoading || !customEmblemAllowed(S.character?.character_data?.info)) return;
+  if (!editMode || editBusy || S.chapterChanging || S.chapterCatalogLoading || !customEmblemAllowed(S.character?.character_data?.info) || hasAdvancedSpec(S.character?.character_data,18) || !$('custom-emblem-modal').classList.contains('active')) return;
   ++customEmblemRequest;
   delete S.character.character_data.info.chapter_emblem;
   renderCustomEmblem();renderHeaderXp();debouncedSave();
@@ -10699,10 +10733,6 @@ function removeCustomEmblem(){
 async function openChapterModal(){
   if(!S.character) return;
   const character=S.character;
-  ++customEmblemRequest;
-  $('custom-emblem-controls').hidden=true;
-  $('custom-emblem-file').value='';
-  $('custom-emblem-status').textContent='';
   const generation=S.chapterModalGeneration=(S.chapterModalGeneration || 0)+1;
   $('custom-chapter-input').value=''; $('chapter-search').value='';
   $('chapter-search').oninput=function(){ if(!S.chapterCatalogLoading) renderChapterList(this.value); };
@@ -10728,7 +10758,6 @@ async function openChapterModal(){
 }
 
 function renderChapterList(query){
-  renderCustomEmblem();
   const list = $('chapter-list');
   const cinfo = S.character.character_data.info || {};
   const cur  = cinfo.chapter || '';
@@ -10784,7 +10813,6 @@ function saveCustomChapter(){
 }
 
 function closeChapterModal(){
-  ++customEmblemRequest;
   S.chapterModalGeneration=(S.chapterModalGeneration || 0)+1;
   S.chapterCatalogLoading=false; $('custom-chapter-input').disabled=false;
   $('chapter-modal').classList.remove('active');
@@ -11432,6 +11460,38 @@ function updateAdvFilter(){
 
 </script>
 
+<style id="custom-emblem-style">
+.sheet .header > #sh-chapter-emblem{box-sizing:border-box;display:block;width:80px;height:80px;min-width:80px;margin:0;padding:0;border:0;border-image:none;border-radius:0;background:none;box-shadow:none;clip-path:none;overflow:hidden;opacity:1;color:var(--gold);cursor:default;}
+.sheet .header > #sh-chapter-emblem:enabled{cursor:pointer;}
+.sheet .header > #sh-chapter-emblem.emblem-placeholder{border:1px dashed var(--gold);border-radius:50%;background:rgba(201,162,75,.06);}
+.sheet .header > #sh-chapter-emblem:enabled:hover{background-color:rgba(201,162,75,.12);}
+.sheet .header > #sh-chapter-emblem:focus-visible{outline:2px solid var(--gold);outline-offset:4px;}
+#sh-emblem-placeholder{display:grid;place-items:center;width:100%;height:100%;font:32px/1 Arial,sans-serif;color:var(--gold);}
+#sh-emblem-placeholder[hidden],#sh-chapter-emblem img[hidden]{display:none;}
+.sheet .header > #sh-chapter-emblem.black-shield-icon{height:108px;overflow:visible;}
+#custom-emblem-modal .modal-box{box-sizing:border-box;width:100%;max-width:440px;}
+#custom-emblem-modal h3{margin-top:0;}
+#custom-emblem-preview{display:block;margin:12px auto!important;}
+#custom-emblem-preview[hidden]{display:none;}
+#custom-emblem-file{font:inherit;min-width:0;}
+#custom-emblem-close{margin-top:12px;}
+</style>
+<div id="custom-emblem-modal" class="modal-overlay sheet-modal" role="dialog" aria-modal="true" aria-labelledby="custom-emblem-title">
+  <div class="modal-box">
+    <h3 id="custom-emblem-title">Эмблема ордена</h3>
+    <section id="custom-emblem-controls">
+      <p class="desc">Эмблема сохраняется вместе с листом персонажа.</p>
+      <img id="custom-emblem-preview" hidden alt="Своя эмблема ордена" style="width:80px;height:80px;object-fit:contain;margin:10px 0">
+      <label for="custom-emblem-file" class="desc">Загрузить эмблему (PNG, JPG, WebP; до 10 МБ)</label>
+      <input id="custom-emblem-file" type="file" accept="image/png,image/jpeg,image/webp" style="display:block;width:100%;max-width:100%;box-sizing:border-box;margin:8px 0" onchange="uploadCustomEmblem(this)">
+      <p class="desc">Картинка уменьшается до 192×192 без растягивания. Прозрачность сохраняется. После загрузки закройте окно и нажмите «Сохранить» в листе.</p>
+      <button id="custom-emblem-remove" type="button" class="chapter-custom-btn" onclick="removeCustomEmblem()">Удалить эмблему</button>
+      <p id="custom-emblem-status" class="desc" role="status" style="overflow-wrap:anywhere"></p>
+    </section>
+    <button id="custom-emblem-close" type="button" class="modal-close" onclick="closeCustomEmblemModal()">Закрыть</button>
+  </div>
+</div>
+
 <!-- ========== CHAPTER SELECTION MODAL ========== -->
 <div id="chapter-modal">
   <div class="chapter-modal-box">
@@ -11442,15 +11502,6 @@ function updateAdvFilter(){
       <input type="text" id="custom-chapter-input" placeholder="Или введите свой орден..." maxlength="50">
       <button class="chapter-custom-btn" onclick="saveCustomChapter()">Использовать</button>
     </div>
-    <section id="custom-emblem-controls" hidden style="margin-top:16px;border-top:1px solid var(--border-gold);padding-top:12px">
-      <p class="desc">Эмблема текущего кастомного ордена. Для другого ордена сначала введите название и нажмите «Использовать», затем снова откройте это окно.</p>
-      <img id="custom-emblem-preview" hidden alt="Своя эмблема ордена" style="width:80px;height:80px;object-fit:contain;margin:10px 0">
-      <label for="custom-emblem-file" class="desc">Загрузить эмблему (PNG, JPG, WebP; до 10 МБ)</label>
-      <input id="custom-emblem-file" type="file" accept="image/png,image/jpeg,image/webp" style="display:block;width:100%;max-width:100%;box-sizing:border-box;margin:8px 0" onchange="uploadCustomEmblem(this)">
-      <p class="desc">Картинка уменьшается до 192×192 без растягивания. Прозрачность сохраняется.</p>
-      <button id="custom-emblem-remove" type="button" class="chapter-custom-btn" onclick="removeCustomEmblem()">Удалить эмблему</button>
-      <p id="custom-emblem-status" class="desc" role="status" style="overflow-wrap:anywhere"></p>
-    </section>
     <button class="chapter-close-btn" onclick="closeChapterModal()">Закрыть</button>
   </div>
 </div>
@@ -13460,6 +13511,7 @@ renderHeaderXp=function(){
   img.parentElement.classList.toggle('black-shield-icon',active);
   img.alt=active ? 'Black Shield' : 'Chapter';
   if(active) fitIconToOpaque(img,SPECIALIZATIONS.find(s => Number(s.id) === 18)?.data?.chapter_icon_url || CHAPTER_ICONS['Black Shield'],80,1,{height:108,top:6});
+  renderCustomEmblemHeader();
 };
 changeSpecialization=async function(name){
   const d=S.character?.character_data;
