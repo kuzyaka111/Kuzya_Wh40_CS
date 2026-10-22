@@ -10678,9 +10678,10 @@ if (charChannel){
 let customEmblemRequest = 0;
 function customEmblemAllowed(info){
   if (!info?.chapter) return false;
-  const named = chapterByIdOrName(info.chapter);
+  const named = chapterByIdOrName(info.chapter), chapter = chapterForInfo(info);
+  if (chapter?.name === 'Кодексный орден') return !named || Number(named.id) === Number(chapter.id);
   if (named && named.orden_type?.kind !== 'custom') return false;
-  return chapterForInfo(info)?.orden_type?.kind === 'custom';
+  return chapter?.orden_type?.kind === 'custom';
 }
 function customEmblemUrl(info){
   const emblem = info?.chapter_emblem;
@@ -10849,9 +10850,9 @@ async function changeChapter(name){
     const prev = (d.info && d.info.chapter) || '';
     // Повторный выбор тоже отзывает старую автоматическую выдачу, не затрагивая ручные записи.
     if (prev) revokeChapterBonus(d, prev);
-    if (prev !== name || ch.orden_type?.kind !== 'custom') delete d.info.chapter_emblem;
     d.info.chapter = name;
     d.info.chapter_id = (ch && ch.id != null) ? Number(ch.id) : null;
+    if (prev !== name || !customEmblemAllowed(d.info)) delete d.info.chapter_emblem;
     grantChapterBonus(d, ch && ch.id != null ? Number(ch.id) : name);
     Object.keys(SECTIONS).forEach(renderList);
     closeChapterModal();
