@@ -2164,7 +2164,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
       <div class="tpanel">
         <div class="spread">
           <h2 class="vox-side-title vox-timeline-title"><svg class="vox-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 3"/></svg>Хронология</h2>
-          <button class="sm" id="tl-add-btn" onclick="openModal('modal-event')">+ Событие</button>
+          <button class="sm" id="tl-add-btn" onclick="openChronicleEventModal()">+ Событие</button>
         </div>
         <div class="tabs vox-events-tab" style="margin-top:12px">
           <div class="tab active" data-tl="events">События</div>
@@ -2994,7 +2994,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
     <textarea id="event-body" rows="4" placeholder="что произошло..."></textarea>
     <div class="row" style="margin-top:16px; justify-content:flex-end">
       <button class="ghost" onclick="closeModal('modal-event')">Отмена</button>
-      <button onclick="createChronicleEvent()">Добавить</button>
+      <button id="event-add-confirm" onclick="createChronicleEvent()">Добавить</button>
     </div>
   </div>
 </div>
@@ -3557,50 +3557,65 @@ async function loadCharacters(){
 }
 
 // ==== ХРОНОЛОГИЯ ====
+let eventFormContext=null,eventSaveBusy=false;
+function eventContext(){return S.user&&S.chronicle?{user:S.user,chronicle:S.chronicle}:null;}
+function eventContextValid(c){return !!c&&S.user===c.user&&S.chronicle===c.chronicle;}
+function eventMessage(error){
+  const message=String(error?.message||error);
+  return ({EVENT_NO_ACCESS:'Вы больше не участвуете в этой хронике.',EVENT_MASTER_ONLY:'Это действие доступно только Мастеру.',EVENT_BAD_DATA:'Проверьте название и текст события.',EVENT_NOT_FOUND:'Событие не найдено. Обновите хронологию.'})[message]||message;
+}
+async function eventOperation(action,context,extra={}){
+  try{
+    const {data,error}=await sb.rpc('vox_event_operation',{p_action:action,p_chronicle:context.chronicle.id,p_actor:context.user.id,...extra});
+    if(error)return {error};
+    if(action==='read'?!Array.isArray(data):!data?.id||action==='delete'&&data.deleted!==true)return {error:{message:'Сервер не подтвердил операцию с событием.'}};
+    return {data};
+  }catch(error){return {error};}
+}
+function openChronicleEventModal(){
+  if(!S.user||!S.chronicle||S.role!=='gm')return toast('Добавлять события может только Мастер хроники.');
+  eventFormContext=eventContext();
+  openModal('modal-event');
+}
 async function loadEvents(){
-  const box = $('timeline-events'), context=S.chronicle, user=S.user, token=++eventListToken;
-  if(!context || !user)return;
-  box.innerHTML = '<div class="empty">Загрузка событий...</div>';
-  const { data, error } = await chronicleRead(sb.from('chronicle_events')
-    .select('id, title, body, event_date')
-    .eq('chronicle_id', context.id).order('id', { ascending: false }));
-  if(token!==eventListToken || S.chronicle!==context || S.user!==user)return;
-  if (error){
-    box.innerHTML = `<div class="empty">Хронология недоступна: ${esc(error.message)}</div>`;
-    return;
-  }
-  const rows = data || [];
-  box.innerHTML = rows.length ? rows.map(ev => `
+  const box=$('timeline-events'),context=eventContext(),token=++eventListToken;
+  if(!context)return;
+  box.innerHTML='<div class="empty">Загрузка событий...</div>';
+  const {data,error}=await eventOperation('read',context);
+  if(token!==eventListToken||!eventContextValid(context))return;
+  if(error){box.innerHTML=`<div class="empty">Хронология недоступна: ${esc(eventMessage(error))}</div>`;return;}
+  box.innerHTML=data.length?data.map(ev=>`
     <div class="list-item">
       <div style="min-width:0">
         <div class="nm">${esc(ev.title)}</div>
-        ${ev.event_date ? `<div class="meta">${esc(ev.event_date)}</div>` : ''}
-        ${ev.body ? `<div class="mono-sm" style="margin-top:5px;line-height:1.5">${esc(ev.body)}</div>` : ''}
+        ${ev.event_date?`<div class="meta">${esc(ev.event_date)}</div>`:''}
+        ${ev.body?`<div class="mono-sm" style="margin-top:5px;line-height:1.5">${esc(ev.body)}</div>`:''}
       </div>
-      ${S.role === 'gm' ? `<button class="sm danger" onclick="deleteEvent(${ev.id})">✕</button>` : ''}
-    </div>`).join('') : '<div class="empty">События не записаны.</div>';
+      ${S.role==='gm'?`<button class="sm danger" onclick="deleteEvent(${ev.id})">✕</button>`:''}
+    </div>`).join(''):'<div class="empty">События не записаны.</div>';
 }
-
 async function createChronicleEvent(){
-  const title = $('event-title').value.trim();
-  if (!title) return toast('Введите название события');
-  const { error } = await sb.from('chronicle_events').insert({
-    chronicle_id: S.chronicle.id,
-    title,
-    event_date: $('event-date').value.trim(),
-    body: $('event-body').value.trim(),
-    created_by: S.user.id
-  });
-  if (error) return toast('Ошибка: ' + error.message);
-  closeModal('modal-event');
-  toast('Событие добавлено');
-  await loadEvents();
+  if(eventSaveBusy)return;
+  const context=eventFormContext;
+  if(!eventContextValid(context)||S.role!=='gm')return toast('Хроника или права изменились. Откройте форму события заново.');
+  const title=$('event-title').value.trim();
+  if(!title)return toast('Введите название события');
+  const payload={title,event_date:$('event-date').value.trim(),body:$('event-body').value.trim()};
+  eventSaveBusy=true;$('event-add-confirm').disabled=true;
+  try{
+    const {error}=await eventOperation('add',context,{p_payload:payload});
+    if(eventFormContext!==context||!eventContextValid(context))return;
+    if(error)return toast('Ошибка: '+eventMessage(error));
+    closeModal('modal-event');toast('Событие добавлено');await loadEvents();
+  }finally{eventSaveBusy=false;$('event-add-confirm').disabled=false;}
 }
-
 async function deleteEvent(id){
-  if (!confirm('Удалить событие?')) return;
-  const { error } = await sb.from('chronicle_events').delete().eq('id', id);
-  if (error) return toast('Ошибка: ' + error.message);
+  const context=eventContext();
+  if(!context||S.role!=='gm')return toast('Удалять события может только Мастер хроники.');
+  if(!confirm('Удалить событие?'))return;
+  const {error}=await eventOperation('delete',context,{p_id:id});
+  if(!eventContextValid(context))return;
+  if(error)return toast('Ошибка: '+eventMessage(error));
   await loadEvents();
 }
 
