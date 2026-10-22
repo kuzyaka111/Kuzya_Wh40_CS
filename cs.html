@@ -308,6 +308,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
   .xp-row-btn.del:hover{border-color:#8c2f2f;color:#d07a7a;}
   .xp-row-btn:disabled{opacity:.35;cursor:default;}
   .xp-row-btn:disabled:hover{border-color:var(--border-dark);color:var(--text-dim);}
+  @media(max-width:560px){.xp-entry.custom-expense{flex-wrap:wrap}.xp-entry.custom-expense .xp-name{flex-basis:100%;white-space:normal;overflow-wrap:anywhere}}
 .modal-divider{border-top:1px solid #3a3a3d;margin:8px 0 12px;}
 .renown-current{text-align:center;font-size:14px;color:#c9a24b;margin-bottom:12px;font-weight:600;}
 
@@ -2639,6 +2640,17 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
       <button class="modal-close" onclick="subXpManual()">− Отнять</button>
     </div>
     <div class="modal-divider"></div>
+    <button type="button" class="modal-confirm" id="xp-expense-open" onclick="openCustomXpExpense()">Добавить трату</button>
+    <form id="xp-expense-form" hidden onsubmit="event.preventDefault();addCustomXpExpense()" style="margin:12px 0">
+      <label for="xp-expense-name" style="display:block">Название</label>
+      <input id="xp-expense-name" type="text" maxlength="200" style="width:100%;box-sizing:border-box;margin:6px 0 12px">
+      <label for="xp-expense-cost" style="display:block">Затрачено XP</label>
+      <input id="xp-expense-cost" type="number" min="0" step="1" inputmode="numeric" value="0" style="width:100%;box-sizing:border-box;margin:6px 0 12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="submit" class="modal-confirm" id="xp-expense-add">Добавить</button>
+        <button type="button" class="modal-close" onclick="closeCustomXpExpense()">Отмена</button>
+      </div>
+    </form>
     <div id="xp-entries"></div>
     <div class="modal-total" id="xp-total">Итого потрачено: 0 XP</div>
     <button class="modal-close" onclick="closeSheetModal('xp-modal')">Закрыть</button>
@@ -10350,6 +10362,7 @@ document.addEventListener('change', e => {
 $('xp-bar-click').addEventListener('click', () => {
   if (!S.character) return;
   $('xp-amount-input').value = 0;
+  closeCustomXpExpense();
   renderXpJournal();
   openSheetModal('xp-modal');
 });
@@ -10358,7 +10371,7 @@ $('xp-bar-click').addEventListener('click', () => {
 // Само имя в базе не меняем — разбираем его только при выводе в журнал.
 const XP_STAT_RE = /^stat:([a-z]+):(\d+)$/;
 function xpEntryLabel(e){
-  const m = XP_STAT_RE.exec(String(e.name || ''));
+  const m = e.source === 'manual-xp-expense' ? null : XP_STAT_RE.exec(String(e.name || ''));
   if (!m) return String(e.name || '');
   const s = STATS.find(x => x[0] === m[1]);
   return (s ? s[1] : m[1]) + ' +5 (' + m[2] + ')';
@@ -10371,7 +10384,7 @@ function renderXpJournal(){
   // поэтому индекс в DOM не совпадает с индексом в массиве
   const rows = (d.xp_log || []).map((x, i) => ({ x, i })).filter(o => !o.x.hidden);
   host.innerHTML = rows.length
-    ? rows.map(o => `<div class="xp-entry" data-idx="${o.i}">
+    ? rows.map(o => `<div class="xp-entry${o.x.source === 'manual-xp-expense' ? ' custom-expense' : ''}" data-idx="${o.i}">
         <span class="xp-name" title="${esc(o.x.name)}">${esc(xpEntryLabel(o.x))}</span>
         <span class="cost">${Number(o.x.cost) || 0} XP</span>
         <span class="xp-row-actions">
@@ -10387,6 +10400,37 @@ function renderXpJournal(){
   const total = d.vitals?.xp_total || 0;
   $('xp-total').textContent = 'Итого потрачено: ' + spent + ' XP | Доступно: ' + (total - spent) + ' XP';
   bindXpJournal();
+}
+let customXpExpenseContext = null;
+function closeCustomXpExpense(){
+  customXpExpenseContext = null;
+  $('xp-expense-form').hidden = true;
+  $('xp-expense-form').reset();
+  $('xp-expense-open').hidden = false;
+}
+function openCustomXpExpense(){
+  if (!S.character || !$('xp-modal').classList.contains('active')) return;
+  customXpExpenseContext = {owner:S.character,data:S.character.character_data};
+  $('xp-expense-form').reset();
+  $('xp-expense-form').hidden = false;
+  $('xp-expense-open').hidden = true;
+  $('xp-expense-name').focus();
+}
+function addCustomXpExpense(){
+  const context = customXpExpenseContext;
+  if (!context || S.character !== context.owner || S.character.character_data !== context.data || !$('xp-modal').classList.contains('active') || $('xp-expense-form').hidden) return;
+  const name = $('xp-expense-name').value.trim();
+  const raw = $('xp-expense-cost').value.trim(), cost = Number(raw);
+  if (!name) { toast('Введите название траты'); $('xp-expense-name').focus(); return; }
+  if (name.length > 200) { toast('Название должно быть не длиннее 200 символов'); return; }
+  if (!/^\d+$/.test(raw) || !Number.isSafeInteger(cost) || cost < 0){ toast('Стоимость должна быть целым неотрицательным числом'); return; }
+  const d = context.data;
+  (d.xp_log || (d.xp_log = [])).push({table_id:null,name,cost,source:'manual-xp-expense',date:new Date().toISOString().slice(0,10)});
+  closeCustomXpExpense();
+  xpRefresh();
+  const available = (Number(d.vitals?.xp_total) || 0) - calcTotalXpSpent(d);
+  if (available < 0) toast('Внимание: доступно ' + available + ' XP — потрачено больше, чем получено');
+  else toast('Трата добавлена: ' + cost + ' XP');
 }
 let xpJournalBound = false;
 function bindXpJournal(){
@@ -10439,7 +10483,7 @@ function deleteXpEntry(idx){
   const log = d.xp_log || [];
   const e = log[idx];
   if (!e) return;
-  const m = XP_STAT_RE.exec(String(e.name || ''));
+  const m = e.source === 'manual-xp-expense' ? null : XP_STAT_RE.exec(String(e.name || ''));
   // +5 хранится в d.stat_adv одним числом, а покупки — отдельными записями,
   // поэтому снимать можно только верхний уровень: иначе после удаления
   // среднего останется разрыв (оплачено два, получено одно)
@@ -11124,7 +11168,7 @@ function revertStatAdv(statKey){
   const lvl = statAdvLevel(statKey);
   if (lvl <= 0) return false;
   const log = d.xp_log || [];
-  const idx = log.findIndex(e => e.table_id === null && e.name === 'stat:' + statKey + ':' + lvl);
+  const idx = log.findIndex(e => e.source !== 'manual-xp-expense' && e.table_id === null && e.name === 'stat:' + statKey + ':' + lvl);
   if (idx !== -1) log.splice(idx, 1);
   if (!d.stat_adv) d.stat_adv = {};
   d.stat_adv[statKey] = lvl - 1;
@@ -11223,7 +11267,7 @@ async function loadSilhouettes(){
 function checkRequirement(reqStr, charData){
   if (!reqStr) return true;
   const parts = String(reqStr).split(/[;,]/).map(s => s.trim());
-  const log = charData.xp_log || [];
+  const log = (charData.xp_log || []).filter(e => e.source !== 'manual-xp-expense');
   return parts.every(part => {
     if (!part) return true;
     const psyMatch = part.match(/^Пси-рейтинг\s+(\d+)$/);
