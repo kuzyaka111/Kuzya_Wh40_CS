@@ -18077,7 +18077,7 @@ function dm2ModRows(w,c){
  if(pr>0)add('psy','Психосиловое оружие',true,pr,'psy','+'+pr+' к урону и ББ; без психосилового всплеска',pr);
  if(c.accurate)add('accurate','Точное',!!(c.attack?.single&&c.attack?.aimed),0,'accurate','Одиночный прицельный выстрел из Лёгкого оружия: +1к10 за 2 степени, максимум +2к10');
  if(melee&&dm2Has(d,135,/Смерть с небес|Death From Above/i))add('descent','Смерть с небес',false,0,'descent','Натиск с прыжковым ранцем: +1к10 за 2 степени, максимум +2к10');
- if(melee&&dm2Has(d,172,/Штурм Крыла Смерти|Deathwing Assault/i))add('deathwing','Штурм Крыла Смерти',false,3,'proven','Цель застигнута врасплох или не подозревает об атаке');
+ if((melee||w.type==='weapon_ranged')&&dm2Has(d,172,/Штурм Крыла Смерти|Deathwing Assault/i))add('deathwing','Штурм Крыла Смерти',false,3,'proven','Цель застигнута врасплох или не подозревает об атаке');
  if(melee&&dm2Has(d,177,/Честь или смерть|Honour or Death/i))add('honour','Честь или смерть',false,3,'honour','Один раз за бой против Элиты/Босса; выберите одно свойство');
  if(DM2.hand.has(d)&&dm2Has(d,52,/Длань Омниссии|Hand of the Omnissiah/i)&&/Плазм|Силов|Экзот|Мельт|Plasma|Power|Exotic|Melta/i.test(w.profile.class||''))add('hand','Длань Омниссии',true,statBonus(d,'int'),'hand','На один раунд, один раз за бой: бонус Интеллекта к урону и ББ');
  if(w.type==='unarmed'){
