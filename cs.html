@@ -12988,6 +12988,13 @@ $('sb-root').addEventListener('click',async e=>{
 });
 window.addEventListener('beforeunload',e=>{if(SB.dirty||SB.busy||SB.quickFlight){e.preventDefault();e.returnValue='';}});
 
+function sbSkillBadgeInfo(d,...args){
+  const result=skillBadgeInfo(d,...args);
+  if(result.value!=null&&(!result.charKey||d.stats?.[result.charKey]==null)){
+    return {...result,value:null,text:'—',cls:'untrained',title:'Характеристика не указана'};
+  }
+  return result;
+}
 function sbRenderSkills(){
   const active=sbData(); if(!active) return;
   const hideBasic = !active.show_untrained_basic;
@@ -13020,7 +13027,7 @@ function sbRenderSkills(){
       html += `<div class="skill-item" data-sb-skill-open="${key}:${r._idx}">
         <span class="skill-name">${nameParts}</span>`;
       if (showLevel){
-        const bi = skillBadgeInfo(d, r, lvl, basicish, ch);
+        const bi = sbSkillBadgeInfo(d, r, lvl, basicish, ch);
         html += `<span class="skill-level ${bi.cls}" data-sb-skill-cycle="${key}:${r._idx}" data-sb-skill-roll="${key}:${r._idx}" data-tooltip="${escAttr(bi.title)}">${esc(bi.text)}</span>`;
       }
       html += `</div>`;
@@ -13030,7 +13037,7 @@ function sbRenderSkills(){
           if (hideUntrained && (g.level || 'untrained') === 'untrained' && !r.counts_as_basic) return;
           const glvl = g.level || 'untrained';
           const sgch = g.characteristic || r.characteristic || '';
-          const gbi = skillBadgeInfo(d, r, glvl, basicish, sgch, g.name);
+          const gbi = sbSkillBadgeInfo(d, r, glvl, basicish, sgch, g.name);
           html += `<div class="skill-group-row">
             ${sgch ? `<span class="skill-chip">${esc(CH_ABBR[sgch] || sgch)}</span>` : ''}
             <span class="skill-group-name">${esc(g.name)}</span>
@@ -13292,8 +13299,8 @@ function sbWeaponProfilesHtml(row){
 }
 function sbOpenSkillRoll(spec){
   const ref=sbSkillRef(spec);if(!ref)return;
-  const b=skillBadgeInfo(sbData(),ref.row,(ref.group||ref.row).level,ref.key==='skills_basic'||ref.row.counts_as_basic,ref.group?.characteristic||ref.row.characteristic);
-  if(b.value==null)return toast('Умение не тренировано — бросок невозможен');
+  const b=sbSkillBadgeInfo(sbData(),ref.row,(ref.group||ref.row).level,ref.key==='skills_basic'||ref.row.counts_as_basic,ref.group?.characteristic||ref.row.characteristic);
+  if(b.value==null)return toast(b.text==='—'?'Для проверки укажите характеристику':'Умение не тренировано — бросок невозможен');
   const name=ref.row.name+(ref.group?' · '+ref.group.name:'');
   sbModal('roll',name,`<div class="sb-wide">Порог: <b>${b.value}</b></div><div class="sb-wide"><label for="sb-roll-mod">Модификатор проверки</label><input id="sb-roll-mod" name="mod" type="number" step="1" min="-999" max="999" value="0"></div><div class="sb-wide" id="sb-roll-result" aria-live="polite"></div>`,{target:b.value});
 }
