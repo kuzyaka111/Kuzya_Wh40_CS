@@ -18845,9 +18845,9 @@ document.addEventListener('change',event=>{const el=event.target;if(!el.matches(
 .pe-mode{display:block;padding:7px 12px;color:var(--gold);font-size:12px;border-bottom:1px solid var(--border-dark)}
 .pe-resource{font:inherit;font-size:11px;color:var(--gold);background:transparent;border:1px solid var(--border-dark);padding:3px 5px;cursor:pointer}
 .sheet .injury-entry [data-delinj]{display:inline-block}.sheet .add-injury-btn{display:block}
-#pe-resource-modal .modal-box,#pe-injury-modal .modal-box{width:440px;max-width:calc(100vw - 32px);box-sizing:border-box}
-#pe-resource-modal label,#pe-injury-modal label{display:grid;gap:6px;margin:12px 0}
-#pe-resource-modal input,#pe-resource-modal select,#pe-injury-modal input,#pe-injury-modal textarea{width:100%;box-sizing:border-box;font:inherit;padding:8px;background:#151518;color:var(--text-main);border:1px solid var(--border-dark)}
+#pe-injury-modal .modal-box{width:440px;max-width:calc(100vw - 32px);box-sizing:border-box}
+#pe-injury-modal label{display:grid;gap:6px;margin:12px 0}
+#pe-injury-modal input,#pe-injury-modal textarea{width:100%;box-sizing:border-box;font:inherit;padding:8px;background:#151518;color:var(--text-main);border:1px solid var(--border-dark)}
 .pe-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 #custom-action-modal,#action-create{display:none!important}
 </style>
@@ -18856,7 +18856,7 @@ document.addEventListener('change',event=>{const el=event.target;if(!el.matches(
 function peNpc(){return typeof SB!=='undefined'&&!!SB.record&&!$('screen-statblock').classList.contains('hidden');}
 function peEditing(){return peNpc()?!!SB.draft:!!editMode;}
 function peAllow(mode,quiet=false){const ok=mode==='both'||(mode==='edit'?peEditing():!peEditing());if(!ok&&!quiet)toast(mode==='edit'?'Сначала включите «Редактировать».':'Сначала сохраните или отмените редактирование листа.');return ok;}
-let pePending=0,peResource=null,peInjuryContext=null,peEpoch=0;
+let pePending=0,peInjuryContext=null,peEpoch=0;
 let pePurchaseSetup=null;
 const PE_GUARDS={edit:[],play:[],both:[]};
 function peGuard(name,mode){const original=window[name];if(typeof original!=='function')throw Error('Unknown mode operation: '+name);PE_GUARDS[mode].push(name);window[name]=function(...args){if(!peAllow(mode))return false;const result=original.apply(this,args);if(result&&typeof result.then==='function'){pePending++;return result.finally(()=>{pePending--;peRefresh();});}peRefresh();return result;};}
@@ -18924,7 +18924,7 @@ function peCurrentVital(el){return el.matches('[data-vit]')||el.matches('[data-s
 function peCurrentStock(el){return el.matches('[data-ammo-cur],[data-gear-cur],[data-gear-qty-input],[data-gear-qty-minus],[data-gear-qty-plus],[data-dw-ammo],[data-dw-rockets],[data-npc-ammo-quantity],[data-npc-ammo-step]');}
 function peRule(el){
  if(!el||el.closest('#squad-root,#squad-picker,#squad-create'))return null;
- if(el.closest('[data-pe-resource],#pe-resource-modal,#pe-injury-modal'))return null;
+ if(el.closest('#pe-injury-modal'))return null;
  if(peInitialChoice()&&el.closest('[data-hfx-choice],[data-hfx-duel],[data-hfx-duel-plus]'))return null;
  if(peCurrentVital(el)||peCurrentStock(el))return null;
  const inline=el.closest('[onclick]')?.getAttribute('onclick')||'';
@@ -18948,59 +18948,6 @@ function peLock(el,locked){
   if(state.aria===null)el.removeAttribute('aria-disabled');else el.setAttribute('aria-disabled',state.aria);
   el.classList.remove('pe-locked');peControlState.delete(el);
  }
-}
-function peResourceRef(input){
- if(peNpc()){
-  if(input.dataset.sbNumber){const path=input.dataset.sbNumber;if(!/^(vitals\.(health|critical|fatigue|fate)|horde\.magnitude)$/.test(path))return null;return {kind:'npc',path,label:input.getAttribute('aria-label')||'Численность',stock:false};}
-  if(input.dataset.npcAmmoQuantity!=null||input.dataset.npcAmmoUnit!=null)return {kind:'npc-stock',index:Number(input.dataset.npcAmmoQuantity??input.dataset.npcAmmoUnit),label:'Боеприпасы',stock:true};return null;
- }
- if(!S.character)return null;
- const d=S.character.character_data;
- if(input.dataset.vit)return {kind:'vital',key:input.dataset.vit,label:input.closest('.vit-box')?.querySelector('.vit-name')?.textContent||'Показатель',stock:false};
- for(const field of ['gearQtyInput','gearCur'])if(input.dataset[field]){const [key,i]=input.dataset[field].split(':');return {kind:'gear',row:d[key]?.[Number(i)],key,index:Number(i),field:field==='gearCur'?'cur':'qty',label:d[key]?.[Number(i)]?.name||'Запас',stock:true};}
- if(input.dataset.ammoCur!=null){const row=d.ammo[Number(input.dataset.ammoCur)];return {kind:'ammo',row,mag:row?.mags[Math.min(row.activeMag,row.mags.length-1)],label:row?.name||'Боеприпасы',stock:true};}
- if(input.dataset.dwAmmo||input.dataset.dwRockets){const slot=input.dataset.dwAmmo||input.dataset.dwRockets,code=dwInstance(d)?.loadout[slot];return {kind:'dread',slot,code,row:dwWeaponState(d,slot,code),field:input.dataset.dwAmmo?'ammo':'rocket_count',label:'Боезапас дредноута',stock:true};}
- return null;
-}
-function peResourceValue(c){const d=S.character?.character_data;
- if(c.kind==='npc')return c.path.split('.').reduce((v,k)=>v?.[k],sbData());
- if(c.kind==='npc-stock')return sbData()?.weapons?.[c.index]?.quantity;
- if(c.kind==='vital')return dwVitals(d)[c.key];if(c.kind==='gear'||c.kind==='dread')return c.row?.[c.field];if(c.kind==='ammo')return c.mag?.cur;
-}
-function peResourceValid(c){
- if(!c||peEditing()||c.epoch!==peEpoch||S.character!==c.owner)return false;
- if(c.kind.startsWith('npc'))return peNpc()&&sbAllowed()&&!SB.busy&&SB.record===c.record&&sbData()===c.data&&JSON.stringify(sbData())===c.fingerprint;
- const d=S.character?.character_data;if(d!==c.data)return false;
- if(c.kind==='gear'&&d[c.key]?.[c.index]!==c.row)return false;
- if(c.kind==='ammo'&&(!d.ammo.includes(c.row)||c.row.mags[Math.min(c.row.activeMag,c.row.mags.length-1)]!==c.mag))return false;
- if(c.kind==='dread'&&(dwInstance(d)?.loadout[c.slot]!==c.code||dwWeaponState(d,c.slot,c.code)!==c.row))return false;
- return peResourceValue(c)===c.before;
-}
-function peOpenResource(input){
- if(!peAllow('play'))return;const ref=peResourceRef(input);if(!ref)return;const rawValue=peResourceValue(ref),value=Number(rawValue);if(rawValue==null||rawValue===''||!Number.isSafeInteger(value)||value<0)return toast('Запас не задан числом. Укажите его в редакторе.');
- peResource={...ref,owner:S.character,data:peNpc()?sbData():S.character.character_data,record:peNpc()?SB.record:null,epoch:peEpoch,before:value,fingerprint:peNpc()?JSON.stringify(sbData()):null};
- const modal=peModal('pe-resource-modal');modal.innerHTML='<div class="modal-box"><h3>'+esc(ref.label)+'</h3><p>Сейчас: '+value+'</p><label>Действие<select id="pe-resource-direction"><option value="-1">'+(ref.stock?'Израсходовать':'Уменьшить')+'</option>'+(ref.stock?'':'<option value="1">Увеличить / восстановить</option>')+'</select></label><label>Количество<input id="pe-resource-amount" type="number" min="1" max="1000000" step="1" value="1"></label><p id="pe-resource-error" role="status"></p><div class="pe-actions"><button type="button" class="modal-confirm" id="pe-resource-apply">Применить</button><button type="button" class="modal-close" id="pe-resource-cancel">Отмена</button></div></div>';
- $('pe-resource-apply').onclick=peApplyResource;$('pe-resource-cancel').onclick=()=>{peResource=null;closeSheetModal(modal.id);};openSheetModal(modal.id);
-}
-function peApplyResource(){
- const c=peResource,raw=$('pe-resource-amount').value,n=Number(raw),sign=Number($('pe-resource-direction').value);
- if(!peResourceValid(c))return $('pe-resource-error').textContent='Лист или запас изменился. Откройте действие заново.';
- if(!/^\d+$/.test(raw)||!Number.isSafeInteger(n)||n<1||n>1000000||![-1,1].includes(sign)||c.stock&&sign!==-1)return $('pe-resource-error').textContent='Укажите целое количество от 1 до 1000000.';
- if(sign===-1&&n>c.before)return $('pe-resource-error').textContent='Количество больше текущего значения.';
- const value=c.before+sign*n;
- if(value>1000000)return $('pe-resource-error').textContent='Значение слишком велико.';
- if(c.kind==='npc'||c.kind==='npc-stock'){
-  const next=sbClone(sbData());if(c.kind==='npc-stock')next.weapons[c.index].quantity=value;
-  else if(c.path==='horde.magnitude')next.horde.magnitude=value;
-  else {if(c.path==='vitals.critical'&&value>10)return $('pe-resource-error').textContent='Критические повреждения: максимум 10.';sbSetVital(next,c.path.slice(7),value);}
-  SB.draft=next;sbQueueQuick();
- }else if(c.kind==='vital'){
-  const v=dwVitals(c.data),max=c.key==='crit_wounds'?10:c.key==='wounds'?1000000:999;
-  if(value>max)return $('pe-resource-error').textContent='Допустимый максимум: '+max;
-  if(c.key==='crit_wounds'&&value===0){v.crit_wounds=0;v.wounds=1;}else {v[c.key]=value;if(c.key==='wounds'&&value===0&&!(dwActive(c.data)&&dwModel(c.data)))v.crit_wounds=0;}
-  renderVitals();afterVitalChange();
- }else {if(c.kind==='ammo')c.mag.cur=value;else c.row[c.field]=value;renderSheet();debouncedSave();}
- peResource=null;closeSheetModal('pe-resource-modal');peRefresh();
 }
 function peModal(id){let modal=$(id);if(!modal){modal=document.createElement('div');modal.id=id;modal.className='modal-overlay';document.body.append(modal);}return modal;}
 function peNpcInjury(){
@@ -19026,7 +18973,6 @@ function peRefresh(){
  });
  document.querySelectorAll('[data-info-field="primarch_curse"]').forEach(el=>{el.readOnly=false;});
  document.querySelectorAll('#custom-action-modal,#action-create,[data-action-create]').forEach(el=>el.classList.add('pe-hidden'));
- document.querySelectorAll('[data-pe-resource]').forEach(el=>el.classList.toggle('pe-hidden',editing));
 
  if(peNpc()&&!editing){
 
@@ -19040,7 +18986,7 @@ function peRefresh(){
  }
  if(peInitialChoice()&&$('hfx-card-controls')&&!$('pe-purchase-done')){const b=document.createElement('button');b.type='button';b.id='pe-purchase-done';b.className='modal-confirm';b.textContent='Завершить выбор';b.onclick=()=>{pePurchaseSetup=null;closeSheetModal('info-modal');peRefresh();};$('hfx-card-controls').append(b);}
 }
-function peModeTransition(){peEpoch++;peResource=null;peInjuryContext=null;pePurchaseSetup=null;
+function peModeTransition(){peEpoch++;peInjuryContext=null;pePurchaseSetup=null;
  if(typeof settingsSession!=='undefined'&&settingsSession)settingsRevert();
  document.querySelectorAll('.modal-overlay.active,.sheet-modal.active').forEach(el=>el.classList.remove('active'));
  closeModal('sb-entry-modal');MOD_DRAFT=null;
