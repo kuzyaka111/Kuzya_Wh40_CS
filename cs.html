@@ -15035,9 +15035,9 @@ function rqFilterControls(){
   const box=document.createElement('div');box.id='rq-filter-controls';
   const sorts=[['','Без сортировки'],['name:asc','Название: А–Я'],['name:desc','Название: Я–А'],['glory:asc','Слава: по возрастанию'],['glory:desc','Слава: по убыванию'],['price:asc','Цена: по возрастанию'],['price:desc','Цена: по убыванию']];
   box.innerHTML='<div class="rq-toolbar"><label>Сортировка<select id="rq-sort" aria-label="Сортировка снаряжения">'+sorts.map(([key,label])=>'<option value="'+key+'"'+(RQ_SORT===key?' selected':'')+'>'+label+'</option>').join('')+'</select></label><button type="button" id="rq-filter-toggle" aria-expanded="'+RQ_FILTER_OPEN+'" aria-controls="rq-filter-panel">Фильтр</button></div><section id="rq-filter-panel"'+(RQ_FILTER_OPEN?'':' hidden')+'><div class="rq-price-range"><label>Цена от<input id="rq-price-min" type="number" min="0" step="0.5" placeholder="Без границы" value="'+escAttr(RQ_PRICE_MIN)+'"></label><label>Цена до<input id="rq-price-max" type="number" min="0" step="0.5" placeholder="Без границы" value="'+escAttr(RQ_PRICE_MAX)+'"></label></div><div class="rq-filter-label">Показывать уровни Славы</div><div class="rq-glory-options">'+[...Object.entries(RQ_GLORY).map(([label,key])=>[String(key),label]),['unknown','Не указана']].map(([key,label])=>'<label><input type="checkbox" data-rq-glory="'+key+'"'+(RQ_GLORY_VISIBLE[key]?' checked':'')+'> '+label+'</label>').join('')+'</div><p class="desc">Цена за одну единицу. Позиции без обычной цены не входят в заданный диапазон.</p><p id="rq-filter-error" role="status"></p><button type="button" id="rq-filter-reset">Сбросить фильтр</button></section>';
-  const relicLabel=document.createElement('label');relicLabel.className='rq-filter-label';
-  relicLabel.innerHTML='Реликвия <select id="rq-relic" aria-label="Фильтр реликвий"><option value="all">Все</option><option value="yes">Да</option><option value="no">Нет</option></select>';
-  const panel=box.querySelector('#rq-filter-panel');panel.insertBefore(relicLabel,panel.querySelector('#rq-filter-error'));relicLabel.querySelector('select').value=RQ_RELIC;
+  const relicLabel=document.createElement('div');relicLabel.className='rq-relic-block';
+  relicLabel.innerHTML=rqChoiceChips('relic','Реликвия',RQ_RELIC,[['no','Нет'],['all','Все'],['yes','Да']]);
+  const panel=box.querySelector('#rq-filter-panel');panel.insertBefore(relicLabel,panel.querySelector('#rq-filter-error'));
   const chips=host.querySelector('.rq-chips');if(chips)chips.before(box);else host.append(box);
 }
 function rqFilterValues(entry,d){
@@ -15078,7 +15078,7 @@ rqRenderList=function(){const result=RQ_FILTER_ORIG.rqRenderList();rqApplyFilter
 document.addEventListener('click',event=>{
   const heading=event.target.closest('[data-rq-sort-heading]');if(heading){rqCycleSort(heading.dataset.rqSortHeading);return;}
   if(event.target.closest('#rq-filter-toggle')){RQ_FILTER_OPEN=!RQ_FILTER_OPEN;$('rq-filter-panel').hidden=!RQ_FILTER_OPEN;$('rq-filter-toggle').setAttribute('aria-expanded',String(RQ_FILTER_OPEN));}
-  if(event.target.closest('#rq-filter-reset')){RQ_FILTER='all';RQ_WEAPON_CLASS='all';RQ_DREAD='no';RQ_TERMINATOR='no';RQ_PRICE_MIN='';RQ_PRICE_MAX='';RQ_RELIC='all';Object.keys(RQ_GLORY_VISIBLE).forEach(key=>RQ_GLORY_VISIBLE[key]=true);rqRender();}
+  if(event.target.closest('#rq-filter-reset')){RQ_FILTER='all';RQ_WEAPON_CLASS='all';RQ_WEIGHT_CLASS='all';RQ_DREAD='no';RQ_TERMINATOR='no';RQ_PRICE_MIN='';RQ_PRICE_MAX='';RQ_RELIC='all';Object.keys(RQ_GLORY_VISIBLE).forEach(key=>RQ_GLORY_VISIBLE[key]=true);rqRender();}
 });
 document.addEventListener('input',event=>{
   if(event.target.id==='rq-price-min')RQ_PRICE_MIN=event.target.value;
@@ -19035,6 +19035,11 @@ new MutationObserver(records=>{if(peRefreshScheduled||!records.some(r=>r.addedNo
 $('action-add-custom')?.remove();$('custom-action-modal')?.remove();
 </script>
 <style id="requisition-layout-ammo-fix-style">
+#adv-requisition .rq-glory-relic-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(190px,1fr);gap:24px;align-items:start}
+#adv-requisition .rq-glory-relic-row>div{min-width:0}
+#adv-requisition .rq-relic-block .rq-chips{margin:10px 0;gap:8px}
+@media(max-width:800px){#adv-requisition .rq-glory-relic-row{grid-template-columns:minmax(0,1fr);gap:0}}
+
 #adv-requisition .rq-budget{grid-template-columns:repeat(3,minmax(74px,1fr)) minmax(150px,1.35fr) minmax(86px,.8fr);gap:10px;align-items:end}
 #adv-requisition .rq-budget>label,#adv-requisition .rq-budget>div{min-width:0}
 #adv-requisition .rq-budget select{width:100%;min-width:0;box-sizing:border-box;background:#101013;color:var(--text-main);border:1px solid var(--border-dark);padding:9px 5px;font:inherit;font-size:13px}
@@ -19049,7 +19054,8 @@ $('action-add-custom')?.remove();$('custom-action-modal')?.remove();
 <script id="requisition-layout-ammo-fix-runtime">
 // Terminator-exclusive profiles confirmed by their catalogue descriptions.
 const RQ_TERMINATOR_WEAPONS=new Set([134,151,168,282]);
-let RQ_DREAD='no',RQ_TERMINATOR='no',RQ_WEAPON_CLASS='all';
+let RQ_DREAD='no',RQ_TERMINATOR='no',RQ_WEAPON_CLASS='all',RQ_WEIGHT_CLASS='all';
+function rqWeightClass(item){return String(item.stats?.weight_class||'').trim().replace(/^легкое$/i,'Лёгкое').replace(/^тяжелое$/i,'Тяжёлое');}
 const RQ_LAYOUT_BASE={rqBudget,rqFilterControls,rqApplyFilters,showGearInfo,setGearEquipped,normalizeAmmoArray};
 function rqIsTerminator(item){return ['weapon_ranged','weapon_melee'].includes(item.stats?.type)&&(item.stats?.terminator_only===true||RQ_TERMINATOR_WEAPONS.has(Number(item.id)));}
 function rqIsDread(item){return ['weapon_ranged','weapon_melee'].includes(item.stats?.type)&&!!item.stats?.dread_compatible;}
@@ -19080,8 +19086,13 @@ rqFilterControls=function(){
  if(categories)extra.append(categories);
  const classes=[...new Set(Object.values(GEAR_MAP).filter(e=>e.stats?.type==='weapon_ranged').map(rqWeaponClass).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
  const weapons=document.createElement('div');weapons.hidden=RQ_FILTER!=='weapon_ranged';weapons.id='rq-weapon-class-options';weapons.innerHTML=rqChoiceChips('class','Тип дальнобойного оружия',RQ_WEAPON_CLASS,[['all','Все'],...classes.map(c=>[c,c])]);extra.append(weapons);
+ const weightClasses=[...new Set(['Пистолет','Лёгкое','Тяжёлое','Станковое',...Object.values(GEAR_MAP).filter(e=>e.stats?.type==='weapon_ranged').map(rqWeightClass).filter(Boolean)])];
+ const weight=document.createElement('div');weight.hidden=RQ_FILTER!=='weapon_ranged';weight.id='rq-weight-class-options';weight.innerHTML=rqChoiceChips('weight','Класс оружия',RQ_WEIGHT_CLASS,[['all','Все'],...weightClasses.map(c=>[c,c]),['unknown','Не указан']]);extra.append(weight);
  const tri=[['no','Нет'],['all','Все'],['yes','Да']];
  const special=document.createElement('div');special.innerHTML=rqChoiceChips('dread','Оружие дредноута',RQ_DREAD,tri)+rqChoiceChips('terminator','Терминаторское оружие',RQ_TERMINATOR,tri);extra.append(special);panel.prepend(extra);
+ const glory=panel.querySelector('.rq-glory-options'),gloryLabel=glory.previousElementSibling,relic=panel.querySelector('.rq-relic-block');
+ const band=document.createElement('div');band.className='rq-glory-relic-row';gloryLabel.before(band);
+ const gloryBlock=document.createElement('div');gloryBlock.className='rq-glory-block';gloryBlock.append(gloryLabel,glory);band.append(gloryBlock,relic);
  rqMountHeader();
  if(!$('rq-reset-budget')){const reset=document.createElement('div');reset.className='rq-reset-row';reset.innerHTML='<button type="button" id="rq-reset-budget" title="Обнулить выделенную сумму и расходы. Полученные предметы сохраняются.">Сбросить реквизицию</button>';host.querySelector('#rq-budget').after(reset);}
 };
@@ -19091,7 +19102,7 @@ rqApplyFilters=function(){
  for(const row of host.querySelectorAll('.rq-item')){
   const e=entries.get(row.querySelector('[data-rq-preview]')?.dataset.rqPreview);if(!e)continue;
   const match=(value,flag)=>value==='all'||(value==='yes'?flag:!flag);
-  row.hidden=row.hidden||!match(RQ_DREAD,rqIsDread(e.item))||!match(RQ_TERMINATOR,rqIsTerminator(e.item))||(RQ_FILTER==='weapon_ranged'&&RQ_WEAPON_CLASS!=='all'&&rqWeaponClass(e.item)!==RQ_WEAPON_CLASS);
+  row.hidden=row.hidden||!match(RQ_DREAD,rqIsDread(e.item))||!match(RQ_TERMINATOR,rqIsTerminator(e.item))||(RQ_FILTER==='weapon_ranged'&&RQ_WEAPON_CLASS!=='all'&&rqWeaponClass(e.item)!==RQ_WEAPON_CLASS)||(RQ_FILTER==='weapon_ranged'&&RQ_WEIGHT_CLASS!=='all'&&(rqWeightClass(e.item)||'unknown')!==RQ_WEIGHT_CLASS);
   if(!row.hidden)shown++;
  }
  if($('rq-filter-empty'))$('rq-filter-empty').hidden=shown>0||!host.querySelector('.rq-item');
@@ -19104,6 +19115,8 @@ function rqResetBudget(){
 document.addEventListener('click',event=>{
  const b=event.target.closest('[data-rq-extra]');if(b){
   if(b.dataset.rqExtra==='class')RQ_WEAPON_CLASS=b.dataset.value;
+  if(b.dataset.rqExtra==='weight')RQ_WEIGHT_CLASS=b.dataset.value;
+  if(b.dataset.rqExtra==='relic')RQ_RELIC=b.dataset.value;
   if(b.dataset.rqExtra==='dread')RQ_DREAD=b.dataset.value;
   if(b.dataset.rqExtra==='terminator')RQ_TERMINATOR=b.dataset.value;
   rqFilterControls();rqApplyFilters();
