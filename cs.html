@@ -17706,10 +17706,34 @@ $('roll-go').addEventListener('click',e=>{if(!ROLL.action?.warp)return;e.prevent
 const EA_ORIG={normalize,permMods,statBonus,skillBadgeInfo,rollModRows,rollModRowHtml,renderRollMods,renderModSection,gearResolve,gearEffWeapon,gearDmgCellHtml,gearStatsCellsHtml,gearQualitiesHtml,dwQualitiesHtml,showGearInfo,renderList,renderSheet,updateStatsOnly,openRoll,sgaDrawSymbol,gearItemDesc};
 function eaNorm(s){return String(s||'').toLowerCase().replace(/ё/g,'е').replace(/[()]/g,'').replace(/\s+/g,' ').trim();}
 function eaState(d){return d.equipment_automation||{};}
-normalize=function(raw){const d=EA_ORIG.normalize(raw);if(raw?.equipment_automation)d.equipment_automation=sgClone(raw.equipment_automation);return d;};
+// Old manually saved Librarium checks are replaced by the existing grouped skill bonus.
+function eaLibrariumOptions(d){
+ const names=['Обыденное знание','Учёное знание','Запретное знание'],out=[];
+ for(const r of [...(d.skills_basic||[]),...(d.skills_adv||[])])if(names.includes(r.name)&&r.groups_enabled)for(const g of r.groups||[])if(String(g.name||'').trim())out.push({id:String(r.skill_id??r.id),group:g.name,label:r.name+' · '+g.name});
+ return out;
+}
+function eaLibrariumBinding(d,s){
+ const source='symbol:librarium-texts:knowledge',configured=eaState(d).bindings?.[source],options=eaLibrariumOptions(d);
+ if(configured){const matches=options.filter(o=>o.id===String(configured.id)&&eaNorm(o.group)===eaNorm(configured.group));return matches.length===1?matches[0]:null;}
+ const text=Object.values(s.x.details||{}).map(eaNorm).join(' '),matches=options.filter(o=>text===eaNorm(o.label)||text===eaNorm(o.group));
+ return matches.length===1?matches[0]:null;
+}
+function eaLibrariumLegacy(m){return m?.target==='check'&&m.target_name==='all'&&m.mode==='add'&&Number(m.effect)===3&&(!m.source||String(m.source).startsWith('roll-saved:'))&&['тексты либрариума','тексты библиариума'].includes(eaNorm(m.name));}
+function eaLibrariumMigrate(d){
+ const row=(d.gear||[]).find(r=>r.starting_symbol?.key==='librarium-texts'&&Number(r.starting_symbol.chapter_id)===Number(d.info?.chapter_id));if(!row)return d;
+ const source='symbol:librarium-texts:knowledge',binding=eaLibrariumBinding(d,{x:row.starting_symbol});
+ if(binding&&!eaState(d).bindings?.[source]){d.equipment_automation ||= {};d.equipment_automation.bindings ||= {};d.equipment_automation.bindings[source]={id:binding.id,group:binding.group};}
+ for(const section of ['perm','cond'])if((d.modifiers?.[section]||[]).some(eaLibrariumLegacy)){
+  d.equipment_automation ||= {};d.equipment_automation.librarium_legacy ||= [];
+  for(const modifier of d.modifiers[section].filter(eaLibrariumLegacy))d.equipment_automation.librarium_legacy.push({section,modifier:sgClone(modifier)});
+  d.modifiers[section]=d.modifiers[section].filter(m=>!eaLibrariumLegacy(m));
+ }
+ return d;
+}
+normalize=function(raw){const d=EA_ORIG.normalize(raw);if(raw?.equipment_automation)d.equipment_automation=sgClone(raw.equipment_automation);return eaLibrariumMigrate(d);};
 function eaSymbols(d){const out=[],seen=new Set();for(const row of d?.gear||[]){const m=GEAR_MAP[row.item_id]?.stats?.chapter_trapping,x=row.starting_symbol;if(!m||!x||Number(x.chapter_id)!==Number(d.info?.chapter_id))continue;const key=m.key+':'+(x.variants||[]).slice().sort().join(',');if(seen.has(key))continue;seen.add(key);out.push({row,m,x});}return out;}
 function eaSkillOptions(d,names){const out=[];for(const s of DB_SKILLS.filter(s=>names.includes(s.name))){const owned=[...(d.skills_basic||[]),...(d.skills_adv||[])].find(r=>Number(r.skill_id??r.id)===Number(s.id));const groups=owned?.groups||[];if(groups.length)for(const g of groups)out.push({id:String(s.id),group:g.name,label:s.name+' · '+g.name});else out.push({id:String(s.id),group:'',label:s.name});}return out;}
-function eaBinding(d,source,s,names){const configured=eaState(d).bindings?.[source];if(configured)return configured;const text=Object.values(s.x.details||{}).map(eaNorm).join(' '),options=eaSkillOptions(d,names);const matches=options.filter(o=>text===eaNorm(o.label)||o.group&&text===eaNorm(o.group));return matches.length===1?matches[0]:null;}
+function eaBinding(d,source,s,names){if(source==='symbol:librarium-texts:knowledge')return eaLibrariumBinding(d,s);const configured=eaState(d).bindings?.[source];if(configured)return configured;const text=Object.values(s.x.details||{}).map(eaNorm).join(' '),options=eaSkillOptions(d,names);const matches=options.filter(o=>text===eaNorm(o.label)||o.group&&text===eaNorm(o.group));return matches.length===1?matches[0]:null;}
 function eaRules(d){const out=[];for(const s of eaSymbols(d)){const {m,x,row}=s,has=v=>(x.variants||[]).includes(String(v));
  const add=(suffix,target,name,effect,condition='',extra={})=>{const source='symbol:'+m.key+':'+suffix;out.push({name:row.name,source,target,target_name:name,effect,mode:'add',timing:'post',condition,scope:condition, ...extra});};
  const skill=(suffix,name,value)=>{const item=DB_SKILLS.find(s=>s.name===name);if(item)add(suffix,'skill',String(item.id),value);};
@@ -17800,7 +17824,7 @@ gearQualitiesHtml=function(r,i,w,editable){let html=EA_ORIG.gearQualitiesHtml(r,
  if(editable)for(const chip of box.querySelectorAll('[data-gear-qual]')){const q=WQ_MAP[chip.dataset.gearQual.split(':')[1]];if(q)chip.dataset.tooltip=String(q.description||'').replace(/\\n/g,'\n');}return box.innerHTML;
 };
 dwQualitiesHtml=function(w){const html=EA_ORIG.dwQualitiesHtml(w),box=document.createElement('div');box.innerHTML=html;for(const chip of box.querySelectorAll('[data-dw-quality-desc]')){chip.dataset.tooltip=chip.dataset.dwQualityDesc;chip.dataset.eaQuality='dw';}return box.innerHTML;};
-function eaRuleControls(d,a){const conflicts=eaConflicts(d,a),choice=eaDecision(d,a),binding=eaState(d).bindings?.[a.source]||a.binding;let html='<div class="ea-entry" data-ea-owner="'+escAttr(S.character?.id)+'"><b>'+esc(a.name)+' '+(a.effect?'+': '')+a.effect+'</b><div class="ea-note">'+esc(a.condition||(a.target==='test'?statFullName(a.target_name)||'Все проверки':a.target==='indicator'&&a.target_name==='initiative'?'Бонус к инициативе':a.target==='damage'?'К урону оружия':modTargetNameLabel(a.target,a.target_name)))+'</div>';
+function eaRuleControls(d,a){const conflicts=eaConflicts(d,a),choice=eaDecision(d,a),binding=eaState(d).bindings?.[a.source]||a.binding;let html='<div class="ea-entry" data-ea-owner="'+escAttr(S.character?.id)+'"><b>'+esc(a.name)+' '+(a.effect?'+': '')+a.effect+'</b><div class="ea-note">'+esc(a.condition||(a.target==='test'?statFullName(a.target_name)||'Все проверки':a.target==='indicator'&&a.target_name==='initiative'?'Бонус к инициативе':a.target==='damage'?'К урону оружия':modTargetNameLabel(a.target,a.target_name)+(a.source==='symbol:librarium-texts:knowledge'&&a.group?' · '+a.group:'')))+'</div>';
  if(a.needsBinding)html+='<div class="ea-note">Укажите конкретное умение и группу; бонус пока не применяется.</div>';
  if(a.bindingNames){const opts=eaSkillOptions(d,a.bindingNames);html+='<label>Умение <select data-ea-binding="'+escAttr(a.source)+'"><option value="">— выбрать —</option>'+opts.map(o=>'<option value="'+escAttr(JSON.stringify(o))+'"'+(binding&&binding.id===o.id&&binding.group===o.group?' selected':'')+'>'+esc(o.label)+'</option>').join('')+'</select></label><label> Группа <input data-ea-group="'+escAttr(a.source)+'" value="'+escAttr(binding?.group||a.group||'')+'" placeholder="Например: Империум"></label>';}
  if(a.activated&&a.target_name==='sil')html+='<label><input type="checkbox" data-ea-activate="symbol:iron-cage-icon:active"'+(eaState(d).active?.['symbol:iron-cage-icon:active']?' checked':'')+'> Применять сейчас (отключите после хода)</label>';
