@@ -213,7 +213,7 @@ hr{border:none; border-top:1px solid var(--line); margin:16px 0}
 .renown-name{font-family:'Russo One',serif;font-weight:700;font-size:13px;color:var(--gold);text-transform:uppercase;}
 
 /* TOOLTIP */
-.tooltip{display:none;position:fixed;background:rgba(16,16,18,.97);border:1px solid #a8862f;border-radius:3px;padding:8px 12px;font-size:15px;color:#9a958a;max-width:340px;z-index:1000;pointer-events:none;line-height:1.45;overflow-wrap:anywhere;overflow:hidden;font-family:'Unbounded',sans-serif;}
+.tooltip{display:none;position:fixed;background:rgba(16,16,18,.97);border:1px solid #a8862f;border-radius:3px;padding:8px 12px;font-size:15px;color:#9a958a;max-width:340px;z-index:1000;pointer-events:auto;line-height:1.45;overflow-wrap:anywhere;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;box-sizing:border-box;font-family:'Unbounded',sans-serif;}
 .tooltip table{width:100%;border-collapse:collapse;margin-top:6px;}
 .tooltip th,.tooltip td{border:1px solid #3a3a3d;padding:4px 7px;text-align:left;vertical-align:top;}
 .tooltip th{color:var(--gold);font-weight:600;background:rgba(201,162,75,.08);font-size:13px;}
@@ -2009,7 +2009,7 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
 #squad-root :is(button,select):disabled,.sq-dialog button:disabled{opacity:.4;cursor:default;}#squad-root button:focus-visible,.sq-dialog :is(button,input):focus-visible{outline:2px solid #d4b36c;outline-offset:3px;}
 .sq-dialog{padding:24px;width:min(720px,calc(100% - 28px));max-height:85vh;overflow:auto;color:#ddd8ce;background:#19191deb;border:1px solid transparent;border-image:var(--sheet-frame) 8 / 8px stretch;box-shadow:0 20px 80px #0009;font-family:'Roboto Condensed',Arial,sans-serif;}.sq-dialog::backdrop{background:#060608cc;backdrop-filter:blur(3px);}.sq-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #8d733872;padding-bottom:14px;margin-bottom:12px;}.sq-dialog h2{font-size:21px;color:#c9a24b;margin:0;}.sq-dialog input[type=search]{font:14px 'Roboto Condensed',Arial,sans-serif;background:#111114;border:1px solid #8d733862;color:#ddd8ce;margin:12px 0;padding:10px;}
 .sq-choice{display:block;width:100%;text-align:left;white-space:normal;font:15px/1.5 'Roboto Condensed',Arial,sans-serif;color:#d4c6a6;background:#c9a24b03;border:1px solid #8d73384d;border-left:2px solid #8d733876;padding:12px 14px;margin:8px 0;cursor:pointer;text-transform:none;letter-spacing:0;}.sq-choice:hover,.sq-choice.selected{border-color:#b79953;background:#c9a24b14;}.sq-choice-name{display:flex;justify-content:space-between;gap:10px;font-size:17px;font-weight:600;}.sq-choice .sq-note{margin-top:5px;}.sq-choice.unavailable{opacity:.45;}.sq-choice-desc{font-size:13px;color:#a6a091;margin-top:7px;}.sq-dialog-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;border-top:1px solid #8d73383f;padding-top:15px;}
-.sq-character-effects{padding:9px 12px;border-left:2px solid #7ba785;margin:8px 0;background:#6c9e7b08;font:13px/1.5 'Roboto Condensed',Arial,sans-serif;color:#b6ccb8;}.sq-roll-notes{font:13px/1.55 'Roboto Condensed',Arial,sans-serif;color:#adbbab;margin-top:10px;padding:10px;border-top:1px solid #8d73384a;}
+.sq-character-effects{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:0;border:0;margin:6px 0 0;background:transparent;font:13px/1.5 'Roboto Condensed',Arial,sans-serif;color:#b6ccb8;}.sq-character-effects[hidden]{display:none;}.sq-character-effects button{font:inherit;max-width:100%;white-space:normal;overflow-wrap:anywhere;}.sq-character-effects .sq-oath{cursor:pointer;}.sq-roll-notes{font:13px/1.55 'Roboto Condensed',Arial,sans-serif;color:#adbbab;margin-top:10px;padding:10px;border-top:1px solid #8d73384a;}
 @media(max-width:760px){#screen-squad{padding:10px;}.squad-head{padding:22px 18px;gap:12px;flex-wrap:wrap;}.squad-emblem{width:48px;height:58px;padding:5px;}.squad-emblem svg{width:34px;}#squad-root h1{font-size:27px;}.squad-actions{width:100%;padding-top:7px;}.squad-body{padding:16px;}.squad-command-grid{grid-template-columns:1fr;gap:16px;margin-bottom:16px;}.squad-panel{padding:18px;}.sq-command-decoration{margin-top:22px;}.sq-member{flex-direction:column;align-items:stretch;padding:15px;gap:14px;}.sq-member-actions{max-width:none;justify-content:flex-start;}.sq-section{gap:8px;}#squad-root h2{font-size:17px;}.sq-footer{margin:0 20px;}.sq-dialog{padding:18px;}.sq-member-name{font-size:20px;}}
 
 .squad-command-stack{display:flex;flex-direction:column;gap:18px;min-width:0;}.squad-command-stack .squad-command{flex:0 0 auto;}.squad-cohesion{flex:1;}.squad-cohesion .sq-section{margin-bottom:12px;}.sq-field{display:block;font:13px/1.5 'Roboto Condensed',Arial,sans-serif;color:#aaa18e;margin-top:14px;}.sq-field[hidden]{display:none;}.sq-field input{display:block;box-sizing:border-box;width:100%;margin-top:7px;padding:10px 12px;border:1px solid #8d733866;background:#111114;color:#e2d5b9;font:18px 'Roboto Condensed',Arial,sans-serif;}.squad-cohesion input{max-width:180px;font-size:27px;}.squad-cohesion .sq-section{margin-bottom:0;flex-wrap:nowrap;justify-content:space-between;gap:10px;}.squad-cohesion h2{white-space:nowrap;}.squad-cohesion input{box-sizing:border-box;width:100px;min-width:64px;flex:0 1 100px;margin:0;padding:7px 8px;border:1px solid #8d733866;background:#111114;color:#e2d5b9;font:20px "Roboto Condensed",Arial,sans-serif;}@media(max-width:400px){.squad-cohesion{padding:8px;}#squad-root .squad-cohesion h2{font-size:14px;}.squad-cohesion .sq-section{gap:6px;}.squad-cohesion input{min-width:54px;padding:7px 4px;font-size:18px;}}.sq-dialog{box-sizing:border-box;width:min(660px,calc(100vw - 24px));max-width:calc(100vw - 24px);height:fit-content;max-height:calc(100dvh - 24px);padding:18px;overflow:hidden;}.sq-dialog[open]{display:flex;flex-direction:column;}.sq-dialog-head,.sq-dialog-foot,#sq-picker-note,#sq-picker-search,.sq-filters{flex-shrink:0;}#sq-picker-list{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:5px;}#sq-picker-description{overflow-y:auto;min-height:0;}.sq-dialog-foot{margin-top:10px;padding-top:10px;}.sq-dialog-head{padding-bottom:10px;margin-bottom:6px;}.sq-dialog input[type=search]{width:100%;box-sizing:border-box;}.sq-choice{box-sizing:border-box;padding:9px 11px;}.sq-choice-row{display:flex;align-items:flex-start;gap:10px;}.sq-choice-row details{min-width:0;flex:1;}.sq-choice-row summary{cursor:pointer;overflow-wrap:anywhere;}.sq-choice-row .sq-choice-name{display:inline;font-size:16px;}.sq-choice-row .sq-note,.sq-meta{display:block;font-size:12px;line-height:1.55;margin-top:4px;color:#aaa18e;}.sq-choice-add{flex:0 0 34px;padding:3px!important;min-width:34px;font-size:23px!important;line-height:1!important;}.sq-choice-add[aria-pressed=true]{color:#9fceab;border-color:#6c9e7b;}.sq-choice-desc{white-space:pre-line;}.sq-filters{display:flex;gap:7px;flex-wrap:wrap;margin:2px 0 8px;}.sq-filters[hidden]{display:none;}.sq-filters [aria-pressed=true]{background:#c9a24b20;border-color:#c9a24b;color:#e2d5b9;}
@@ -4811,7 +4811,6 @@ function raceModsFor(race){
       { name:'Усиление Брони',                       target:'stat', target_name:'sil', mode:'add', effect:20, timing:'post' }
     ],
     cond: [
-      { name:'Авточувства',                         target:'stat', target_name:'vos', mode:'add', effect:0, timing:'post' },
       { name:'Обострённые Чувства (Зрение, Слух)',  target:'stat', target_name:'vos', mode:'add', effect:10, timing:'post' }
     ]
   };
@@ -5068,7 +5067,7 @@ function normalizeModifiers(m){
 // считался бы по 30. Поэтому база листа и база порога не расходятся.
 function permMods(d){
   const m = d.modifiers;
-  return (m && m.perm) || [];
+  return ((m && m.perm) || []).filter(m=>!isArmourAutoSenses(m));
 }
 function modsFor(d, target, name){
   return permMods(d).filter(m =>
@@ -6107,8 +6106,12 @@ function setGearRelicProperty(row, enabled){
   if (Object.prototype.hasOwnProperty.call(row, 'relic')) row.relic = !!enabled;
 }
 function equippedItemModifiers(d){
-  if (!d || !(d.gear || []).some(r => r.source === 'catalog' && Number(r.item_id) === 104 && gearIsEquipped(r))) return [];
-  return [{name:'Осколок Бекрина',target:'stat',target_name:'obsh',mode:'add',effect:10,timing:'pre',source:'equipment:104',scope:'При взаимодействии с Адептус Астартес'}];
+  if(!d)return [];
+  const rows=[];
+  if((d.gear || []).some(r=>r.source==='catalog' && Number(r.item_id)===104 && gearIsEquipped(r)))rows.push({name:'Осколок Бекрина',target:'stat',target_name:'obsh',mode:'add',effect:10,timing:'pre',source:'equipment:104',scope:'При взаимодействии с Адептус Астартес'});
+  const senses=armourAutoSenses(d);
+  if(!senses.unavailable && senses.value>0)rows.push({name:'Авточувства',target:'stat',target_name:'vos',mode:'add',effect:senses.value,timing:'post',source:'armour:autosenses',scope:senses.scope});
+  return rows;
 }
 function editableArmourZones(g){ return !!(g && [5,10,12].includes(Number(g.id))); }
 function armourZoneCovered(g, zid){
@@ -6887,7 +6890,7 @@ function charBase(d, k){
 // ситуационные: ситуационные приходят с галочкой, выключенной по умолчанию.
 // Automatic auto-senses always follow the selected armour, never a saved flat bonus.
 function isArmourAutoSenses(m){
-  return m && m.source === RACE_SRC && m.name === 'Авточувства';
+  return !!m && String(m.name||'').trim().toLowerCase()==='авточувства';
 }
 function armourAutoSenses(d){
   const a = d.armour || {};
@@ -6907,7 +6910,7 @@ function armourAutoSenses(d){
 function rollMods(d, k){
   const out = [];
   const add = (m, section, locked) => {
-    if (!m || m.mode === 'mul') return;
+    if (!m || m.mode === 'mul' || (isArmourAutoSenses(m) && m.source!=='armour:autosenses')) return;
     const isCheck = m.target === 'check';
     const isStat  = m.target === 'stat' && (m.target_name === k || m.target_name === 'all');
     if (!isCheck && !isStat) return;
@@ -8239,7 +8242,7 @@ function cancelTooltipShow(){
 function scheduleTooltipShow(el, actionDescription = false){
   cancelTooltipShow();
   // Возврат из уже открытого описания сохраняет его прокрутку.
-  if (actionDescription && actionTooltipAnchor === el && $('tooltip').classList.contains('active')){
+  if (actionTooltipAnchor === el && $('tooltip').classList.contains('active')){
     cancelTooltipHide();
     return;
   }
@@ -8269,18 +8272,17 @@ function scheduleTooltipHide(){
 }
 function dismissTooltipOutside(e){
   const t = $('tooltip');
-  if (t.classList.contains('action-description-tooltip') && t.contains(e.target)) return;
+  if (t.contains(e.target)) return;
   hideTooltip();
 }
 function showTooltip(el, actionDescription = false){
   cancelTooltipShow();
   cancelTooltipHide();
   const t = $('tooltip');
-  const sameAction = actionDescription && actionTooltipAnchor === el;
-  actionTooltipAnchor = actionDescription ? el : null;
+  const sameAction = actionTooltipAnchor === el;
+  actionTooltipAnchor = el;
   t.classList.toggle('action-description-tooltip', actionDescription);
-  if (actionDescription) t.setAttribute('tabindex','0');
-  else t.removeAttribute('tabindex');
+  t.setAttribute('tabindex','0');
   const zoomText = getComputedStyle(document.body).zoom;
   const zoom = (parseFloat(zoomText) / (String(zoomText).endsWith('%') ? 100 : 1)) || 1;
   const viewport = window.visualViewport;
@@ -8311,6 +8313,13 @@ function showTooltip(el, actionDescription = false){
   // Rect — экранные координаты; left/top внутри body учитывают его CSS zoom.
   t.style.left = (x - origin.left) / zoom + 'px';
   t.style.top = (y - origin.top) / zoom + 'px';
+  if(actionDescription && el.dataset.conditionCode && !CONDITION_CATALOG.length){
+    const owner=S.character,code=el.dataset.conditionCode;
+    loadConditionCatalog().then(()=>{
+      if(S.character!==owner || actionTooltipAnchor!==el || !el.isConnected || !t.classList.contains('active'))return;
+      t.innerHTML=conditionDescriptionHtml(code);showTooltip(el,true);
+    }).catch(()=>{});
+  }
 }
 function bindTooltips(){
   if (!tooltipEventsBound){
@@ -8331,11 +8340,13 @@ function bindTooltips(){
   document.querySelectorAll('#screen-sheet [data-tooltip]').forEach(el => {
     if (el.dataset.tipBound) return;
     el.dataset.tipBound = '1';
+    el.addEventListener('focus',()=>{if(el.matches(':focus-visible'))showTooltip(el,!!el.dataset.conditionCode || el.hasAttribute('data-description-tooltip'));});
+    el.addEventListener('blur',scheduleTooltipHide);
     el.addEventListener('pointerenter', e => {
       if (e.pointerType === 'touch') return;
-      scheduleTooltipShow(el);
+      scheduleTooltipShow(el, !!el.dataset.conditionCode || el.hasAttribute('data-description-tooltip'));
     });
-    el.addEventListener('pointerleave', hideTooltip);
+    el.addEventListener('pointerleave', scheduleTooltipHide);
   });
 }
 
@@ -9511,7 +9522,7 @@ function modsTimingEnabled(m){
   return modsFieldsVisible(m);
 }
 // Подпись служебной метки: модификаторы, выданные системой, помечаем источником.
-const MOD_SOURCE_LABELS = { race:'раса', chapter:'глава' };
+const MOD_SOURCE_LABELS = { chapter:'глава' };
 function modSourceTag(m){
   const t = MOD_SOURCE_LABELS[m.source];
   return t ? `<span class="mods-entry-src" title="Выдано автоматически, восстанавливается при открытии листа">${t}</span>` : '';
@@ -9597,7 +9608,7 @@ function renderModSection(section){
   const equipmentMods = section === 'cond' ? equippedItemModifiers(d) : [];
   const draft = (MOD_DRAFT && MOD_DRAFT.section === section) ? renderModDraft() : '';
   host.innerHTML = draft + (list.length
-    ? list.map((m, i) => renderModEntry(m, section, i)).join('')
+    ? list.map((m, i) => isArmourAutoSenses(m)?'':renderModEntry(m, section, i)).join('')
     : (draft || equipmentMods.length ? '' : '<div class="mods-empty">Нет модификаторов</div>')) + equipmentMods.map(m => `<div class="mods-entry"><div><div class="mods-entry-name">${esc(m.name)} +${m.effect}</div><div class="mods-entry-sub">${esc(m.scope)}</div></div></div>`).join('');
 }
 function renderModifiers(){
@@ -14002,10 +14013,11 @@ function renderConditionsLine(){
  const sub=$('tags-container')?.closest('.sub');if(!sub||!S.character)return;
  let host=$('conditions-line');if(!host){host=document.createElement('div');host.id='conditions-line';host.className='conditions-line';sub.after(host);}
  const d=S.character.character_data,rows=characterConditions(d),collapsed=!!d.conditions_collapsed;
- host.innerHTML='<button type="button" id="conditions-fold" aria-expanded="'+!collapsed+'" aria-controls="conditions-tags">Состояния: '+(collapsed?'▸':'▾')+'</button><span id="conditions-tags" class="conditions-tags"'+(collapsed?' hidden':'')+'>'+rows.map(r=>'<button type="button" class="condition-tag" data-condition-open="'+escAttr(r.code)+'">'+esc(conditionLabel(r))+'</button>').join('')+'<button type="button" id="conditions-plus" aria-label="Открыть список состояний">+</button></span>';
+ host.innerHTML='<button type="button" id="conditions-fold" aria-expanded="'+!collapsed+'" aria-controls="conditions-tags">Состояния: '+(collapsed?'▸':'▾')+'</button><span id="conditions-tags" class="conditions-tags"'+(collapsed?' hidden':'')+'>'+rows.map(r=>'<button type="button" class="condition-tag" data-condition-open="'+escAttr(r.code)+'" data-condition-code="'+escAttr(r.code)+'" data-tooltip="">'+esc(conditionLabel(r))+'</button>').join('')+'<button type="button" id="conditions-plus" aria-label="Открыть список состояний">+</button></span>';
  $('conditions-fold').onclick=()=>{if(S.character?.character_data!==d)return;d.conditions_collapsed=!d.conditions_collapsed;renderConditionsLine();scheduleSave();};
  $('conditions-plus').onclick=()=>openConditionsModal();
  host.querySelectorAll('[data-condition-open]').forEach(el=>el.onclick=()=>openConditionDetail(el.dataset.conditionOpen));
+ bindActionTooltips(host);
 }
 function renderConditionChoices(){
  const host=$('conditions-choices');if(!host)return;
@@ -14421,10 +14433,11 @@ renderConditionsLine=function(){
  const tags=$('sb-root').querySelector('.sb-tags');if(!tags)return;
  let host=$('sb-conditions-line');if(!host){host=document.createElement('div');host.id='sb-conditions-line';host.className='conditions-line';tags.after(host);}
  const d=S.character.character_data,collapsed=!!d.conditions_collapsed;
- host.innerHTML='<button type="button" data-npc-condition-fold aria-expanded="'+!collapsed+'">Состояния: '+(collapsed?'▸':'▾')+'</button><span class="conditions-tags"'+(collapsed?' hidden':'')+'>'+characterConditions(d).map(r=>'<button type="button" class="condition-tag" data-npc-condition="'+escAttr(r.code)+'">'+esc(conditionLabel(r))+'</button>').join('')+'<button type="button" data-npc-condition-plus aria-label="Открыть список состояний">+</button></span>';
+ host.innerHTML='<button type="button" data-npc-condition-fold aria-expanded="'+!collapsed+'">Состояния: '+(collapsed?'▸':'▾')+'</button><span class="conditions-tags"'+(collapsed?' hidden':'')+'>'+characterConditions(d).map(r=>'<button type="button" class="condition-tag" data-npc-condition="'+escAttr(r.code)+'" data-condition-code="'+escAttr(r.code)+'" data-tooltip="">'+esc(conditionLabel(r))+'</button>').join('')+'<button type="button" data-npc-condition-plus aria-label="Открыть список состояний">+</button></span>';
  host.querySelector('[data-npc-condition-fold]').onclick=()=>{if(SB.draft)return;d.conditions_collapsed=!d.conditions_collapsed;sbCommitActor();};
  host.querySelector('[data-npc-condition-plus]').onclick=async()=>{if(SB.draft)return toast('Завершите редактирование.');if(await sbFlushQuick()){sbSyncActor();openConditionsModal();}};
  host.querySelectorAll('[data-npc-condition]').forEach(el=>el.onclick=()=>{if(!SB.draft)openConditionDetail(el.dataset.npcCondition);});
+ bindActionTooltips(host);
 };
 refreshConditions=function(){if(!sbActorActive())return NPC_CONDITION_ORIG.refresh();hideTooltip();sbCommitActor();renderConditionChoices();if($('roll-modal').classList.contains('active')){renderRollMods();renderRollTotal();}};
 renderStatblock=function(){NPC_CONDITION_ORIG.render();if(sbActorActive())renderConditionsLine();};
@@ -17987,7 +18000,23 @@ renderDamageRoll=function(){const result=SQ_ORIG.renderDamageRoll(),d=S.characte
 openDamageRoll=function(...args){SQ_EFFECT.damageOn={};SQ_EFFECT.lastDamage=null;SQ_EFFECT.damageRerolling=false;SQ_EFFECT.damageSignature=SQ_EFFECT.cache.get(sqCacheKey(S.user?.id,S.character?.chronicle_id))?.signature;return SQ_ORIG.openDamageRoll(...args);};
 function sqChangeDamageCondition(change){const w=damageWeapons().find(w=>w.id===DAMAGE.weapon);if(!w)return;const before=damageDefaults(w),values={};for(const id of ['damage-expression','damage-confirm','damage-degrees','damage-trigger'])if($(id))values[id]=$(id).value;const bonusDelta=Number($('damage-bonus')?.value||0)-before.bonus,extraBase=Number($('damage-extra')?.value||0)-(before.sqExtraDice||0),checks={};$('damage-params')?.querySelectorAll('input[type=checkbox][id]').forEach(el=>checks[el.id]=el.checked);change();renderDamageRoll();const after=damageDefaults(w);if($('damage-bonus'))$('damage-bonus').value=after.bonus+bonusDelta;if($('damage-extra'))$('damage-extra').value=extraBase+(after.sqExtraDice||0);for(const [id,value] of Object.entries(values))if($(id))$(id).value=value;for(const [id,value] of Object.entries(checks))if($(id))$(id).checked=value;}
 document.addEventListener('change',e=>{const el=e.target;if(el.dataset.sqRoll){const id=el.dataset.sqRoll,on=el.checked;SQ_EFFECT.rollOn[id]=on;renderRollMods();renderRollTotal();}if(el.dataset.sqRollCount||el.dataset.sqRollPenalty){const key=el.dataset.sqRollCount||el.dataset.sqRollPenalty;SQ_EFFECT.rollOn[key+(el.dataset.sqRollCount?':count':':penalty')]=Math.max(0,Math.min(200,Number(el.value)||0));renderRollMods();renderRollTotal();}if(el.dataset.sqDamage){const id=el.dataset.sqDamage,on=el.checked;sqChangeDamageCondition(()=>{SQ_EFFECT.damageOn[id]=on;});}if(el.dataset.sqDamageCount){const id=el.dataset.sqDamageCount,value=Math.max(1,Math.min(200,Number(el.value)||1));sqChangeDamageCondition(()=>{SQ_EFFECT.damageOn[id+':count']=value;});}if(el.dataset.sqCondition){SQ_EFFECT.conditions[el.dataset.sqCondition]=el.checked;sqUpdateCharacterView();}});
-function sqCharacterBanner(){if(!S.character||S.character._statblock||sbActorActive())return;const header=$('sheet-root')?.querySelector('.header');if(!header)return;let banner=$('sq-character-effects');if(!banner){banner=document.createElement('div');banner.id='sq-character-effects';banner.className='sq-character-effects';header.insertAdjacentElement('afterend',banner);}const d=S.character.character_data,active=sqActive(d),oath=sqOath(sqMember(d)?.state||null);banner.hidden=!active.length&&!oath;const markers=sqRules(d).filter(r=>['temp_wounds','initiative_die'].includes(r.type)).map(r=>'<span class="sq-tag">'+(r.type==='temp_wounds'?'Временные раны: +'+r.value:'Инициатива: 10 + '+statBonus(d,'lov'))+'</span>');const html=(oath?['<span class="sq-tag">'+esc(oath.name)+'</span>']:[]).concat(active.map(a=>'<button type="button" class="sq-effect'+(a.kind==='solo'?' sq-effect-solo':'')+'" data-sq-sheet-kind="'+a.kind+'" data-sq-sheet-effect="'+esc(a.ref.name)+'">'+esc(a.row.name)+'</button>')).concat(markers).join(' ');if(banner.dataset.sqHtml!==html){banner.innerHTML=html;banner.dataset.sqHtml=html;}}
+function sqCharacterBanner(){
+ if(!S.character||S.character._statblock||sbActorActive())return;
+ const line=$('conditions-line');if(!line)return;
+ let banner=$('sq-character-effects');
+ if(!banner){banner=document.createElement('div');banner.id='sq-character-effects';banner.className='sq-character-effects';}
+ if(banner.previousElementSibling!==line)line.after(banner);
+ const d=S.character.character_data,active=sqActive(d),oath=sqOath(sqMember(d)?.state||null);
+ banner.hidden=!active.length&&!oath;
+ const tip=text=>' data-description-tooltip="1" data-tooltip="'+escAttr(text)+'"';
+ const markers=sqRules(d).filter(r=>['temp_wounds','initiative_die'].includes(r.type)).map(r=>'<span class="sq-tag">'+(r.type==='temp_wounds'?'Временные раны: +'+r.value:'Инициатива: 10 + '+statBonus(d,'lov'))+'</span>');
+ const html=(oath?['<button type="button" class="sq-tag sq-oath"'+tip([oath.name,oath.desc,oath.source].filter(Boolean).join('\n\n'))+'>'+esc(oath.name)+'</button>']:[])
+ .concat(active.map(a=>{
+  const description=a.kind==='squad'?squadPlainDescription(sdDescription(a.row.desc||a.db?.description,a.db,sqMember(d)?.state)):squadPlainDescription(a.row.desc||a.db?.description);
+  return '<button type="button" class="sq-effect'+(a.kind==='solo'?' sq-effect-solo':'')+'" data-sq-sheet-kind="'+a.kind+'" data-sq-sheet-effect="'+escAttr(a.ref.name)+'"'+tip([a.row.name,a.kind==='solo'?'Режим одиночки':'Режим отряда',description].filter(Boolean).join('\n\n'))+'>'+esc(a.row.name)+'</button>';
+ })).concat(markers).join(' ');
+ if(banner.dataset.sqHtml!==html){banner.innerHTML=html;banner.dataset.sqHtml=html;bindActionTooltips(banner);}
+}
 function sqUpdateCharacterView(){const d=S.character?.character_data;if(!d||S.character._statblock||sbActorActive())return;sqCharacterBanner();if(editMode||document.activeElement?.matches('#sheet-root input,#sheet-root textarea,[contenteditable=true]')){SQ_EFFECT.refreshPending=true;return;}SQ_EFFECT.refreshPending=false;for(const [key] of STATS){const b=$('bx-'+key);if(b)b.textContent=statBonus(d,key);const n=document.querySelector('#sheet-root [data-roll="'+key+'"]');if(n)n.textContent=effStat(d,key);}updateDerived();updateArmour();if($('roll-modal').classList.contains('active')&&!ROLL.busy){renderRollMods();renderRollTotal();}if($('damage-modal').classList.contains('active')&&!DAMAGE.busy)SQ_EFFECT.refreshPending=true;}
 async function sqRefreshCharacter(quiet=false){const actor=S.character,user=S.user?.id;if(!actor||actor._statblock||sbActorActive()||!actor.chronicle_id||!user)return;const key=sqCacheKey(user,actor.chronicle_id);if(SQ_EFFECT.flight)return;SQ_EFFECT.flight=key;try{await squadCatalog();const data=await squadRequest('read',null,null,{chronicle:actor.chronicle_id,user});if(S.user?.id!==user||S.character!==actor)return;sqEffectCache(data,user);if(!quiet)sqUpdateCharacterView();}catch(error){if(!quiet&&S.character===actor)toast(squadMessage(error));}finally{SQ_EFFECT.flight=null;}}
 openSheet=async function(...args){const result=await SQ_ORIG.openSheet(...args);if(S.character&&!S.character._statblock)await sqRefreshCharacter();return result;};
