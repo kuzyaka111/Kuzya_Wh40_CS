@@ -1870,7 +1870,7 @@ body[data-sheet-art="on"] #sb-root .panel{background:rgba(42,42,46,.32);}
 body[data-sheet-art="on"] :is(#sheet-root,#sb-root) .titles h1,body[data-sheet-art="on"] #sb-root .sb-name-button{color:#f2ead8;}
 /* Fluid rows keep all four speeds together, and carrying shares their total width. */
 body[data-sheet-art="on"] #sb-root .sb-speed-row .sb-param-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;flex:1 0 100%;gap:5px;}
-body[data-sheet-art="on"] #sb-root .sb-speed-row + .sb-param-row > .sb-param-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;flex:1 0 100%;gap:5px;}
+body[data-sheet-art="on"] #sb-root .sb-speed-row + .sb-param-row:not(.sb-speed-row) > .sb-param-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;flex:1 0 100%;gap:5px;}
 body[data-sheet-art="on"] #sb-root :is(.sb-speed-row,.sb-speed-row + .sb-param-row) .sb-param-chip{width:auto;min-width:0;}
 body[data-sheet-art="on"] #sb-root .sb-speed-row .sb-param-label{min-height:24px;}
 /* Border images also work on inputs and spans, not just buttons. */
@@ -13049,6 +13049,20 @@ function sbRenderSkills(){
 // Statblock controls own their data; never borrow S.character or its autosave.
 const SB_BODY_ZONES=[['head','Голова'],['body','Тело'],['left_arm','Л. рука'],['right_arm','П. рука'],['left_leg','Л. нога'],['right_leg','П. нога']];
 const SB_SPEEDS=[['half','Полудвижение',1],['full','Движение',2],['charge','Натиск',3],['run','Бег',6]];
+// Flight is independent of the printed ground movement and its Agility bonus.
+function sbFlightRating(d){
+  const ratings=new Set();
+  for(const row of d.features||[]){
+    const match=String(row?.name||'').trim().match(/^(?:Летун|Пол[её]т|Flyer)\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*\)|(\d+(?:[.,]\d+)?))$/iu);
+    if(match){const value=Number((match[1]||match[2]).replace(',','.'));if(Number.isFinite(value)&&value>0)ratings.add(value);}
+  }
+  return ratings.size===1?[...ratings][0]:null;
+}
+function sbFlightVisible(d){return sbFlightRating(d)!=null||SB_SPEEDS.some(([k])=>d.movement?.flight?.[k]!=null);}
+function sbFlightHtml(d){
+  if(!sbFlightVisible(d))return '';
+  return '<div class="sb-param-row sb-speed-row sb-flight-row"><h3>Полёт</h3><div class="sb-param-chips">'+SB_SPEEDS.map(([k,n])=>sbChip('movement.flight.'+k,n,d.movement?.flight?.[k],sbDerivedFallback(d,'movement.flight.'+k))).join('')+'</div></div>';
+}
 const SB_CARRY=[['carry','Нести'],['lift','Поднять'],['push','Толкать']];
 let sbSkillsError='',sbSkillPane='basic';
 function sbChooseKind(kind){
@@ -13077,6 +13091,7 @@ function sbNormalizeDetails(d,raw){
   d.defence={...defence,shield:number(defence.shield)??0,zones:{},covered:{}};
   for(const [key] of SB_BODY_ZONES){d.defence.zones[key]=number(defence.zones?.[key]);d.defence.covered[key]=!!defence.covered?.[key];}
   d.movement=Object.fromEntries(SB_SPEEDS.map(([k])=>[k,number(raw.movement?.[k])]));
+  if(raw.movement?.flight&&typeof raw.movement.flight==='object'&&!Array.isArray(raw.movement.flight))d.movement.flight=Object.fromEntries(SB_SPEEDS.map(([k])=>[k,number(raw.movement.flight[k])]));
   d.carrying=Object.fromEntries(SB_CARRY.map(([k])=>[k,number(raw.carrying?.[k])]));
   d.show_untrained_basic=!!raw.show_untrained_basic;d.show_untrained_adv=!!raw.show_untrained_adv;
   sbMergeSkills(d);
@@ -13085,12 +13100,14 @@ function sbSetDetailPath(d,parts,value){
   const [group,key,zone]=parts;
   if(parts.length===3 && group==='defence' && key==='zones' && SB_BODY_ZONES.some(([z])=>z===zone)){d.defence.zones[zone]=value;return true;}
   if(parts.length===2 && group==='defence' && key==='shield'){d.defence.shield=value;return true;}
+  if(parts.length===3&&group==='movement'&&key==='flight'&&SB_SPEEDS.some(([k])=>k===zone)){d.movement.flight ||= Object.fromEntries(SB_SPEEDS.map(([k])=>[k,null]));d.movement.flight[zone]=value;return true;}
   if(parts.length===2 && ((group==='movement'&&SB_SPEEDS.some(([k])=>k===key))||(group==='carrying'&&SB_CARRY.some(([k])=>k===key)))){d[group][key]=value;return true;}
   return false;
 }
 function sbBonus(d,key){return d.bonuses[key]??(d.stats[key]==null?null:Math.floor(Number(d.stats[key])/10));}
 function sbDerivedFallback(d,path){
-  const [group,key]=path.split('.');
+  const [group,key,part]=path.split('.');
+  if(group==='movement'&&key==='flight'){const rating=sbFlightRating(d),item=SB_SPEEDS.find(([k])=>k===part);return rating==null||!item?null:rating*item[2];}
   if(group==='bonuses')return sbBonus(d,key);
   if(group==='movement'){const bonus=sbBonus(d,'lov'),item=SB_SPEEDS.find(([k])=>k===key);return bonus==null?null:bonus*item[2];}
   if(group==='carrying'){const t=sbBonus(d,'wyn'),s=sbBonus(d,'sil');if(t==null||s==null)return null;const index=SB_CARRY.findIndex(([k])=>k===key);return parseFloat(String(carryTable[Math.max(0,Math.min(t+s,20))][index]).replace(',','.'));}
@@ -13110,7 +13127,7 @@ function sbParametersHtml(d){
   const armour=sbChip('bonuses.wyn','Мод. ВЫН',d.bonuses.wyn,tb,'sb-toughness')+SB_BODY_ZONES.map(([key,label])=>SB.draft
     ?sbChip('defence.zones.'+key,label,d.defence.zones[key])
     :`<div class="sb-param-chip ${d.defence.covered[key]?'sb-shield-active':''}"><span class="sb-param-label">${label}</span><button type="button" class="sb-chip-value" data-sb-shield="${key}" aria-label="Щит: ${label}" aria-pressed="${!!d.defence.covered[key]}" title="Включить или убрать модификатор щита">${sbArmourValue(d,key)??'—'}</button></div>`).join('')+sbChip('defence.shield','Мод. щита',d.defence.shield,0,'sb-shield-mod');
-  return `<div class="sb-param-row"><div class="sb-armour-heading"><h3>Броня</h3>${sbArmourChoiceHtml(d)}</div><div class="sb-param-chips sb-armour-chips">${armour}</div></div>${sbArmourExtrasHtml(d)}<div class="sb-param-row sb-speed-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div><div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
+  return `<div class="sb-param-row"><div class="sb-armour-heading"><h3>Броня</h3>${sbArmourChoiceHtml(d)}</div><div class="sb-param-chips sb-armour-chips">${armour}</div></div>${sbArmourExtrasHtml(d)}<div class="sb-param-row sb-speed-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div>${sbFlightHtml(d)}<div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
 }
 function sbSkillsHtml(d){
   const panes=['basic','adv'].map(key=>`<div class="panel-tab-body skills-group-pane ${sbSkillPane===key?'active':''}"><button type="button" class="skill-filter-toggle" data-sb-expand="${key}" aria-expanded="${!!d['show_untrained_'+key]}">${d['show_untrained_'+key]?'Свернуть':'Развернуть'} ${key==='basic'?'нетренированные':'недоступные'}</button><div id="sb-skills-${key}-render"></div></div>`).join('');
@@ -14310,8 +14327,9 @@ sbArmourValue=function(d,key){const base=sbArmourBeforePlay(d,key);return base==
 const sbChipBeforePlay=sbChip;
 sbChip=function(path,label,value,fallback=null,tone=''){
  if(!SB.draft&&path.startsWith('movement.')){
-  const d=sbData(),data=sbEffectiveData(d),m=SB_SPEEDS.find(([k])=>k===path.slice(9))?.[2]||1;
-  if(value==null)fallback=effSpeed(data,m);
+  const d=sbData(),data=sbEffectiveData(d),flight=path.startsWith('movement.flight.'),m=SB_SPEEDS.find(([k])=>k===path.split('.').at(-1))?.[2]||1;
+  if(value==null&&flight){const base=sbDerivedFallback(d,path);fallback=base==null?null:(base+modsAdd(data,'indicator','speed','pre')*m)*modsMul(data,'indicator','speed')+modsAdd(data,'indicator','speed','post')*m;}
+  else if(value==null)fallback=effSpeed(data,m);
   else value=(Number(value)+modsAdd(data,'indicator','speed','pre')*m)*modsMul(data,'indicator','speed')+modsAdd(data,'indicator','speed','post')*m;
  }
  if(!SB.draft&&path==='horde.armour')value=Math.max(0,Number(value)+modsAdd(sbEffectiveData(sbData()),'armor','all','pre')+modsAdd(sbEffectiveData(sbData()),'armor','all','post'));
