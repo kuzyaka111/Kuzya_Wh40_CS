@@ -6157,7 +6157,7 @@ function gearItemHtml(r, i, key){
 
 function gearPsyDamageBonus(w, d){
   if (!d || w?.type !== 'weapon_melee' || !(w.qualities || []).some(q => Number(q?.qid ?? q) === 87)) return 0;
-  const pr = dwPsyRating(d);
+  const pr = permanentPsiRating(d);
   return pr >= (Number(w.force_min_psy_rating) || 0) ? pr : 0;
 }
 function gearPsyPenBonus(w,d){
@@ -6170,7 +6170,7 @@ function gearPsyPenValue(w,d){
 }
 function gearPsyDamageBadgeHtml(w){
   const value = gearPsyDamageBonus(w, S.character?.character_data);
-  return value ? ` <span class="mod-pos" data-psy-damage-bonus="${value}" title="Бонус урона: текущий Пси-рейтинг">+${value}</span>` : '';
+  return value ? ` <span class="mod-pos" data-psy-damage-bonus="${value}" title="Бонус урона: стандартный Пси-рейтинг">+${value}</span>` : '';
 }
 function gearDmgCellHtml(f, w, i, editable, hasLetter, key, wcls){
   const fval = w ? w[f] : undefined;
@@ -11932,7 +11932,7 @@ function dwWeaponProfile(d,gear,state){
   const w={...(gear?.stats || {})};
   let add=0;
   if (w.type==='weapon_melee' && !w.includes_strength_bonus) add+=statBonus(d,'sil');
-  if (w.force_weapon){ const pr=dwPsyRating(d); add+=pr; w.pen=(Number(w.pen) || 0)+pr; }
+  if (w.force_weapon){ const pr=permanentPsiRating(d); add+=pr; w.pen=(Number(w.pen) || 0)+pr; }
   if (add){
     const match=String(w.dmg).match(/^(\d+d\d+)(?:\+(\d+))?$/i);
     w.dmg=match ? match[1]+'+'+((Number(match[2]) || 0)+add) : w.dmg+' + '+add;
@@ -18073,7 +18073,7 @@ function dm2ModRows(w,c){
  if(c.tearing&&melee&&dm2Has(d,117,/Потрошитель|Flesh Render/i))add('render','Потрошитель',true,0,'render','Ещё один кубик: для базового 1к10 выбирается лучший из 3к10');
  if(c.proven)add('proven','Проверенное ('+c.proven+')',true,c.proven,'proven','Минимальное значение кубика; натуральный результат сохраняется');
  if(c.volatile)add('volatile','Яростное',true,0,'volatile','Натуральная 10 автоматически подтверждает ярость');
- const pr=gearPsyDamageBonus(w.profile,d)||(w.profile.force_weapon?dwPsyRating(d):0);
+ const pr=gearPsyDamageBonus(w.profile,d)||(w.profile.force_weapon?permanentPsiRating(d):0);
  if(pr>0)add('psy','Психосиловое оружие',true,pr,'psy','+'+pr+' к урону и ББ; без психосилового всплеска',pr);
  if(c.accurate)add('accurate','Точное',!!(c.attack?.single&&c.attack?.aimed),0,'accurate','Одиночный прицельный выстрел из Лёгкого оружия: +1к10 за 2 степени, максимум +2к10');
  if(melee&&dm2Has(d,135,/Смерть с небес|Death From Above/i))add('descent','Смерть с небес',false,0,'descent','Натиск с прыжковым ранцем: +1к10 за 2 степени, максимум +2к10');
