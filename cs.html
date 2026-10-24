@@ -13063,6 +13063,19 @@ function sbFlightHtml(d){
   if(!sbFlightVisible(d))return '';
   return '<div class="sb-param-row sb-speed-row sb-flight-row"><h3>Полёт</h3><div class="sb-param-chips">'+SB_SPEEDS.map(([k,n])=>sbChip('movement.flight.'+k,n,d.movement?.flight?.[k],sbDerivedFallback(d,'movement.flight.'+k))).join('')+'</div></div>';
 }
+function sbHoverRating(d){
+  const ratings=new Set();
+  for(const row of d.features||[]){
+    const match=String(row?.name||'').trim().match(/^(?:Парящ(?:ее|ий)|Парение|Hoverer)\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*\)|(\d+(?:[.,]\d+)?))$/iu);
+    if(match){const value=Number((match[1]||match[2]).replace(',','.'));if(Number.isFinite(value)&&value>0)ratings.add(value);}
+  }
+  return ratings.size===1?[...ratings][0]:null;
+}
+function sbHoverVisible(d){return sbHoverRating(d)!=null||SB_SPEEDS.some(([k])=>d.movement?.hover?.[k]!=null);}
+function sbHoverHtml(d){
+  if(!sbHoverVisible(d))return '';
+  return '<div class="sb-param-row sb-speed-row sb-hover-row"><h3 title="Высота до 2 м">Парение</h3><div class="sb-param-chips">'+SB_SPEEDS.map(([k,n])=>sbChip('movement.hover.'+k,n,d.movement?.hover?.[k],sbDerivedFallback(d,'movement.hover.'+k))).join('')+'</div></div>';
+}
 const SB_CARRY=[['carry','Нести'],['lift','Поднять'],['push','Толкать']];
 let sbSkillsError='',sbSkillPane='basic';
 function sbChooseKind(kind){
@@ -13092,6 +13105,7 @@ function sbNormalizeDetails(d,raw){
   for(const [key] of SB_BODY_ZONES){d.defence.zones[key]=number(defence.zones?.[key]);d.defence.covered[key]=!!defence.covered?.[key];}
   d.movement=Object.fromEntries(SB_SPEEDS.map(([k])=>[k,number(raw.movement?.[k])]));
   if(raw.movement?.flight&&typeof raw.movement.flight==='object'&&!Array.isArray(raw.movement.flight))d.movement.flight=Object.fromEntries(SB_SPEEDS.map(([k])=>[k,number(raw.movement.flight[k])]));
+  if(raw.movement?.hover&&typeof raw.movement.hover==='object'&&!Array.isArray(raw.movement.hover))d.movement.hover=Object.fromEntries(SB_SPEEDS.map(([k])=>[k,number(raw.movement.hover[k])]));
   d.carrying=Object.fromEntries(SB_CARRY.map(([k])=>[k,number(raw.carrying?.[k])]));
   d.show_untrained_basic=!!raw.show_untrained_basic;d.show_untrained_adv=!!raw.show_untrained_adv;
   sbMergeSkills(d);
@@ -13101,6 +13115,7 @@ function sbSetDetailPath(d,parts,value){
   if(parts.length===3 && group==='defence' && key==='zones' && SB_BODY_ZONES.some(([z])=>z===zone)){d.defence.zones[zone]=value;return true;}
   if(parts.length===2 && group==='defence' && key==='shield'){d.defence.shield=value;return true;}
   if(parts.length===3&&group==='movement'&&key==='flight'&&SB_SPEEDS.some(([k])=>k===zone)){d.movement.flight ||= Object.fromEntries(SB_SPEEDS.map(([k])=>[k,null]));d.movement.flight[zone]=value;return true;}
+  if(parts.length===3&&group==='movement'&&key==='hover'&&SB_SPEEDS.some(([k])=>k===zone)){d.movement.hover ||= Object.fromEntries(SB_SPEEDS.map(([k])=>[k,null]));d.movement.hover[zone]=value;return true;}
   if(parts.length===2 && ((group==='movement'&&SB_SPEEDS.some(([k])=>k===key))||(group==='carrying'&&SB_CARRY.some(([k])=>k===key)))){d[group][key]=value;return true;}
   return false;
 }
@@ -13108,6 +13123,7 @@ function sbBonus(d,key){return d.bonuses[key]??(d.stats[key]==null?null:Math.flo
 function sbDerivedFallback(d,path){
   const [group,key,part]=path.split('.');
   if(group==='movement'&&key==='flight'){const rating=sbFlightRating(d),item=SB_SPEEDS.find(([k])=>k===part);return rating==null||!item?null:rating*item[2];}
+  if(group==='movement'&&key==='hover'){const rating=sbHoverRating(d),item=SB_SPEEDS.find(([k])=>k===part);return rating==null||!item?null:rating*item[2];}
   if(group==='bonuses')return sbBonus(d,key);
   if(group==='movement'){const bonus=sbBonus(d,'lov'),item=SB_SPEEDS.find(([k])=>k===key);return bonus==null?null:bonus*item[2];}
   if(group==='carrying'){const t=sbBonus(d,'wyn'),s=sbBonus(d,'sil');if(t==null||s==null)return null;const index=SB_CARRY.findIndex(([k])=>k===key);return parseFloat(String(carryTable[Math.max(0,Math.min(t+s,20))][index]).replace(',','.'));}
@@ -13127,7 +13143,7 @@ function sbParametersHtml(d){
   const armour=sbChip('bonuses.wyn','Мод. ВЫН',d.bonuses.wyn,tb,'sb-toughness')+SB_BODY_ZONES.map(([key,label])=>SB.draft
     ?sbChip('defence.zones.'+key,label,d.defence.zones[key])
     :`<div class="sb-param-chip ${d.defence.covered[key]?'sb-shield-active':''}"><span class="sb-param-label">${label}</span><button type="button" class="sb-chip-value" data-sb-shield="${key}" aria-label="Щит: ${label}" aria-pressed="${!!d.defence.covered[key]}" title="Включить или убрать модификатор щита">${sbArmourValue(d,key)??'—'}</button></div>`).join('')+sbChip('defence.shield','Мод. щита',d.defence.shield,0,'sb-shield-mod');
-  return `<div class="sb-param-row"><div class="sb-armour-heading"><h3>Броня</h3>${sbArmourChoiceHtml(d)}</div><div class="sb-param-chips sb-armour-chips">${armour}</div></div>${sbArmourExtrasHtml(d)}<div class="sb-param-row sb-speed-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div>${sbFlightHtml(d)}<div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
+  return `<div class="sb-param-row"><div class="sb-armour-heading"><h3>Броня</h3>${sbArmourChoiceHtml(d)}</div><div class="sb-param-chips sb-armour-chips">${armour}</div></div>${sbArmourExtrasHtml(d)}<div class="sb-param-row sb-speed-row"><h3>Скорости</h3><div class="sb-param-chips">${SB_SPEEDS.map(([k,n,m])=>sbChip('movement.'+k,n,d.movement[k],ab==null?null:ab*m)).join('')}</div></div>${sbFlightHtml(d)}${sbHoverHtml(d)}<div class="sb-param-row"><h3>Грузоподъёмность</h3><div class="sb-param-chips">${SB_CARRY.map(([k,n],i)=>sbChip('carrying.'+k,n+', кг',d.carrying[k],sbDerivedFallback(d,'carrying.'+k))).join('')}</div></div>`+(['armour','speed','carry'].some(k=>p[k])?`<details class="sb-legacy"><summary>Ранее внесённые параметры</summary>${[['armour','Броня'],['speed','Скорости'],['carry','Грузоподъёмность']].filter(([k])=>p[k]).map(([k,n])=>sbInput('parameters.'+k,n,p[k],{multiline:true})).join('')}</details>`:'');
 }
 function sbSkillsHtml(d){
   const panes=['basic','adv'].map(key=>`<div class="panel-tab-body skills-group-pane ${sbSkillPane===key?'active':''}"><button type="button" class="skill-filter-toggle" data-sb-expand="${key}" aria-expanded="${!!d['show_untrained_'+key]}">${d['show_untrained_'+key]?'Свернуть':'Развернуть'} ${key==='basic'?'нетренированные':'недоступные'}</button><div id="sb-skills-${key}-render"></div></div>`).join('');
@@ -14327,7 +14343,7 @@ sbArmourValue=function(d,key){const base=sbArmourBeforePlay(d,key);return base==
 const sbChipBeforePlay=sbChip;
 sbChip=function(path,label,value,fallback=null,tone=''){
  if(!SB.draft&&path.startsWith('movement.')){
-  const d=sbData(),data=sbEffectiveData(d),flight=path.startsWith('movement.flight.'),m=SB_SPEEDS.find(([k])=>k===path.split('.').at(-1))?.[2]||1;
+  const d=sbData(),data=sbEffectiveData(d),flight=/^movement\.(flight|hover)\./.test(path),m=SB_SPEEDS.find(([k])=>k===path.split('.').at(-1))?.[2]||1;
   if(value==null&&flight){const base=sbDerivedFallback(d,path);fallback=base==null?null:(base+modsAdd(data,'indicator','speed','pre')*m)*modsMul(data,'indicator','speed')+modsAdd(data,'indicator','speed','post')*m;}
   else if(value==null)fallback=effSpeed(data,m);
   else value=(Number(value)+modsAdd(data,'indicator','speed','pre')*m)*modsMul(data,'indicator','speed')+modsAdd(data,'indicator','speed','post')*m;
