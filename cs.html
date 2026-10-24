@@ -17596,7 +17596,7 @@ async function warpStart(continuing){
  const power=WARP.power||WARP_GENERIC_POWER,variant=generic?WARP_GENERIC_POWER.combat_rules.variants[0]:WARP.variant;if(!variant)return;
  if(!Number.isSafeInteger(WARP.turns)||WARP.turns<0||WARP.turns>999){$('warp-error').textContent='Введите целое число ходов от 0 до 999.';return;}
  if(continuing&&!warpSupported(power)){$('warp-error').textContent='Поддержание этой силы прекращено.';return;}
- const context={owner:S.character,power,variant,continuing,generic,pr:warpUsedPr(power,WARP.turns),talent_conduit:TAL.warp&&talHas(S.character.character_data,66)&&S.character.character_data.psy?.mode==='push',turns:WARP.turns};
+ const context={owner:S.character,power,variant,continuing,generic,mode:S.character.character_data.psy.mode,pr:warpUsedPr(power,WARP.turns),talent_conduit:TAL.warp&&talHas(S.character.character_data,66)&&S.character.character_data.psy?.mode==='push',turns:WARP.turns};
  if(!generic&&context.pr<1){$('warp-error').textContent='Для применения силы нужен итоговый ПР не меньше 1.';return;}
  if(continuing||variant.focus===false){
   WARP.busy=true;try{if(variant.attack)await warpAutomatic(context);else{closeSheetModal('warp-modal');showInfo(power.name+' · '+variant.label,power.description);}}catch(e){$('warp-error').textContent=e.message;}finally{WARP.busy=false;}return;
@@ -17653,7 +17653,7 @@ openRoll=function(opts){ROLL.warpOn={};return warpOpenRoll(opts);};
 callRollApi=async function(body){
  const w=ROLL.action?.warp;
  let request=body;
- if(body.action==='roll'&&w&&w.stage!=='bs')request={...body,psychic_test:true,is_attack:w.variant.attack===true&&w.variant.hit==='focus',zone_mode:w.variant.hit==='focus'?(w.variant.zone||'reverse'):'none'};
+ if(body.action==='roll'&&w&&w.stage!=='bs')request={...body,psychic_test:true,psychic_context:{mode:w.mode,effective_pr:w.pr,bonus:5*w.pr},is_attack:w.variant.attack===true&&w.variant.hit==='focus',zone_mode:w.variant.hit==='focus'?(w.variant.zone||'reverse'):'none'};
  if(body.action==='roll-location'&&sbActorActive()){
   if(!await mwNpcSend()){const die=sbRandomDie(100);return {d100:die,target:100,mod:0,threshold:100,success:true,degrees:0,delivered:false,skip:'npc_local',location_only:true,hit_location:warpLocation(body.zone_mode,die)};}
   const owner=S.character;if(!await sbFlushQuick())throw Error('Не удалось сохранить НПЦ.');if(S.character!==owner)throw Error('НПЦ изменился.');request={...body,statblock_id:SB.record.id,chronicle_id:SB.chronicleId};delete request.character_id;
@@ -19168,7 +19168,9 @@ setGearEquipped=function(row,equipped){RQ_LAYOUT_BASE.setGearEquipped(row,equipp
 <style id="warp-mode-chip-style">
 #tab-psy .psy-toggle,#warp-modal .warp-mode-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;border:0}
 #tab-psy .psy-toggle .psy-opt,#warp-modal .warp-mode-chip{box-sizing:border-box;min-width:0;width:100%;margin:0;padding:7px 2px!important;border:1px solid var(--border-dark)!important;border-image:none!important;border-radius:16px!important;clip-path:none!important;background:#101012;color:var(--text-dim);font:inherit;font-size:12px!important;letter-spacing:0!important;text-transform:none!important;white-space:nowrap;cursor:pointer}
-#tab-psy .psy-toggle .psy-opt.active,#warp-modal .warp-mode-chip.active{border-color:var(--border-gold,#a8862f)!important;color:var(--gold,#c9a24b);background:rgba(168,134,47,.14);box-shadow:none}
+#tab-psy .psy-toggle .psy-opt.active[data-psy="bound"],#warp-modal .warp-mode-chip.active[data-warp-mode="bound"]{border-color:#8a8a93!important;color:#b8b8c0;background:rgba(160,160,170,.1);box-shadow:none}
+#tab-psy .psy-toggle .psy-opt.active[data-psy="unbound"],#warp-modal .warp-mode-chip.active[data-warp-mode="unbound"]{border-color:var(--blue,#4a90c9)!important;color:var(--blue,#4a90c9);background:rgba(74,144,201,.2);box-shadow:none}
+#tab-psy .psy-toggle .psy-opt.active[data-psy="push"],#warp-modal .warp-mode-chip.active[data-warp-mode="push"]{border-color:#7a6cd6!important;color:#b3a8ea;background:rgba(106,90,205,.22);box-shadow:none}
 #tab-psy .psy-opt:focus-visible,#warp-modal .warp-mode-chip:focus-visible{outline:2px solid var(--gold,#c9a24b);outline-offset:2px}
 #warp-generic-use{max-width:100%;box-sizing:border-box;white-space:normal!important}
 #tab-psy .psy-opt::before,#tab-psy .psy-opt::after,#warp-modal .warp-mode-chip::before,#warp-modal .warp-mode-chip::after{display:none!important}
