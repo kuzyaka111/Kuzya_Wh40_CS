@@ -16629,24 +16629,25 @@ function npcAmmoCanEdit(){
 }
 function npcAmmoCaptureContext(row,index){
   const token=String(++npcAmmoContextSequence);
-  NPC_AMMO_CONTROL_CONTEXTS.set(token,{row,index,draft:SB.draft,record:SB.record,recordId:SB.record?.id,recordRevision:SB.record?.revision,chronicle:S.chronicle,chronicleId:SB.chronicleId});
+  NPC_AMMO_CONTROL_CONTEXTS.set(token,{row,index,data:sbData(),draft:SB.draft,record:SB.record,recordId:SB.record?.id,recordRevision:SB.record?.revision,chronicle:S.chronicle,chronicleId:SB.chronicleId});
   return token;
 }
 function npcAmmoContextRow(index,token){
   const context=NPC_AMMO_CONTROL_CONTEXTS.get(String(token));
-  if(!context||!npcAmmoCanEdit()||context.index!==index||context.draft!==SB.draft||context.record!==SB.record||context.recordId!==SB.record.id||context.recordRevision!==SB.record.revision||context.chronicle!==S.chronicle||context.chronicleId!==SB.chronicleId||SB.draft.weapons?.[index]!==context.row||!npcAmmoIsStock(context.row))return null;
+  if(!context||!sbAllowed()||SB.busy||!SB.record||SB.chronicleId!==S.chronicle?.id||context.index!==index||context.draft!==SB.draft||context.data!==sbData()||context.record!==SB.record||context.recordId!==SB.record.id||context.recordRevision!==SB.record.revision||context.chronicle!==S.chronicle||context.chronicleId!==SB.chronicleId||sbData().weapons?.[index]!==context.row||!npcAmmoIsStock(context.row))return null;
   return context.row;
 }
 function npcAmmoDraftRow(index,token=null){
-  if(!npcAmmoCanEdit()||!Number.isSafeInteger(index)||index<0)return null;
+  if(!Number.isSafeInteger(index)||index<0)return null;
   if(token!=null)return npcAmmoContextRow(index,token);
+  if(!npcAmmoCanEdit())return null;
   const row=SB.draft.weapons?.[index];
   return npcAmmoIsStock(row)?row:null;
 }
 function npcAmmoSetQuantity(index,value,token=null){
   const row=npcAmmoDraftRow(index,token),quantity=npcAmmoQuantity(value);
   if(!row||quantity==null)return false;
-  if(row.quantity!==quantity){row.quantity=quantity;sbTouch();}
+  if(row.quantity!==quantity){if(SB.draft){row.quantity=quantity;sbTouch();}else{const next=sbClone(sbData());next.weapons[index].quantity=quantity;SB.draft=next;sbQueueQuick();}}
   return true;
 }
 function npcAmmoStep(index,delta,token=null){
@@ -16659,8 +16660,8 @@ function npcAmmoStep(index,delta,token=null){
 function npcAmmoStockHtml(row,index){
   const quantity=npcAmmoQuantity(row.quantity),unit=npcAmmoUnitLabel(npcAmmoRowUnit(row),quantity),editing=!!SB.draft;
   const originalQuantity=quantity==null&&row.quantity!=null&&String(row.quantity)!==''?String(row.quantity):null;
-  const token=editing?npcAmmoCaptureContext(row,index):'',context=`data-npc-ammo-context="${token}"`;
-  const controls=editing?`${originalQuantity!=null?`<span class="npc-ammo-unknown">${esc(originalQuantity)}</span>`:''}<span class="npc-ammo-controls"><button type="button" class="ammo-step" data-npc-ammo-step="-1" data-npc-ammo-index="${index}" ${context} aria-label="Уменьшить запас: ${esc(row.name)}"${quantity==null||quantity===0?' disabled':''}>−</button><input type="number" min="0" max="${NPC_AMMO_MAX_QUANTITY}" step="1" data-npc-ammo-quantity="${index}" ${context} value="${quantity??''}" placeholder="—" aria-label="Количество боеприпасов: ${esc(row.name)}"><button type="button" class="ammo-step" data-npc-ammo-step="1" data-npc-ammo-index="${index}" ${context} aria-label="Увеличить запас: ${esc(row.name)}"${quantity==null||quantity===NPC_AMMO_MAX_QUANTITY?' disabled':''}>+</button></span>`:`<b>${quantity??esc(originalQuantity??'—')}</b>`;
+  const token=npcAmmoCaptureContext(row,index),context=`data-npc-ammo-context="${token}"`;
+  const controls=`${originalQuantity!=null?`<span class="npc-ammo-unknown">${esc(originalQuantity)}</span>`:''}<span class="npc-ammo-controls"><button type="button" class="ammo-step" data-npc-ammo-step="-1" data-npc-ammo-index="${index}" ${context} aria-label="Уменьшить запас: ${esc(row.name)}"${quantity==null||quantity===0?' disabled':''}>−</button><input type="number" min="0" max="${NPC_AMMO_MAX_QUANTITY}" step="1" data-npc-ammo-quantity="${index}" ${context} value="${quantity??''}" placeholder="—" aria-label="Количество боеприпасов: ${esc(row.name)}"><button type="button" class="ammo-step" data-npc-ammo-step="1" data-npc-ammo-index="${index}" ${context} aria-label="Увеличить запас: ${esc(row.name)}"${quantity==null||quantity===NPC_AMMO_MAX_QUANTITY?' disabled':''}>+</button></span>`;
   const linked=npcAmmoLinkedWeapons(row),hasLinks=Array.isArray(row.ammo_weapon_keys)&&row.ammo_weapon_keys.length>0;
   const existingKeys=new Set(linked.map(weapon=>weapon.ammo_key)),missing=hasLinks&&row.ammo_weapon_keys.some(key=>!existingKeys.has(key));
   return `<div class="npc-ammo-stock"><span>Количество:</span>${controls}<span data-npc-ammo-unit="${index}">${esc(unit)}</span></div>${hasLinks?`<div class="npc-ammo-links">Для оружия: ${linked.length?linked.map(weapon=>esc(weapon.name)).join(', ')+(missing?' · часть оружия отсутствует':''):'оружие отсутствует'}</div>`:''}`;
@@ -16696,7 +16697,7 @@ function npcAmmoInputValid(input,row){
   return valid&&input.checkValidity();
 }
 $('sb-root').addEventListener('input',event=>{
-  const input=event.target;if(!input.matches('[data-npc-ammo-quantity]'))return;
+  const input=event.target;if(!input.matches('[data-npc-ammo-quantity]')||!SB.draft)return;
   const index=Number(input.dataset.npcAmmoQuantity),token=input.dataset.npcAmmoContext||'',row=npcAmmoDraftRow(index,token);if(!row)return;
   if(npcAmmoInputValid(input,row)&&npcAmmoQuantity(input.value)!=null){npcAmmoSetQuantity(index,input.value,token);npcAmmoRefreshControl(input);}
 });
@@ -18905,11 +18906,12 @@ const PE_PLAY_SELECTORS=[
  '[data-sb-play]:not([data-sb-play="menu"])','[data-sb-link-remove]'
 ].join(',');
 function peCurrentVital(el){return el.matches('[data-vit]')||el.matches('[data-sb-number]')&&/^(vitals\.(health|critical|fatigue|fate)|horde\.magnitude)$/.test(el.dataset.sbNumber);}
+function peCurrentStock(el){return el.matches('[data-ammo-cur],[data-gear-cur],[data-gear-qty-input],[data-gear-qty-minus],[data-gear-qty-plus],[data-dw-ammo],[data-dw-rockets],[data-npc-ammo-quantity],[data-npc-ammo-step]');}
 function peRule(el){
  if(!el||el.closest('#squad-root,#squad-picker,#squad-create'))return null;
  if(el.closest('[data-pe-resource],#pe-resource-modal,#pe-injury-modal'))return null;
  if(peInitialChoice()&&el.closest('[data-hfx-choice],[data-hfx-duel],[data-hfx-duel-plus]'))return null;
- if(peCurrentVital(el))return null;
+ if(peCurrentVital(el)||peCurrentStock(el))return null;
  const inline=el.closest('[onclick]')?.getAttribute('onclick')||'';
  if(inline)for(const mode of ['edit','play'])if(PE_GUARDS[mode].some(name=>new RegExp('\\b'+name+'\\s*\\(').test(inline)))return mode;
  if(el.matches('[data-sb-number]'))return 'edit';
@@ -19010,12 +19012,9 @@ function peRefresh(){
  document.querySelectorAll('[data-info-field="primarch_curse"]').forEach(el=>{el.readOnly=false;});
  document.querySelectorAll('#custom-action-modal,#action-create,[data-action-create]').forEach(el=>el.classList.add('pe-hidden'));
  document.querySelectorAll('[data-pe-resource]').forEach(el=>el.classList.toggle('pe-hidden',editing));
- root.querySelectorAll('[data-vit],[data-gear-qty-input],[data-gear-cur],[data-ammo-cur],[data-dw-ammo],[data-dw-rockets],[data-npc-ammo-quantity],[data-sb-number]').forEach(input=>{
-  if(editing||peCurrentVital(input)||!peResourceRef(input)||input.nextElementSibling?.hasAttribute('data-pe-resource'))return;
-  const button=document.createElement('button');button.type='button';button.className='pe-resource';button.setAttribute('data-pe-resource','');button.textContent='Расход';button.onclick=e=>{e.stopPropagation();peOpenResource(input);};input.after(button);
- });
+
  if(peNpc()&&!editing){
- root.querySelectorAll('[data-npc-ammo-unit]').forEach(el=>{if(el.nextElementSibling?.hasAttribute('data-pe-resource'))return;const b=document.createElement('button');b.type='button';b.className='pe-resource';b.setAttribute('data-pe-resource','');b.textContent='Расход';b.onclick=()=>peOpenResource(el);el.after(b);});
+
  const panel=root.querySelector('.sb-injuries-panel');if(panel&&!panel.querySelector('[data-pe-injury-add]')){
   const add=document.createElement('button');add.type='button';add.className='pe-resource';add.textContent='Добавить травму / повреждение';add.setAttribute('data-pe-injury-add','');add.onclick=peNpcInjury;panel.append(add);
   panel.querySelectorAll('.sb-entry').forEach((entry,index)=>{const b=document.createElement('button');b.type='button';b.className='pe-resource';b.textContent='Убрать';b.onclick=()=>peRemoveNpcInjury(index);entry.append(b);});
