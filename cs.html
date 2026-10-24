@@ -2563,9 +2563,9 @@ body[data-vox-art="on"] .modal .box{border-color:transparent;border-image-source
           <div class="psy-rating-eff"><span>Эффективный рейтинг</span><span class="psy-rating-val" id="psy-rating-display">0</span></div>
           <div class="sub-label">Пси-мощь</div>
           <div class="psy-toggle">
-            <div class="psy-opt active" data-psy="bound" data-tooltip="Скованная: Пси-рейтинг ÷ 2 (округление вверх)">Скованная</div>
-            <div class="psy-opt" data-psy="unbound" data-tooltip="Нескованная: Пси-рейтинг без изменений">Нескованная</div>
-            <div class="psy-opt" data-psy="push" data-tooltip="Усиленная: Пси-рейтинг + 3 (опасно!)">Усиленная</div>
+            <button type="button" class="psy-opt active" data-psy="bound" aria-pressed="true" data-tooltip="Скованная: Пси-рейтинг ÷ 2 (округление вверх)">Скованная</button>
+            <button type="button" class="psy-opt" data-psy="unbound" aria-pressed="false" data-tooltip="Нескованная: Пси-рейтинг без изменений">Нескованная</button>
+            <button type="button" class="psy-opt" data-psy="push" aria-pressed="false" data-tooltip="Усиленная: Пси-рейтинг + 3 (опасно!)">Усиленная</button>
           </div>
           <div class="ammo-fold psy-supported-fold" data-fold="psy-supported-wrap"><span>Поддерживаемые пси-силы</span><span class="chevron">▾</span></div>
           <div id="psy-supported-wrap" class="psy-supported-wrap">
@@ -8155,7 +8155,7 @@ function renderPsy(){
   const base = $('psy-rating-base');
   base.value = permanentPsiRating(d);
   document.querySelectorAll('.psy-opt').forEach(o =>
-    o.classList.toggle('active', o.dataset.psy === d.psy.mode));
+    {o.classList.toggle('active', o.dataset.psy === d.psy.mode);o.setAttribute('aria-pressed',String(o.dataset.psy===d.psy.mode));});
   updatePsyRating();
   renderPsySupported();
 }
@@ -17518,6 +17518,23 @@ voxRestoreFile=async function(file){
 <script data-feature="warp-powers">
 // Approved psychic power workflow. Metadata comes from the live power catalogue.
 const WARP={catalog:null,loading:null,owner:null,power:null,variant:null,continuing:false,turns:0,busy:false};
+const WARP_GENERIC_POWER={id:null,name:'Общая проверка',sustained:false,combat_rules:{variants:[{key:'generic',label:'Общая проверка',attack:false,hit:'focus'}],continuation:[]}};
+const WARP_MODE_LABELS=[['bound','Скованная'],['unbound','Нескованная'],['push','Усиленная']];
+function warpModeHtml(){
+ const mode=S.character.character_data.psy.mode;
+ return '<div class="sub-label">Пси-мощь</div><div class="warp-mode-chips" role="group" aria-label="Уровень Мощи">'+WARP_MODE_LABELS.map(([key,label])=>'<button type="button" class="warp-mode-chip'+(mode===key?' active':'')+'" data-warp-mode="'+key+'" aria-pressed="'+(mode===key)+'">'+label+'</button>').join('')+'</div>';
+}
+function warpBindModes(){
+ const owner=WARP.owner,data=owner?.character_data;
+ $('warp-content').querySelectorAll('[data-warp-mode]').forEach(button=>button.onclick=()=>{
+  if(S.character!==owner||owner.character_data!==data||peEditing()||WARP.busy)return;
+  data.psy.mode=button.dataset.warpMode;renderPsy();debouncedSave();$('warp-error').textContent='';warpDraw();
+ });
+}
+function warpPrHtml(power,turns=0){
+ const pr=warpUsedPr(power||WARP_GENERIC_POWER,turns);
+ return '<p class="desc">Используемый ПР: <b id="warp-pr">'+pr+'</b> · Бонус к проверке: <b id="warp-pr-bonus">+'+(5*pr)+'</b></p>';
+}
 async function warpCatalog(){
  if(WARP.catalog)return WARP.catalog;
  if(!WARP.loading)WARP.loading=(async()=>{const {data,error}=await sb.from('psi_powers').select('id,name,description,sustained,combat_rules');if(error)throw error;if(!Array.isArray(data))throw Error('Нет справочника пси-сил.');WARP.catalog=data;return data;})().finally(()=>WARP.loading=null);
@@ -17541,26 +17558,28 @@ function warpMount(){
 }
 async function warpOpen(){
  warpMount();WARP.owner=S.character;WARP.power=null;WARP.variant=null;WARP.continuing=false;WARP.turns=0;
- $('warp-content').textContent='Загрузка доступных пси-сил…';$('warp-error').textContent='';openSheetModal('warp-modal');
- const owner=WARP.owner;try{await warpCatalog();if(S.character!==owner||WARP.owner!==owner)return;warpDraw();}catch(e){$('warp-error').textContent='Не удалось загрузить пси-силы. '+e.message;}
+ $('warp-error').textContent='';openSheetModal('warp-modal');warpDraw();
+ const owner=WARP.owner;try{await warpCatalog();if(S.character!==owner||WARP.owner!==owner||!$('warp-modal').classList.contains('active'))return;warpDraw();}catch(e){if(S.character===owner&&WARP.owner===owner&&$('warp-modal').classList.contains('active'))$('warp-error').textContent='Не удалось загрузить список пси-сил. Общая проверка доступна. '+e.message;}
 }
 function warpDraw(){
  if(S.character!==WARP.owner)return;
  const known=warpKnown(),power=WARP.power,variants=power?warpVariants(power):[],supported=power&&warpSupported(power);
  const variant=WARP.variant;const host=$('warp-content');
- host.innerHTML='<label>Доступные пси-силы<select id="warp-power" class="editable-field"><option value="">Выберите пси-силу…</option>'+known.map(x=>'<option value="'+x.power.id+'"'+(x.power===power?' selected':'')+'>'+esc(x.row.name||x.power.name)+'</option>').join('')+'</select></label>'
- +(known.length?'':'<p class="desc">Нет известных пси-сил с проверенными правилами применения.</p>')
+ host.innerHTML=warpModeHtml()+'<label>Пси-сила (необязательно)<select id="warp-power" class="editable-field"><option value="">Без выбора пси-силы — общая проверка</option>'+known.map(x=>'<option value="'+x.power.id+'"'+(x.power===power?' selected':'')+'>'+esc(x.row.name||x.power.name)+'</option>').join('')+'</select></label>'
+ +(known.length?'':'<p class="desc">'+(WARP.catalog?'Нет известных пси-сил с проверенными правилами применения. Общая проверка доступна.':'Список пси-сил загружается. Общая проверка уже доступна.')+'</p>')
  +(power?'<div class="warp-details"><div class="desc">'+esc(psiMetaParts(power.description).head||power.description.split('\n')[0])+'</div><details><summary>Описание и особые правила</summary><div class="warp-description">'+descHtml(power.description)+'</div></details>'
  +(variants.length>1?'<label>Применение<select id="warp-variant" class="editable-field">'+variants.map(v=>'<option value="'+escAttr(v.key)+'"'+(v===variant?' selected':'')+'>'+esc(v.label)+'</option>').join('')+'</select></label>':'')
  +'<p class="desc">'+esc(variant?.attack?'Атака · '+({focus:'попадание по проверке Варпа',automatic:'автоматическое попадание',bs:'дополнительная проверка ДБ'}[variant.hit]||'автоматическое попадание'):'Воздействие без определения зоны')+'</p>'
  +'<p class="desc">'+(supported?'Сила уже поддерживается.':'Поддержание: '+(power.sustained?'да':'нет'))+'</p>'
  +(power.id===67?'<label>Количество ходов поддержания<input id="warp-turns" class="editable-field" type="number" min="0" max="999" step="1" value="'+WARP.turns+'"></label><p class="desc">0 — первоначальное применение. Каждый ход поддержания даёт этой силе +1 ПР.</p>':'')
- +'<p class="desc">Используемый ПР: <b id="warp-pr">'+warpUsedPr(power,WARP.turns)+'</b></p>'
+ +warpPrHtml(power,WARP.turns)
  +'<div class="roll-result-acts"><button type="button" class="modal-confirm" id="warp-use">Использовать силу</button>'
- +(supported&&power.combat_rules.continuation?.length?'<button type="button" class="modal-confirm" id="warp-continue">Атаковать поддерживаемой силой</button>':'')+'</div></div>':'');
+ +(supported&&power.combat_rules.continuation?.length?'<button type="button" class="modal-confirm" id="warp-continue">Атаковать поддерживаемой силой</button>':'')+'</div></div>':warpPrHtml(null)+'<div class="roll-result-acts"><button type="button" class="modal-confirm" id="warp-generic-use">Пройти проверку</button></div>');
+ warpBindModes();
+ if($('warp-generic-use'))$('warp-generic-use').onclick=()=>warpStart(false);
  $('warp-power').onchange=e=>{WARP.power=known.find(x=>String(x.power.id)===e.target.value)?.power||null;WARP.variant=WARP.power?warpVariants(WARP.power)[0]:null;WARP.turns=0;warpDraw();};
  if($('warp-variant'))$('warp-variant').onchange=e=>{WARP.variant=variants.find(v=>v.key===e.target.value);warpDraw();};
- if($('warp-turns'))$('warp-turns').oninput=e=>{const n=Number(e.target.value);WARP.turns=Number.isSafeInteger(n)&&n>=0&&n<=999?n:NaN;$('warp-pr').textContent=Number.isFinite(WARP.turns)?warpUsedPr(power,WARP.turns):'Введите целое число ходов';};
+ if($('warp-turns'))$('warp-turns').oninput=e=>{const n=Number(e.target.value);WARP.turns=Number.isSafeInteger(n)&&n>=0&&n<=999?n:NaN;$('warp-pr').textContent=Number.isFinite(WARP.turns)?warpUsedPr(power,WARP.turns):'Введите целое число ходов';$('warp-pr-bonus').textContent=Number.isFinite(WARP.turns)?'+'+(5*warpUsedPr(power,WARP.turns)):'—';};
  if($('warp-use'))$('warp-use').onclick=()=>warpStart(false);
  if($('warp-continue'))$('warp-continue').onclick=()=>warpContinuation();
 }
@@ -17572,18 +17591,19 @@ function warpContinuation(){
  $('warp-content').querySelectorAll('[data-warp-cont]').forEach(b=>b.onclick=()=>{WARP.variant=variants.find(v=>v.key===b.dataset.warpCont);warpStart(true);});
 }
 async function warpStart(continuing){
- if(WARP.busy||S.character!==WARP.owner||!WARP.power||!WARP.variant)return;
- const power=WARP.power,variant=WARP.variant;
+ if(WARP.busy||S.character!==WARP.owner)return;
+ const generic=!WARP.power;if(generic&&continuing)return;
+ const power=WARP.power||WARP_GENERIC_POWER,variant=generic?WARP_GENERIC_POWER.combat_rules.variants[0]:WARP.variant;if(!variant)return;
  if(!Number.isSafeInteger(WARP.turns)||WARP.turns<0||WARP.turns>999){$('warp-error').textContent='Введите целое число ходов от 0 до 999.';return;}
  if(continuing&&!warpSupported(power)){$('warp-error').textContent='Поддержание этой силы прекращено.';return;}
- const context={owner:S.character,power,variant,continuing,pr:warpUsedPr(power,WARP.turns),turns:WARP.turns};
- if(context.pr<1){$('warp-error').textContent='Для применения силы нужен итоговый ПР не меньше 1.';return;}
+ const context={owner:S.character,power,variant,continuing,generic,pr:warpUsedPr(power,WARP.turns),turns:WARP.turns};
+ if(!generic&&context.pr<1){$('warp-error').textContent='Для применения силы нужен итоговый ПР не меньше 1.';return;}
  if(continuing||variant.focus===false){
   WARP.busy=true;try{if(variant.attack)await warpAutomatic(context);else{closeSheetModal('warp-modal');showInfo(power.name+' · '+variant.label,power.description);}}catch(e){$('warp-error').textContent=e.message;}finally{WARP.busy=false;}return;
  }
  closeSheetModal('warp-modal');
  const row={code:'focus_power',requires_weapon:false,subtypes:variant.attack?['attack']:[],check_targets:[{kind:'stat',key:'sv'}],modifiers:[]};
- openRoll({kind:'stat',action:{name:'Использование Варпа · '+power.name+' · '+variant.label,row,owner:S.character,warp:context,action_type:'variable'}});
+ openRoll({kind:'stat',action:{name:generic?'Использование Варпа':'Использование Варпа · '+power.name+' · '+variant.label,row,owner:S.character,warp:context,action_type:'variable'}});
 }
 async function warpAutomatic(context,attackResult=null){
  if(S.character!==context.owner)throw Error('Персонаж изменился. Откройте силу заново.');
@@ -17649,7 +17669,7 @@ showRollResult=function(r){
  if(r.location_only){const eq=$('roll-result').querySelector('.roll-eq'),verdict=$('roll-result').querySelector('.roll-verdict');if(eq)eq.textContent='д100 для определения зоны';if(verdict)verdict.textContent='Автоматическое попадание';}
  const location=r.success&&r.hit_location;
  if(location&&location.value==null){const el=$('roll-result').querySelector('.roll-hit-location');if(el)el.textContent='Зона попадания: '+location.name;if(r.location_only){const big=$('roll-result').querySelector('.roll-big');if(big)big.hidden=true;const eq=$('roll-result').querySelector('.roll-eq');if(eq)eq.textContent='Зона задана правилом силы';}}
- const w=ROLL.action?.warp;if(!w||!r.success||w.stage==='bs')return;
+ const w=ROLL.action?.warp;if(!w||!r.success||w.stage==='bs'||w.generic)return;
  warpActivate(w);
  if(w.variant.attack&&w.variant.hit!=='focus'){
   const b=document.createElement('button');b.type='button';b.className='modal-confirm';b.textContent=w.variant.hit==='bs'?'Проверка ДБ':'Определить зону';$('roll-result').append(b);
@@ -18745,7 +18765,7 @@ warpAutomatic=async function(context,attackResult=null){
     fresh.onclick=id==='roll-again'?()=>warpAutomatic(context,attackResult).catch(pdError):()=>warpOpen().then(()=>{if(S.character!==context.owner)return;WARP.power=context.power;WARP.variant=warpVariants(context.power)[0];WARP.turns=context.turns||0;warpDraw();});}
 };
 showRollResult=function(result){
-  PD_BASE.showRollResult(result);const context=ROLL.action?.warp||PD.automatic;if(!context)return;
+  PD_BASE.showRollResult(result);const context=ROLL.action?.warp||PD.automatic;if(!context||context.generic)return;
   $('roll-damage')?.remove();$('pd-result-damage')?.remove();pdRemember(context,result);
   if(!context.variant.attack||!pdProfiles(context.power).length)return;
   const button=document.createElement('button');button.type='button';button.id='pd-result-damage';button.className='modal-confirm';button.textContent='Бросить урон';const owner=S.character,saved=pdLast(context.power);
@@ -19145,6 +19165,16 @@ autoLoadWeaponAmmo=function(row){
 };
 setGearEquipped=function(row,equipped){RQ_LAYOUT_BASE.setGearEquipped(row,equipped);if(equipped)autoLoadWeaponAmmo(row);};
 </script>
+<style id="warp-mode-chip-style">
+#tab-psy .psy-toggle,#warp-modal .warp-mode-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;border:0}
+#tab-psy .psy-toggle .psy-opt,#warp-modal .warp-mode-chip{box-sizing:border-box;min-width:0;width:100%;margin:0;padding:7px 2px!important;border:1px solid var(--border-dark)!important;border-image:none!important;border-radius:16px!important;clip-path:none!important;background:#101012;color:var(--text-dim);font:inherit;font-size:12px!important;letter-spacing:0!important;text-transform:none!important;white-space:nowrap;cursor:pointer}
+#tab-psy .psy-toggle .psy-opt.active,#warp-modal .warp-mode-chip.active{border-color:var(--border-gold,#a8862f)!important;color:var(--gold,#c9a24b);background:rgba(168,134,47,.14);box-shadow:none}
+#tab-psy .psy-opt:focus-visible,#warp-modal .warp-mode-chip:focus-visible{outline:2px solid var(--gold,#c9a24b);outline-offset:2px}
+#warp-generic-use{max-width:100%;box-sizing:border-box;white-space:normal!important}
+#tab-psy .psy-opt::before,#tab-psy .psy-opt::after,#warp-modal .warp-mode-chip::before,#warp-modal .warp-mode-chip::after{display:none!important}
+@container psy-indicators (max-width:440px){#tab-psy .psy-toggle .psy-opt{font-size:10px!important;padding:7px 1px!important}}
+@media(max-width:600px){#warp-modal .warp-mode-chip{font-size:10px!important;padding:7px 1px!important}}
+</style>
 </body>
 </html>
 
