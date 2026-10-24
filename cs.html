@@ -18904,10 +18904,12 @@ const PE_PLAY_SELECTORS=[
  '#rq-limit','#ai-instance-wear','[data-sg-ammo]','[data-sg-ammo-confirm]',
  '[data-sb-play]:not([data-sb-play="menu"])','[data-sb-link-remove]'
 ].join(',');
+function peCurrentVital(el){return el.matches('[data-vit]')||el.matches('[data-sb-number]')&&/^(vitals\.(health|critical|fatigue|fate)|horde\.magnitude)$/.test(el.dataset.sbNumber);}
 function peRule(el){
  if(!el||el.closest('#squad-root,#squad-picker,#squad-create'))return null;
  if(el.closest('[data-pe-resource],#pe-resource-modal,#pe-injury-modal'))return null;
  if(peInitialChoice()&&el.closest('[data-hfx-choice],[data-hfx-duel],[data-hfx-duel-plus]'))return null;
+ if(peCurrentVital(el))return null;
  const inline=el.closest('[onclick]')?.getAttribute('onclick')||'';
  if(inline)for(const mode of ['edit','play'])if(PE_GUARDS[mode].some(name=>new RegExp('\\b'+name+'\\s*\\(').test(inline)))return mode;
  if(el.matches('[data-sb-number]'))return 'edit';
@@ -19009,8 +19011,8 @@ function peRefresh(){
  document.querySelectorAll('#custom-action-modal,#action-create,[data-action-create]').forEach(el=>el.classList.add('pe-hidden'));
  document.querySelectorAll('[data-pe-resource]').forEach(el=>el.classList.toggle('pe-hidden',editing));
  root.querySelectorAll('[data-vit],[data-gear-qty-input],[data-gear-cur],[data-ammo-cur],[data-dw-ammo],[data-dw-rockets],[data-npc-ammo-quantity],[data-sb-number]').forEach(input=>{
-  if(editing||!peResourceRef(input)||input.nextElementSibling?.hasAttribute('data-pe-resource'))return;
-  const button=document.createElement('button');button.type='button';button.className='pe-resource';button.setAttribute('data-pe-resource','');button.textContent=peResourceRef(input).stock?'Расход':'Изменить';button.onclick=e=>{e.stopPropagation();peOpenResource(input);};input.after(button);
+  if(editing||peCurrentVital(input)||!peResourceRef(input)||input.nextElementSibling?.hasAttribute('data-pe-resource'))return;
+  const button=document.createElement('button');button.type='button';button.className='pe-resource';button.setAttribute('data-pe-resource','');button.textContent='Расход';button.onclick=e=>{e.stopPropagation();peOpenResource(input);};input.after(button);
  });
  if(peNpc()&&!editing){
  root.querySelectorAll('[data-npc-ammo-unit]').forEach(el=>{if(el.nextElementSibling?.hasAttribute('data-pe-resource'))return;const b=document.createElement('button');b.type='button';b.className='pe-resource';b.setAttribute('data-pe-resource','');b.textContent='Расход';b.onclick=()=>peOpenResource(el);el.after(b);});
