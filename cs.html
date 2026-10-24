@@ -19051,6 +19051,10 @@ new MutationObserver(records=>{if(peRefreshScheduled||!records.some(r=>r.addedNo
 $('action-add-custom')?.remove();$('custom-action-modal')?.remove();
 </script>
 <style id="requisition-layout-ammo-fix-style">
+#adv-requisition .rq-special-weapon-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start}
+#adv-requisition .rq-special-weapon-row>div{min-width:0}
+@media(max-width:800px){#adv-requisition .rq-special-weapon-row{grid-template-columns:minmax(0,1fr);gap:0}}
+
 #adv-requisition .rq-glory-relic-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(190px,1fr);gap:24px;align-items:start}
 #adv-requisition .rq-glory-relic-row>div{min-width:0}
 #adv-requisition .rq-relic-block .rq-chips{margin:10px 0;gap:8px}
@@ -19071,7 +19075,9 @@ $('action-add-custom')?.remove();$('custom-action-modal')?.remove();
 // Terminator-exclusive profiles confirmed by their catalogue descriptions.
 const RQ_TERMINATOR_WEAPONS=new Set([134,151,168,282]);
 let RQ_DREAD='no',RQ_TERMINATOR='no',RQ_WEAPON_CLASS='all',RQ_WEIGHT_CLASS='all';
+const RQ_COMMON_WEIGHT_CLASSES=['Пистолет','Лёгкое','Тяжёлое','Станковое'];
 function rqWeightClass(item){return String(item.stats?.weight_class||'').trim().replace(/^легкое$/i,'Лёгкое').replace(/^тяжелое$/i,'Тяжёлое');}
+function rqWeightMatches(item){const value=rqWeightClass(item);return RQ_WEIGHT_CLASS==='all'||(RQ_WEIGHT_CLASS==='other'?!RQ_COMMON_WEIGHT_CLASSES.includes(value):value===RQ_WEIGHT_CLASS);}
 const RQ_LAYOUT_BASE={rqBudget,rqFilterControls,rqApplyFilters,showGearInfo,setGearEquipped,normalizeAmmoArray};
 function rqIsTerminator(item){return ['weapon_ranged','weapon_melee'].includes(item.stats?.type)&&(item.stats?.terminator_only===true||RQ_TERMINATOR_WEAPONS.has(Number(item.id)));}
 function rqIsDread(item){return ['weapon_ranged','weapon_melee'].includes(item.stats?.type)&&!!item.stats?.dread_compatible;}
@@ -19102,10 +19108,10 @@ rqFilterControls=function(){
  if(categories)extra.append(categories);
  const classes=[...new Set(Object.values(GEAR_MAP).filter(e=>e.stats?.type==='weapon_ranged').map(rqWeaponClass).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
  const weapons=document.createElement('div');weapons.hidden=RQ_FILTER!=='weapon_ranged';weapons.id='rq-weapon-class-options';weapons.innerHTML=rqChoiceChips('class','Тип дальнобойного оружия',RQ_WEAPON_CLASS,[['all','Все'],...classes.map(c=>[c,c])]);extra.append(weapons);
- const weightClasses=[...new Set(['Пистолет','Лёгкое','Тяжёлое','Станковое',...Object.values(GEAR_MAP).filter(e=>e.stats?.type==='weapon_ranged').map(rqWeightClass).filter(Boolean)])];
- const weight=document.createElement('div');weight.hidden=RQ_FILTER!=='weapon_ranged';weight.id='rq-weight-class-options';weight.innerHTML=rqChoiceChips('weight','Класс оружия',RQ_WEIGHT_CLASS,[['all','Все'],...weightClasses.map(c=>[c,c]),['unknown','Не указан']]);extra.append(weight);
+ const weightClasses=[...new Set([...RQ_COMMON_WEIGHT_CLASSES,...Object.values(GEAR_MAP).filter(e=>e.stats?.type==='weapon_ranged').map(rqWeightClass).filter(Boolean)])];
+ const weight=document.createElement('div');weight.hidden=RQ_FILTER!=='weapon_ranged';weight.id='rq-weight-class-options';weight.innerHTML=rqChoiceChips('weight','Класс оружия',RQ_WEIGHT_CLASS,[['all','Все'],...weightClasses.map(c=>[c,c]),['other','Остальное']]);extra.append(weight);
  const tri=[['no','Нет'],['all','Все'],['yes','Да']];
- const special=document.createElement('div');special.innerHTML=rqChoiceChips('dread','Оружие дредноута',RQ_DREAD,tri)+rqChoiceChips('terminator','Терминаторское оружие',RQ_TERMINATOR,tri);extra.append(special);panel.prepend(extra);
+ const special=document.createElement('div');special.className='rq-special-weapon-row';special.innerHTML='<div>'+rqChoiceChips('dread','Оружие дредноута',RQ_DREAD,tri)+'</div><div>'+rqChoiceChips('terminator','Терминаторское оружие',RQ_TERMINATOR,tri)+'</div>';extra.append(special);panel.prepend(extra);
  const glory=panel.querySelector('.rq-glory-options'),gloryLabel=glory.previousElementSibling,relic=panel.querySelector('.rq-relic-block');
  const band=document.createElement('div');band.className='rq-glory-relic-row';gloryLabel.before(band);
  const gloryBlock=document.createElement('div');gloryBlock.className='rq-glory-block';gloryBlock.append(gloryLabel,glory);band.append(gloryBlock,relic);
@@ -19118,7 +19124,7 @@ rqApplyFilters=function(){
  for(const row of host.querySelectorAll('.rq-item')){
   const e=entries.get(row.querySelector('[data-rq-preview]')?.dataset.rqPreview);if(!e)continue;
   const match=(value,flag)=>value==='all'||(value==='yes'?flag:!flag);
-  row.hidden=row.hidden||!match(RQ_DREAD,rqIsDread(e.item))||!match(RQ_TERMINATOR,rqIsTerminator(e.item))||(RQ_FILTER==='weapon_ranged'&&RQ_WEAPON_CLASS!=='all'&&rqWeaponClass(e.item)!==RQ_WEAPON_CLASS)||(RQ_FILTER==='weapon_ranged'&&RQ_WEIGHT_CLASS!=='all'&&(rqWeightClass(e.item)||'unknown')!==RQ_WEIGHT_CLASS);
+  row.hidden=row.hidden||!match(RQ_DREAD,rqIsDread(e.item))||!match(RQ_TERMINATOR,rqIsTerminator(e.item))||(RQ_FILTER==='weapon_ranged'&&RQ_WEAPON_CLASS!=='all'&&rqWeaponClass(e.item)!==RQ_WEAPON_CLASS)||(RQ_FILTER==='weapon_ranged'&&!rqWeightMatches(e.item));
   if(!row.hidden)shown++;
  }
  if($('rq-filter-empty'))$('rq-filter-empty').hidden=shown>0||!host.querySelector('.rq-item');
