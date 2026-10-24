@@ -17596,7 +17596,7 @@ async function warpStart(continuing){
  const power=WARP.power||WARP_GENERIC_POWER,variant=generic?WARP_GENERIC_POWER.combat_rules.variants[0]:WARP.variant;if(!variant)return;
  if(!Number.isSafeInteger(WARP.turns)||WARP.turns<0||WARP.turns>999){$('warp-error').textContent='Введите целое число ходов от 0 до 999.';return;}
  if(continuing&&!warpSupported(power)){$('warp-error').textContent='Поддержание этой силы прекращено.';return;}
- const context={owner:S.character,power,variant,continuing,generic,pr:warpUsedPr(power,WARP.turns),turns:WARP.turns};
+ const context={owner:S.character,power,variant,continuing,generic,pr:warpUsedPr(power,WARP.turns),talent_conduit:TAL.warp&&talHas(S.character.character_data,66)&&S.character.character_data.psy?.mode==='push',turns:WARP.turns};
  if(!generic&&context.pr<1){$('warp-error').textContent='Для применения силы нужен итоговый ПР не меньше 1.';return;}
  if(continuing||variant.focus===false){
   WARP.busy=true;try{if(variant.attack)await warpAutomatic(context);else{closeSheetModal('warp-modal');showInfo(power.name+' · '+variant.label,power.description);}}catch(e){$('warp-error').textContent=e.message;}finally{WARP.busy=false;}return;
@@ -19175,6 +19175,183 @@ setGearEquipped=function(row,equipped){RQ_LAYOUT_BASE.setGearEquipped(row,equipp
 @container psy-indicators (max-width:440px){#tab-psy .psy-toggle .psy-opt{font-size:10px!important;padding:7px 1px!important}}
 @media(max-width:600px){#warp-modal .warp-mode-chip{font-size:10px!important;padding:7px 1px!important}}
 </style>
+<style id="approved-talent-style">.talent-settings{margin:14px 0;padding:12px;border:1px solid var(--border-gold);max-width:100%;box-sizing:border-box}.talent-settings label{display:block;margin:8px 0}.talent-settings select{max-width:100%;padding:6px;background:#151518;color:var(--text-main)}.talent-settings input[type=checkbox]{margin-right:8px}.talent-critical{margin-top:12px;padding:10px;border:1px solid var(--border-dark)}</style>
+<script id="approved-talent-runtime">
+// Approved talent decisions. Derived values never rewrite manual skill characteristics.
+const TAL={on:{},context:'',warp:false};
+function talNorm(s){return String(s||'').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();}
+function talRows(d,id){const name=talNorm(talentById(id)?.name);return (d?.talents||[]).filter(t=>Number(t?.id??t?.talent_id)===id||name&&talNorm(typeof t==='string'?t:t?.name)===name);}
+function talHas(d,id){return talRows(d,id).length>0;}
+function talSetting(d,id,key,fallback=false){const row=talRows(d,id)[0];return row?.talent_settings?.[key]??fallback;}
+function talName(id){return talentById(id)?.name||({16:'Бастион железной воли',41:'Вложенные знания',81:'Мастер-хирургеон',53:'Долг превыше смерти',179:'Мастер клеймора'}[id])||'Талант '+id;}
+function talSkill(sel=ROLL.sel){return actionSkillRow(sel);}
+function talOriginalKey(sel=ROLL.sel){if(sel?.talent_original_key)return sel.talent_original_key;if(sel?.kind==='stat')return sel.statKey;const row=talSkill(sel),gi=String(sel?.id||'').split(':')[2];return CH_KEY[(gi!=null?row?.groups?.[Number(gi)]?.characteristic:null)||row?.characteristic||sel?.characteristic];}
+function talTerminator(d){const a=GEAR_MAP[d?.armour?.item_id];return /terminator/i.test(a?.stats?.silhouette||'')||/терминатор/i.test(a?.name||d?.armour?.name||'');}
+function talSkillChar(d,row,ch){
+ if(talHas(d,173)&&talSetting(d,173,'enabled')&&[11,37,38].includes(Number(row?.id))&&!talTerminator(d))return 'Восприятие';
+ if(talHas(d,167)&&talSetting(d,167,'enabled')&&CH_KEY[ch]==='obsh')return 'Сила';
+ return ch;
+}
+const TAL_BASE={skillBadgeInfo,rollOptions,rollCharKey,rollBaseTarget,rollModRows,rollModRowHtml,openRoll,showRowInfo,gearResolve,renderList,updateDerived,damageDefaults,dm2ModRows,renderDamageRoll,warpUsedPr,warpDraw,warpOpen,conditionRollModifiers};
+const talRenderSkills=renderSkills;
+renderSkills=function(){const result=talRenderSkills(),d=S.character?.character_data;if(!d)return result;for(const el of document.querySelectorAll('[data-skill-roll]')){const [section,i,g]=el.dataset.skillRoll.split(':'),row=d[section]?.[Number(i)];if(!row)continue;const ch=(g!=null?row.groups?.[Number(g)]?.characteristic:null)||row.characteristic,actual=talSkillChar(d,row,ch);const chip=el.closest(g!=null?'.skill-group-row':'.skill-item')?.querySelector('.skill-chip');if(chip&&actual!==ch){chip.textContent=CH_ABBR[actual]||actual;chip.title='Характеристика изменена талантом';}}return result;};
+skillBadgeInfo=function(d,row,level,basicish,chName,...rest){
+ const ch=talSkillChar(d,row,chName||row.characteristic),out=TAL_BASE.skillBadgeInfo(d,row,level,basicish,ch,...rest);
+ if(out.value==null)return out;
+ const lore=talHas(d,41)&&[5,31].includes(Number(row.id))&&['trained','+10','+20'].includes(level),med=talHas(d,81)&&Number(row.id)===27;
+ const bonus=(lore?10:0)+(med?10:0);
+ return bonus?{...out,value:Number(out.value)+bonus,text:String(Number(out.value)+bonus),title:out.title+' · '+(lore?talName(41):talName(81))+' +'+bonus}:out;
+};
+rollOptions=function(){const d=S.character?.character_data;return TAL_BASE.rollOptions().map(o=>{
+ const original=talOriginalKey(o);if(o.kind==='skill'){const row=talSkill(o),ch=talSkillChar(d,row,o.characteristic);return {...o,characteristic:ch,talent_original_key:original};}
+ return {...o,talent_original_key:original};
+});};
+rollCharKey=function(){const d=S.character?.character_data,key=TAL_BASE.rollCharKey();if(talOriginalKey()==='obsh'&&talHas(d,167)&&talSetting(d,167,'enabled'))return 'sil';if(ROLL.sel?.kind==='skill'){const row=talSkill();const gi=String(ROLL.sel.id||'').split(':')[2],ch=(gi!=null?row?.groups?.[Number(gi)]?.characteristic:null)||row?.characteristic||ROLL.sel.characteristic;return CH_KEY[talSkillChar(d,row,ch)]||key;}return key;};
+rollBaseTarget=function(){const d=S.character?.character_data;if(ROLL.sel?.kind==='skill'){const opt=rollOptions().find(o=>o.id===ROLL.sel.id);if(opt)return Number(opt.value)||0;}if(ROLL.sel?.kind==='stat'&&talOriginalKey()==='obsh'&&talHas(d,167)&&talSetting(d,167,'enabled'))return charBase(d,'sil');return TAL_BASE.rollBaseTarget();};
+function talContext(){return [S.character?.id,ROLL.sel?.id,ROLL.sel?.kind,ROLL.sel?.statKey,ROLL.action?.row?.code,ROLL.action?.weapon_id].join('|');}
+function talRollRules(d){
+ const out=[],key=rollCharKey(),original=talOriginalKey(),skill=talSkill(),sid=Number(skill?.id),stat=ROLL.sel?.kind==='stat';
+ const add=(id,value,scope,token='')=>{if(talHas(d,id))out.push({talentRule:id+':'+token,label:talName(id)+(token?' · '+token:''),value,scope,locked:false,on:TAL.on[id+':'+token]===true});};
+ if(key==='bb')for(const id of [4,18,106,148])for(const t of talRows(d,id)){const group=String(t.group||'');add(id,10,group?'Против: '+group:'Подходящего противника определяет игрок',group);}
+ if(key==='bb')add(13,-20,'Контратака после Парирования');
+ if(['bb','db'].includes(key))add(75,10,'Успешную активацию и срок учитывает игрок');
+ if(original==='obsh')for(const [id,n]of [[11,10],[154,10],[6,-10],[42,-10],[165,10],[166,10]])for(const t of talRows(d,id))add(id,n,t.group||'Подходящее взаимодействие',String(t.group||''));
+ if([21,40].includes(sid)||original==='obsh')add(49,10,'Инструктирование, программирование или общение с сервитором');
+ if(sid===21)add(12,-10,'Командование неподчинёнными НИП');
+ if([31,16,40].includes(sid))add(159,10,'Подключение к хранилищу данных');
+ if([19,17].includes(sid))add(122,10,'Использование пугающего голоса','Угроза');
+ if(original==='obsh')add(122,-10,'Общение без угрозы','Мирное общение');
+ if(sid===39)add(176,10,'Тактика против тиранидов');
+ const aw=ROLL.action?.row?.requires_weapon?actionWeaponOptions(ROLL.action.row).find(w=>w.id===ROLL.action.weapon_id):null;
+ if(aw?.type==='weapon_ranged'&&/болтер|bolt/i.test(aw.profile?.class||'')&&['semi_auto','full_auto'].includes(ROLL.action?.row?.code))add(25,0,'Скорострельность очереди +1; предел попаданий '+Number(aw.profile[ROLL.action.row.code==='semi_auto'?'rof_short':'rof_long'])+'. Патроны вручную');
+ if(stat&&key==='int')add(48,10,'Следующая проверка после подготовки');
+ if(key==='sv'){add(16,2*permanentPsiRating(d),'Защита; +2 × Пси-рейтинг');add(163,10,'Икона долга; условия учитывает игрок');}
+ if(key==='vos'||sid===8){const senses=talRows(d,102).flatMap(t=>[t.group,...(t.groups||[]).map(g=>typeof g==='string'?g:g.name)]).filter(Boolean);add(102,10,'Проверка выбранного чувства'+(senses.length?': '+[...new Set(senses)].join(', '):''));}
+ const survivor=talSetting(d,168,'characteristic','');if(talHas(d,168)&&survivor===key)out.push({talentRule:'survivor',label:talName(168),value:0,scope:'Отменить отрицательные модификаторы; раз за сессию учитывает игрок',on:TAL.on.survivor===true,locked:false});
+ return out.filter((r,i,a)=>a.findIndex(x=>x.talentRule===r.talentRule)===i);
+}
+conditionRollModifiers=function(d,key,sel){return TAL_BASE.conditionRollModifiers(d,key,sel).filter(r=>!(talHas(d,53)&&talSetting(d,53,'in_combat')&&r.id==='condition:fatigue'));};
+rollModRows=function(){
+ const context=talContext();if(context!==TAL.context){TAL.context=context;TAL.on={};}
+ const d=S.character?.character_data;let rows=TAL_BASE.rollModRows();if(!d)return rows;
+ // Replace the legacy racial senses row at its original index (other choices keep their indices).
+ rows=rows.filter(r=>r.label!=='Обострённые Чувства (Зрение, Слух)');
+ const key=rollCharKey(),code=ROLL.action?.row?.code;
+ rows=rows.map(r=>{if(!r.actionPreset||!r.on)return r;
+ if(code==='charge'&&key==='bb'&&talHas(d,161)&&r.value===10)return {...r,value:20,label:r.label+' · Яростный натиск'};
+ if(code==='called_shot'&&r.value===-20&&['bb','db'].includes(key)){
+ const value=talHas(d,136)||key==='bb'&&talHas(d,146)?0:key==='db'&&talHas(d,104)?-10:-20;
+ return {...r,value,scope:r.scope+' · с учётом талантов Точечной атаки'};
+ }return r;});
+ rows.push(...talRollRules(d));
+ if(TAL.on.survivor&&talSetting(d,168,'characteristic')===key&&talHas(d,168))rows=rows.map(r=>r.on&&Number(r.value)<0?{...r,value:0,scope:(r.scope||'')+' · Выживший'}:r);
+ if(talOriginalKey()==='obsh'&&talHas(d,167)){
+ const penalties=rows.filter(r=>r.on&&r.applicable!==false&&Number(r.value)<0).reduce((n,r)=>n+Number(r.value),0);
+ if(penalties < -20)rows.push({label:'Командирское присутствие: предел штрафа −20',value:-20-penalties,on:true,locked:true,scope:'Только ограничение включённых штрафов'});
+ }
+ if(code==='parry'&&talHas(d,179)){
+ const w=actionWeaponOptions(ROLL.action.row).find(w=>w.id===ROLL.action.weapon_id)?.profile;
+ if(w?.talent_claymore){const q=w.qualities||[];if(q.some(q=>Number(q.qid??q)===33))rows.push({label:'Мастер клеймора: Сбалансированное',value:10,on:true,locked:true});if(q.some(q=>Number(q.qid??q)===22))rows.push({label:'Мастер клеймора: Несбалансированное',value:-10,on:true,locked:true});}
+ }
+ if(code==='focus_power'&&TAL.warp&&d.psy?.mode==='push'&&talHas(d,66))rows.push({label:'Канал Варпа: психические феномены −10',value:0,on:false,locked:true,scope:'Поправка к таблице феноменов, не к этой проверке'});
+ return rows;
+};
+rollModRowHtml=function(r){if(!r.talentRule)return TAL_BASE.rollModRowHtml(r);return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope||'')+'</span></span><span class="vl">'+(r.value>0?'+':'')+r.value+'</span><input type="checkbox" data-talent-roll="'+escAttr(r.talentRule)+'"'+(r.on?' checked':'')+' aria-label="'+escAttr(r.label)+'"></div>';};
+openRoll=function(...args){TAL.context='';TAL.on={};return TAL_BASE.openRoll(...args);};
+document.addEventListener('change',e=>{const el=e.target;if(el.dataset.talentRoll){if(ROLL.busy){el.checked=!el.checked;return;}TAL.on[el.dataset.talentRoll]=el.checked;renderRollMods();renderRollTotal();rollResultReset();}});
+// Talent settings are preserved by the existing talent-row normalizer.
+const talShowInfo=showInfo;
+showInfo=function(...args){for(const el of document.querySelectorAll('#info-modal .talent-settings'))el.remove();return talShowInfo(...args);};
+showRowInfo=function(row,key){const result=TAL_BASE.showRowInfo(row,key);if(key!=='talents'||!row||typeof row!=='object')return result;
+ const d=S.character?.character_data,id=Number(row.id),owner=S.character;if(![23,53,167,168,173,179].includes(id))return result;
+ const host=$('info-body')||$('info-modal').querySelector('.modal-box');if(!host)return result;
+ const box=document.createElement('div');box.className='talent-settings';const st=row.talent_settings||{};
+ const check=(k,label)=>'<label><input type="checkbox" data-talent-setting="'+k+'"'+(st[k]?' checked':'')+'> '+label+'</label>';
+ if([23,167,173].includes(id))box.innerHTML=check('enabled',id===23?'Использовать бонус Восприятия для Инициативы':id===167?'Использовать Силу вместо Общительности':'Использовать Восприятие для Скрытности, Слежки и Бесшумного шага');
+ if(id===53)box.innerHTML=check('in_combat','Долг превыше смерти действует в этом бою')+'<p class="desc">Отключает автоматический штраф Усталости. Записи травм и Оглушение сейчас числовых штрафов не создают. Другие состояния учитываются отдельно.</p>';
+ if(id===168)box.innerHTML='<label>Выбранная характеристика<select data-talent-setting="characteristic"><option value="">Выберите…</option>'+STATS.filter(([k])=>!['bb','db'].includes(k)).map(([k])=>'<option value="'+k+'"'+(st.characteristic===k?' selected':'')+'>'+esc(statFullName(k))+'</option>').join('')+'</select></label>';
+ if(id===179)box.innerHTML='<label>Уровень таланта<select data-talent-setting="level"><option value="1"'+(Number(st.level||1)===1?' selected':'')+'>1</option><option value="2"'+(Number(st.level)===2?' selected':'')+'>2</option></select></label>';
+ if($('info-desc'))$('info-desc').insertAdjacentElement('beforebegin',box);else host.prepend(box);box.addEventListener('change',e=>{const el=e.target,k=el.dataset.talentSetting;if(!k||S.character!==owner||!(d.talents||[]).includes(row))return;row.talent_settings={...(row.talent_settings||{}),[k]:el.type==='checkbox'?el.checked:k==='level'?Number(el.value):el.value};debouncedSave();renderSkills();updateDerived();renderList('gear');});return result;
+};
+function talInitiative(d){
+ const perception=talHas(d,23)&&talSetting(d,23,'enabled'),intellect=hfxHas(d,'distinctions',20),intOn=intellect&&hfxState(intellect.row).conditions['Использовать БИ вместо БЛ для Инициативы'],key=perception?'vos':intOn?'int':'lov';let bonus=statBonus(d,key);
+ if(key==='lov'&&talHas(d,91)){
+ const pre=(Number(d.stats?.lov)||0)+5*Number(d.stat_adv?.lov||0)+modsAdd(d,'stat','lov','pre');
+ // Add one unit to the characteristic multiplier, leaving post and other flat bonuses intact.
+ bonus+=bonusOf(pre);
+ }
+ const gear=typeof eaGenerated==='function'?eaGenerated(d).filter(r=>r.target==='indicator'&&r.target_name==='initiative').reduce((n,r)=>n+Number(r.effect||0),0):0;
+ const honours=hfxPackages(d).reduce((n,p)=>n+p.effects.indicators.filter(a=>a.key==='initiative'&&hfxCondition(p,a.condition)).reduce((s,a)=>s+Number(a.value||0),0),0);
+ return {bonus:bonus+gear+honours+(talHas(d,107)?2:0),key};
+}
+updateDerived=function(){const result=TAL_BASE.updateDerived(),d=S.character?.character_data;if(!d)return result;let el=$('talent-initiative');const active=[23,91,107].some(id=>talHas(d,id));if(active&&!el){el=document.createElement('div');el.id='talent-initiative';el.className='ea-note';$('speed-half')?.closest('.param-chips')?.insertAdjacentElement('afterend',el);}if(el){el.hidden=!active;const n=talInitiative(d),die=sqRules(d).some(r=>r.type==='initiative_die')?'10':'1к10';el.textContent='Инициатива: '+die+' + '+n.bonus+' ('+statFullName(n.key)+')';}if(active)for(const id of ['ea-initiative','hfx-initiative'])if($(id))$(id).hidden=true;return result;};
+function talTalentWeapon(item){return !!item?.stats?.talent_id||item?.stats?.properties?.some(p=>['талант','talent'].includes(talNorm(p)));}
+function talSyncWeapons(d){
+ if(!d)return false;let changed=false;d.gear||=[];d.slots||=[];
+ for(const item of Object.values(GEAR_MAP).filter(talTalentWeapon)){
+ const id=Number(item.stats.talent_id);if(!talHas(d,id))continue;
+ if(!d.gear.some(r=>r.talent_grant===id||Number(r.item_id)===Number(item.id))){const slot='talent-weapon-'+id;if(!d.slots.some(s=>s.id===slot))d.slots.push({id:slot,type:item.name,talent_grant:id});d.gear.push({name:item.name,item_id:item.id,source:'catalog',slot,equipped:true,qty:1,talent_grant:id});changed=true;}
+ }return changed;
+}
+gearResolve=function(row){let w=TAL_BASE.gearResolve(row);if(!w)return w;const d=S.character?.character_data,item=GEAR_MAP[row.item_id];
+ if(talTalentWeapon(item)&&!talHas(d,Number(item.stats.talent_id)))return null;
+ if(talHas(d,179)&&w.type==='weapon_melee'&&(Number(w.hands)===2||w.two_handed===true)){
+ const level=Number(talSetting(d,179,'level',1)),original=w.qualities||[];
+ w={...w,talent_claymore:original.some(q=>[17,22].includes(Number(q.qid??q))),qualities:original.flatMap(q=>{const id=Number(q.qid??q);if(id===17)return level===2?[]:[{qid:22}];if(id===22)return level===2?[{qid:33}]:[];return [q];})};
+ }
+ if(talTalentWeapon(item)){w={...w};if(Number(item.stats.talent_id)===132)w.dmg='1d10+'+statBonus(d,'sv');w.includes_strength_bonus=true;w.damage_bonuses_included=true;}
+ return w;
+};
+renderList=function(key){const d=S.character?.character_data;if(d&&['talents','gear'].includes(key)&&talSyncWeapons(d))debouncedSave();const result=TAL_BASE.renderList(key);if(d&&key==='gear')for(const slot of d.slots||[]){if(!slot.talent_grant)continue;const button=document.querySelector('[data-slot-pick="'+slot.id+'"]');if(button)button.closest('.gw-slot').hidden=!talHas(d,Number(slot.talent_grant));}return result;};
+// Ordinary catalogue entry points never grant innate talent weapons.
+const talPickRender=drawPickResults;
+drawPickResults=function(...args){if(['gear','aug_personal','armour_aux'].includes(pickTarget))pickRows=pickRows.filter(r=>!talTalentWeapon(r));return talPickRender(...args);};
+const talRqVisible=rqGearVisible;rqGearVisible=function(item){return !talTalentWeapon(item)&&talRqVisible(item);};
+const talSbAllowed=sbGearAllowed;sbGearAllowed=function(item,d){return !talTalentWeapon(item)&&talSbAllowed(item,d);};
+const talAddRow=addRow;addRow=function(key,row){if(['gear','aug_personal','armour_aux'].includes(key)&&talTalentWeapon(GEAR_MAP[row?.item_id??row?.id]))return toast('Это оружие выдаётся только соответствующим талантом.');return talAddRow(key,row);};
+// Damage rows remain local to this one roll; the catalogue is never mutated.
+dm2ModRows=function(w,c){let rows=TAL_BASE.dm2ModRows(w,c);const d=S.character.character_data;
+ rows=rows.filter(r=>r.id!=='hand');
+ if(talHas(d,52)&&/Плазм|Силов|Экзот|Мельт|Plasma|Power|Exotic|Melta/i.test(w.profile.class||''))rows.push({id:'hand',name:'Длань Омниссии',defaultOn:false,effect:statBonus(d,'int'),kind:'hand',included:0,note:'На один раунд за бой; применение учитывает игрок'});
+ if(talHas(d,47)&&['weapon_melee','shield','unarmed'].includes(w.type)&&DAMAGE.attack?.action_code==='all_out_attack')rows.push({id:'talent-thunder',name:'Громовой удар',defaultOn:false,effect:0,kind:'talent-thunder',included:0,note:'Половина бонуса Силы к Бронебойности; Шоковое'});
+ return rows;
+};
+damageDefaults=function(w){const c=TAL_BASE.damageDefaults(w),d=S.character.character_data;
+ const thunder=c.dm2Rows?.find(r=>r.id==='talent-thunder');if(thunder&&dm2On(thunder)){c.pen+=Math.ceil(statBonus(d,'sil')/2);c.notes.push('Громовой удар: Шоковое. Цель разрешает проверку вручную.');}
+ return c;
+};
+renderDamageRoll=function(){const result=TAL_BASE.renderDamageRoll(),w=damageWeapons().find(w=>w.id===DAMAGE.weapon);if(!w)return result;const d=S.character.character_data,context=S.character.id+'|'+DAMAGE.weapon;if(context!==TAL.criticalContext){TAL.criticalContext=context;TAL.critical=false;}const melee=['weapon_melee','shield','unarmed'].includes(w.type),crit=(melee&&talHas(d,64)?4:w.type==='weapon_ranged'&&talHas(d,63)?2:0)+(melee&&talHas(d,150)&&(w.type==='unarmed'||/нож|knife/i.test(w.name))?2:0);
+ if(crit){const el=document.createElement('div');el.className='talent-critical';const note=()=>TAL.critical?'К Критическому урону цели добавьте '+crit+'. Обычный бросок урона не увеличивается.':'Бонус относится только к Критическому урону после защиты цели.';el.innerHTML=damageCheckbox('talent-critical-check','Если нанесён Критический урон: дополнительно +'+crit,TAL.critical)+'<p class="desc" id="talent-critical-note">'+note()+'</p>';$('damage-params').append(el);el.querySelector('input').onchange=e=>{if(DAMAGE.busy){e.target.checked=TAL.critical;return;}TAL.critical=e.target.checked;$('talent-critical-note').textContent=note();};}
+ return result;
+};
+warpOpen=async function(...args){TAL.warp=false;return TAL_BASE.warpOpen(...args);};
+warpUsedPr=function(power,turns=0){return TAL_BASE.warpUsedPr(power,turns)+(TAL.warp&&S.character?.character_data?.psy?.mode==='push'&&talHas(S.character.character_data,66)?1:0);};
+warpDraw=function(){const result=TAL_BASE.warpDraw(),d=S.character?.character_data;if(WARP.owner===S.character&&talHas(d,66)&&d.psy?.mode==='push'){
+ const el=document.createElement('label');el.innerHTML='<input type="checkbox" id="talent-warp-conduit"'+(TAL.warp?' checked':'')+'> Канал Варпа: +1 ПР, психические феномены −10';$('warp-content').append(el);el.querySelector('input').onchange=e=>{TAL.warp=e.target.checked;warpDraw();};
+ }return result;};
+const talShowResult=showRollResult;
+showRollResult=function(r){const result=talShowResult(r);if(DAMAGE.lastAttack?.owner===S.character)DAMAGE.lastAttack.action_code=ROLL.action?.row?.code;
+ if(ROLL.action?.warp?.talent_conduit)$('roll-result').insertAdjacentHTML('beforeend','<p class="desc">Канал Варпа: к броску психических феноменов примените −10.</p>');
+ if(TAL.on['25:']&&talHas(S.character?.character_data,25)){
+ const w=ROLL.action?.row?.requires_weapon?actionWeaponOptions(ROLL.action.row).find(w=>w.id===ROLL.action.weapon_id):null,code=ROLL.action?.row?.code,base=Number(w?.profile?.[code==='semi_auto'?'rof_short':'rof_long']);
+ if(w&&base>0&&['semi_auto','full_auto'].includes(code)&&/болтер|bolt/i.test(w.profile?.class||'')){
+ $('roll-result').insertAdjacentHTML('beforeend','<p class="desc talent-bolter-result">Болтерный шквал: скорострельность и предел попаданий этой очереди '+base+'. Расход патронов учитывается вручную.</p>');if(DAMAGE.lastAttack)DAMAGE.lastAttack.talent_rof=base;
+ }}return result;};
+const talRollApi=callRollApi;
+callRollApi=function(body){if(body?.action==='roll-damage'&&$('talent-critical-check')?.checked){const note=$('talent-critical-note')?.textContent;if(note)body={...body,damage:{...body.damage,notes:[...(body.damage?.notes||[]),note]}};}return talRollApi(body);};
+const talActionWeapons=actionWeaponOptions;
+actionWeaponOptions=function(a){return talActionWeapons(a).map(w=>{
+ if(!TAL.on['25:']||TAL.context!==talContext()||!talHas(S.character?.character_data,25)||w.id!==ROLL.action?.weapon_id||a?.code!==ROLL.action?.row?.code||!['semi_auto','full_auto'].includes(a?.code)||w.type!=='weapon_ranged'||!/болтер|bolt/i.test(w.profile?.class||'')||w.profile?.vehicle_mounted)return w;
+ const field=a.code==='semi_auto'?'rof_short':'rof_long',base=Number(w.profile[field]);return base>0?{...w,profile:{...w.profile,[field]:base+1}}:w;
+ });};
+document.addEventListener('change',e=>{if(['warp-power','warp-variant'].includes(e.target.id))TAL.warp=false;},true);
+document.addEventListener('click',e=>{if(e.target.closest('[data-warp-mode]'))TAL.warp=false;},true);
+const talActionRows=actionRows;
+actionRows=function(...args){return talActionRows(...args).filter(r=>r.code!=='hand_omni');};
+const talOpenDamage=openDamageRoll;
+openDamageRoll=function(...args){TAL.critical=false;TAL.criticalContext='';return talOpenDamage(...args);};
+
+</script>
 </body>
 </html>
 
