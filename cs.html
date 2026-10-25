@@ -15394,7 +15394,9 @@ function npcOptionEffectValid(effect){
   return true;
 }
 function npcPresetOptionsValid(block){
-  if(!npcOptionObject(block)||block.schema_version!==2||!['npc','vehicle'].includes(block.type)||!npcOptionName(block.name)||block.name.trim().length>200||!Array.isArray(block.choice_groups)||!block.choice_groups.length)return false;
+  if(!npcOptionObject(block)||block.schema_version!==2||!['npc','vehicle'].includes(block.type)||!npcOptionName(block.name)||block.name.trim().length>200||!Array.isArray(block.choice_groups)||(!block.choice_groups.length&&block.requires_trade!==true))return false;
+  if(Object.hasOwn(block,'requires_trade')&&typeof block.requires_trade!=='boolean')return false;
+  if(block.requires_trade===true&&(!Array.isArray(block.skills_adv)||!block.skills_adv.some(row=>row.name==='Ремесло'&&row.groups_enabled&&Array.isArray(row.groups))))return false;
   const groupIds=new Set(),groupNames=new Set();
   for(const group of block.choice_groups){
     if(!npcOptionObject(group)||!npcOptionName(group.id)||groupIds.has(group.id)||!npcOptionName(group.name)||groupNames.has(group.name)||typeof group.description!=='string'||!Number.isInteger(group.min)||!Number.isInteger(group.max)||group.min<0||group.max<group.min||!Array.isArray(group.options)||!group.options.length||group.max>group.options.length)return false;
@@ -15455,6 +15457,20 @@ function npcPresetApplyBallisticSkill(raw,selected){
  if(value===null)throw Error('Для стрелкового оружия укажите Дальний бой, назначенный МИ.');
  if(value!==undefined){raw.stats.db=value;(raw.notes??=[]).push({name:'Дальний бой назначен МИ',description:'Книжный профиль содержит прочерк. При выборе стрелкового оружия МИ задал ДБ '+value+'.'});}
 }
+function npcPresetTradeValue(){
+ if(SB.entry?.preset?.statblock?.requires_trade!==true)return undefined;
+ const name=String($('npc-option-trade')?.value||'').trim().replace(/\s+/g,' ');
+ return name&&name.length<=120?name:null;
+}
+function npcPresetApplyTrade(raw){
+ if(raw.requires_trade!==true)return;
+ const name=npcPresetTradeValue();if(name==null)throw Error('Укажите дополнительное ремесло сервитора.');
+ const skill=raw.skills_adv.find(row=>row.name==='Ремесло'&&row.groups_enabled);if(!skill)throw Error('В пресете отсутствует умение Ремесло.');
+ const existing=skill.groups.find(group=>String(group.name).trim().replace(/\s+/g,' ').toLocaleLowerCase('ru')===name.toLocaleLowerCase('ru'));
+ if(!existing)skill.groups.push({name,characteristic:skill.characteristic,level:'+10'});
+ else if(SKILL_LEVELS.indexOf(existing.level)<SKILL_LEVELS.indexOf('+10'))existing.level='+10';
+ delete raw.requires_trade;
+}
 function npcPresetOptionsRefresh(){
   if(SB.entry?.kind!=='preset-options')return;
   const selected=npcPresetOptionsSelections(),submit=$('sb-entry-form').querySelector('[type="submit"]');
@@ -15467,14 +15483,15 @@ function npcPresetOptionsRefresh(){
     status.textContent=over?'Нарушение книжного ограничения: выбрано '+count+', по книге допускается '+item.group.max+'. Можно применить все выбранные варианты.':under?'Выбрано '+count+'. Выберите не меньше '+item.group.min+'.':'Выбрано '+count+'. Книжное ограничение соблюдено.';
   }
   const manual=$('npc-option-ballistic-skill-row');if(manual)manual.hidden=!npcPresetNeedsBallisticSkill(selected);
-  valid=valid&&npcPresetManualBallisticSkill(selected)!==null;
+  valid=valid&&npcPresetManualBallisticSkill(selected)!==null&&npcPresetTradeValue()!==null;
   submit.disabled=!valid;submit.textContent=violation?'Применить с нарушением':'Применить';
 }
 function npcPresetOpenOptions(record){
   const entry={presetId:record.id,preset:sbClone(record),presetFingerprint:npcPresetOptionsFingerprint(record),recordRevision:SB.record.revision,chronicleId:SB.chronicleId,draftFingerprint:JSON.stringify(SB.draft??null)};
   const body='<p class="sb-description">Выберите варианты для пресета «'+esc(record.name)+'». Заранее ничего не выбрано. Выбор добавляет способности в карточку; временные эффекты применяются по их правилам.</p>'+record.statblock.choice_groups.map(g=>'<fieldset class="npc-option-group"><legend>'+esc(g.name)+'</legend><p>'+esc(g.description)+'</p><p>По книге: '+g.min+(g.max!==g.min?'–'+g.max:'')+'. Можно выбрать больше с предупреждением.</p>'+g.options.map(o=>'<div class="npc-option-card"><label class="npc-option-label"><input type="checkbox" data-npc-option-group="'+escAttr(g.id)+'" data-npc-option-id="'+escAttr(o.id)+'"><span>'+esc(o.name)+'</span></label><div class="sb-description">'+sbDescriptionHtml(o.description)+'</div></div>').join('')+'<div class="npc-option-status" role="status" aria-live="polite" data-npc-option-status="'+escAttr(g.id)+'"></div></fieldset>').join('');
   const manual='<div id="npc-option-ballistic-skill-row" hidden><label for="npc-option-ballistic-skill">Дальний бой — значение МИ</label><input id="npc-option-ballistic-skill" type="number" min="0" max="999" step="1" inputmode="numeric"><p>В книге указан прочерк. Для стрелкового оружия задайте ДБ вручную; автоматического значения нет.</p></div>';
-  sbModal('preset-options','Варианты пресета',body+manual,entry);
+  const trade=record.statblock.requires_trade===true?'<div><label for="npc-option-trade">Дополнительное ремесло — выбор МИ</label><input id="npc-option-trade" type="text" maxlength="120" autocomplete="off"><p>Укажите название профессии: она получит+10. Техномат+10 остаётся всегда; одинаковые группы не складываются.</p></div>':'';
+  sbModal('preset-options',trade?'Настройка пресета':'Варианты пресета',(trade&&!record.statblock.choice_groups.length?'<p>Назначьте дополнительное ремесло сервитора.</p>':body)+manual+trade,entry);
   $('sb-entry-modal').classList.remove('npc-preset-modal');$('sb-entry-modal').classList.add('npc-preset-options-modal');
   npcPresetOptionsRefresh();return true;
 }
@@ -15509,6 +15526,7 @@ function npcPresetConfirmOptions(){
   try{
     for(const item of selected)for(const option of item.options)for(const effect of option.effects)npcPresetAppendChoice(raw,effect);
     npcPresetApplyBallisticSkill(raw,selected);
+    npcPresetApplyTrade(raw);
     delete raw.choice_groups;raw.schema_version=1;raw.id=SB.record.id;raw.revision=SB.record.revision;raw.type=SB.record.type;raw.type_choice_migrated=true;
     if(record.statblock.type==='vehicle')raw.race='Техника';raw.discord_rolls=sbData().discord_rolls===true;
     raw.preset_metadata={id:record.id,name:record.name,revision:record.revision,ruleset:record.ruleset,sources:sbClone(npcPresetSources(record)),applied_at:new Date().toISOString(),layout_version:2,original_source:npcPresetOriginalSource(record),choice_schema_version:2,choices,rule_violations:violations};
@@ -15543,7 +15561,7 @@ sbModal=function(kind,...args){
   return NPC_OPTION_BASE_MODAL(kind,...args);
 };
 $('sb-entry-fields').addEventListener('change',event=>{if(event.target.matches('input[data-npc-option-group]'))npcPresetOptionsRefresh();});
-$('sb-entry-fields').addEventListener('input',event=>{if(event.target.id==='npc-option-ballistic-skill')npcPresetOptionsRefresh();});
+$('sb-entry-fields').addEventListener('input',event=>{if(['npc-option-ballistic-skill','npc-option-trade'].includes(event.target.id))npcPresetOptionsRefresh();});
 $('sb-entry-modal').addEventListener('click',event=>{if(event.target===$('sb-entry-modal')&&SB.entry?.kind==='preset-options')closeModal('sb-entry-modal');});
 document.addEventListener('keydown',event=>{
   if(SB.entry?.kind!=='preset-options'||$('sb-entry-modal').classList.contains('hidden'))return;
@@ -17440,6 +17458,7 @@ function npcHordeConfirm(){
   try{
     for(const item of selected)for(const option of item.options)for(const effect of option.effects)npcPresetAppendChoice(raw,effect);
     npcPresetApplyBallisticSkill(raw,selected);
+    npcPresetApplyTrade(raw);
     npcHordeResolve(raw,magnitude,size);delete raw.choice_groups;raw.schema_version=1;raw.id=SB.record.id;raw.revision=SB.record.revision;raw.type=SB.record.type;raw.type_choice_migrated=true;
     if(record.statblock.type==='vehicle')raw.race='Техника';raw.discord_rolls=sbData().discord_rolls===true;
     raw.preset_metadata={id:record.id,name:record.name,revision:record.revision,ruleset:record.ruleset,sources:sbClone(npcPresetSources(record)),applied_at:new Date().toISOString(),layout_version:2,original_source:npcPresetOriginalSource(record),horde_initial_magnitude:magnitude};
