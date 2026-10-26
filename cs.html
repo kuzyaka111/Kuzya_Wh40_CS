@@ -19507,3 +19507,206 @@ function bookStealthArmours(d){
  if(active)out.push({row:active,stats:active.armour_instance.stats,state:active.armour_instance.state});
  else{const a=d.armour||{},g=a.item_id!=null?GEAR_MAP[Number(a.item_id)]:Object.values(GEAR_MAP).find(g=>a.name&&g.name===a.name);if(g)out.push({row:{item_id:g.id,name:g.name},stats:aiStats(g),state:a});}
  for(const row of d.gear||[]){if(row===active||!gearIsEquipped(row))continue;const stats=row.armour_instance?.stats||catalogItemStats(row);if(stats?.type==='armour'&&stats.category!=='primary')out.push({row,stats,state:row.armour_instance?.state||{}});}
+ return out;
+}
+function bookStealthAp(entry,d){
+ const {stats,state}=entry,ap=stats.ap||{};let values=[];
+ for(const [zone,key]of ARMOUR_ZONE_ROW.map(z=>[z,ARMOUR_AP_KEY[z]])){
+  if(zone==='head'&&(state.head_worn===false||d.armour?.head_worn===false))continue;
+  const v=state.zones?.[zone]??ap[key];if(v!==''&&v!=null&&Number.isFinite(Number(v)))values.push(Number(v));
+ }return values.length?Math.max(...values):0;
+}
+function bookStealthModifiers(d,skill){
+ const rows=[],add=(key,label,value,scope)=>{if(value)rows.push({label,value,locked:true,on:true,source:'book-stealth:'+key,scope});};
+ const size=bookStealthSize(d);if(skill==='concealment'&&size)add('size','Размер: '+size.name,size.value,'ОКП, таблица размера. Только Скрытность.');
+ const entries=bookStealthArmours(d),scouts=new Set([1,10,227]);
+ const isScout=e=>scouts.has(Number(e.row.item_id))||/scout|разведчик/.test(bookStealthName(e.row.name));
+ const guerilla=[...(d.talents||[]),...(d.features||[])].some(r=>['партизанская подготовка','guerilla training'].includes(bookStealthName(r.name)));
+ const isPower=e=>e.stats.silhouette==='terminator'||e.stats.silhouette==='craft'||/^Броня МК\.|силов|терминатор|ремесленн/i.test(e.row.name||'')||[171,173,175,176,177,178,179,180,181,183,219,220,221].includes(Number(e.row.item_id));
+ const burdens=entries.filter(e=>!isScout(e)&&bookStealthAp(e,d)>=7&&!(guerilla&&isPower(e)));
+ if(burdens.length)add('armour','Бронированность',-30,'ОКП: броня с базовыми ОБ 7+. Скрытность и Бесшумный шаг; качество не меняет штраф.');
+ const main=entries[0];
+ if(main){const id=Number(main.row.item_id);if(!guerilla&&[175,176,177].includes(id))add('pattern','Особенность доспеха: '+main.row.name,id===177?-20:-10,'Дополнительный штраф модели по «Обрядам битвы».');
+  if(skill==='concealment'&&[10,227].includes(id))add('scout','Броня разведчика Астартес',10,'ОКП: бонус только к Скрытности.');
+ }
+ return rows;
+}
+const BOOK_STEALTH_ROLL_ROWS=rollModRows;
+rollModRows=function(){const rows=BOOK_STEALTH_ROLL_ROWS(),d=S.character?.character_data,skill=bookStealthSkill();if(!d||!skill)return rows;return rows.concat(bookStealthModifiers(d,skill));};
+
+// Description editing is restricted to personal records in the current edit draft.
+function personalDescriptionRow(row){return !!row&&typeof row==='object'&&(row.source==='custom'||(!row.source&&row.id==null&&row.catalog_id==null&&!row.catalog_key&&!row.history_catalog_key));}
+function personalDescriptionEditor(row,key,host,refresh,descriptionHost){
+ if(!editMode||!personalDescriptionRow(row)||!host)return;
+ const owner=S.character,data=owner?.character_data;if(!data?.[key]?.includes(row))return;
+ const box=document.createElement('div');box.className='personal-description-editor';
+ box.innerHTML='<label>Описание<textarea rows="6" data-personal-description></textarea></label><button type="button" class="modal-confirm">Применить к черновику</button>';
+ const field=box.querySelector('textarea');field.value=row.desc??row.description??'';
+ box.querySelector('button').onclick=()=>{
+  if(!editMode||S.character!==owner||owner.character_data!==data||!data[key]?.includes(row)||!box.isConnected)return;
+  row.desc=field.value;if(descriptionHost)descriptionHost.innerHTML=descHtml(row.desc||'Описание отсутствует.');
+  debouncedSave();refresh();toast('Описание применено к черновику. Сохраните лист.');
+ };host.append(box);
+}
+const PERSONAL_ROW_INFO=showRowInfo;
+showRowInfo=function(row,key){const result=PERSONAL_ROW_INFO(row,key);if(key!=='deeds'){if(personalDescriptionRow(row))$('info-desc').innerHTML=descHtml(row.desc??row.description??'Описание отсутствует.');personalDescriptionEditor(row,key,$('info-edit'),()=>renderList(key),$('info-desc'));}return result;};
+const PERSONAL_SOLO_INFO=showSoloInfo;
+showSoloInfo=function(row,table){const result=PERSONAL_SOLO_INFO(row,table),d=S.character?.character_data,key=['solo_chapter','solo_codex','squad_chapter','squad_codex'].find(k=>d?.[k]?.includes(row));if(key&&personalDescriptionRow(row)){ $('info-desc').innerHTML=descHtml(row.desc||'Описание отсутствует.');personalDescriptionEditor(row,key,$('info-edit'),()=>renderList(key),$('info-desc'));}return result;};
+const PERSONAL_SKILL_DETAIL=openSkillDetail;
+openSkillDetail=function(key,index){const result=PERSONAL_SKILL_DETAIL(key,index);document.querySelector('#personal-skill-description')?.remove();const row=S.character?.character_data?.[key]?.[index];if(editMode&&personalDescriptionRow(row)){const host=document.createElement('div');host.id='personal-skill-description';$('sd-desc').after(host);personalDescriptionEditor(row,key,host,renderSkills,$('sd-desc'));}return result;};
+const PERSONAL_AMMO_NORMALIZE=normalizeAmmoArray;
+normalizeAmmoArray=function(rows){const out=PERSONAL_AMMO_NORMALIZE(rows);out.forEach((row,i)=>{if(rows[i]?.desc!=null||rows[i]?.description!=null)row.desc=String(rows[i].desc??rows[i].description??'');});return out;};
+</script>
+<style>
+.personal-description-editor{margin-top:14px;padding-top:12px;border-top:1px solid var(--border-dark);display:grid;gap:10px}
+.personal-description-editor label{display:grid;gap:6px}
+.personal-description-editor textarea{width:100%;max-width:100%;box-sizing:border-box;min-height:120px;resize:vertical;font:inherit;color:var(--text-main);background:#151518;border:1px solid var(--border-dark);padding:9px}
+.personal-description-editor button{max-width:100%;white-space:normal}
+</style>
+<script>
+
+</script>
+<script id="book-armour-permanent-effects">
+// Core pp. 161–165; Rites of Battle pp. 149–161. Permanent effects are post-calculation.
+const BA={depth:0,on:{}};
+const BA_BASE={permMods,effStat,statBonus,skillBadgeInfo,rollMods,rollModRows,rollModRowHtml,renderModSection,openRoll,talInitiative,updateDerived,equippedItemModifiers};
+function baNorm(s){return bookStealthName(s).replace(/[«»"“”]/g,'').replace(/\s+/g,' ').trim();}
+function baMain(d){if(!d||dwActive(d))return null;return bookStealthArmours(d).find(e=>e.stats.category==='primary')||null;}
+function baRule(key,name,target,target_name,effect,condition=''){
+ return {name,target,target_name,mode:'add',effect,timing:'post',source:'book-armour:'+key,condition};
+}
+function baHistories(d){
+ const out=[],seen=new Set();
+ for(const row of d.armour_history||[]){
+  const matches=AI_HISTORY_TABLES.filter(t=>t.key!=='armory').flatMap(t=>t.rows).filter(r=>row.history_catalog_key?r.key===row.history_catalog_key:baNorm(r.name)===baNorm(row.name));
+  if(matches.length!==1||seen.has(matches[0].key))continue;seen.add(matches[0].key);out.push({row,key:matches[0].key});
+ }return out;
+}
+function baRules(d){
+ if(!d)return [];const out=[],main=baMain(d);
+ const add=(key,name,target,to,n,condition='')=>{if(n)out.push(baRule(key,name,target,to,n,condition));};
+ // Size applies even without armour. The existing book rules retain separate source rows.
+ for(const [name,key]of [['Скрытность','concealment'],['Бесшумный шаг','silent']]){
+  for(const m of bookStealthModifiers(d,key))add('stealth:'+key+':'+m.source,m.label,'skill',name,m.value);
+ }
+ if(!main)return out;
+ const id=Number(main.row.item_id),name=main.row.name||'Броня',power=[171,173,175,176,177,178,179,180,181,183,219,220,221,286,295,328].includes(id)||['terminator','craft'].includes(main.stats.silhouette)||/силов|терминатор|ремесленн/i.test(name);
+ const term=[173,219,220,221].includes(id)||main.stats.silhouette==='terminator';
+ if(power){
+  let strength=term?30:[176,177].includes(id)?25:20;
+  // Mk I has a genuine range. A range or arbitrary prose is never parsed as its first number.
+  if(id===175){const extras=aiActive(d)?aiEffectiveStats(main.row).extras:main.stats.extras||[];const text=extras.find(e=>/усиление.*сил|strength/i.test(e.name||''))?.text||'';const m=String(text).trim().match(/^\+?(1[5-9]|2[0-5])(?:\s*(?:к\s*силе|силы))?\s*$/i);strength=m?Number(m[1]):0;}
+  add('strength',name+': усиление Силы','stat','sil',strength);
+  if(term)add('agility',name+': Ловкость','stat','lov',id===221?-10:-20);
+  if(id===180)add('agility',name+': Ловкость','stat','lov',10);
+  if(id===181)add('command',name+': авторитет','skill','Командование',5);
+  const social={175:30,176:20,177:20,178:15,179:10}[id];
+  if(social)add('astartes',name,'stat','obsh',social,'Взаимодействие с космодесантниками');
+  if(id===179)add('inquisition',name,'stat','obsh',-10,'Взаимодействие с Инквизитором или его агентами');
+  const dex=id===175?-15:[176,177].includes(id)?-20:-10;
+  add('dexterity',name,'check','all',dex,'Тонкая работа в бронированных перчатках без инструментов Астартес');
+ }
+ for(const {row,key}of baHistories(d)){
+  const name='История: '+row.name;
+  const stat=(tag,k,n,c='')=>add(key+':'+tag,name,'stat',k,n,c),skill=(tag,k,n,c='')=>add(key+':'+tag,name,'skill',k,n,c);
+  switch(key){
+   case 'core:1':skill('conceal','Скрытность',-20);skill('silent','Бесшумный шаг',-20);skill('command','Командование',10);break;
+   case 'core:2':stat('db','db',5);skill('dodge','Уклонение',-10,'Уклонение в ближнем бою');break;
+   case 'core:3':stat('bb','bb',5);if(d.armour?.head_worn!==false)stat('db','db',-5);break;
+   case 'core:5':stat('lov','lov',5);add(key+':initiative',name,'indicator','initiative',1);break;
+   case 'core:6':stat('sil','sil',10);break;
+   case 'battle:3':stat('db','db',5,'Цель — ксенос того вида, с которым связаны трофеи');break;
+   case 'battle:5-6':stat('pinning','sv',10,'Проверка против Подавления');break;
+   case 'battle:7-9':skill('intimidate','Запугивание',10);skill('charm','Обаяние',-5);break;
+   case 'legends:1':stat('fear','sv',10,'Проверка против Страха');break;
+   case 'legends:2':stat('bb','bb',5);stat('db','db',5);skill('command','Командование',-10);break;
+   case 'legends:3-4':skill('command','Командование',5);stat('fear-pinning','sv',5,'Проверка против Страха или Подавления');break;
+   case 'legends:8-9':stat('bb','bb',15,'В режиме одиночки выбран бонус к Ближнему бою');stat('db','db',15,'В режиме одиночки выбран бонус к Дальнему бою');break;
+   case 'artificer:7*':stat('bb','bb',10);stat('obsh','obsh',5,'Взаимодействие с лояльными Империуму');break;
+   case 'artificer:8*':stat('sil','sil',10);break;
+   case 'artificer:9*':stat('lov','lov',-10);stat('pinning','sv',10,'Проверка против Подавления');break;
+   case 'artificer:10*':if(d.armour?.head_worn!==false){stat('db','db',5);skill('command','Командование',10);stat('obsh','obsh',10,'Взаимодействие с космодесантниками');}break;
+  }
+ }
+ // A worn auxiliary helmet is a separate item; keeping one in inventory grants no effect.
+ if(d.armour?.head_worn!==false)for(const entry of bookStealthArmours(d).filter(e=>e!==main&&e.stats.category!=='primary')){
+  const id=Number(entry.row.item_id);if([182,400].includes(id))add('helmet:'+id,entry.row.name,'skill','Запугивание',10);
+  if(id===84)add('helmet:84',entry.row.name,'skill','Медика',10,'Работа непосредственно с пациентом');
+ }
+ return out;
+}
+function baLegacy(m,d){
+ if(!m||m.mode==='mul')return false;const name=baNorm(m.name),n=Number(m.effect),to=String(m.target_name);
+ if(m.source==='race'&&name==='усиление брони'&&m.target==='stat'&&to==='sil'&&n===20)return true;
+ if(m.source&&!/^armou?r[:_-]/i.test(m.source))return false;
+ if(m.target==='stat'&&to==='lov'&&n===10&&/корвус|corvus/.test(name))return true;
+ if(m.target==='stat'&&to==='lov'&&(n===-20&&/терминатор|terminator/.test(name)||n===-10&&/тартарос|tartaros/.test(name)))return true;
+ if(m.target==='stat'&&to==='sil'&&[20,25,30].includes(n)&&/^(?:усиление (?:силы|брони)|силовая броня|терминаторская броня)(?: астартес)?$/.test(name))return true;
+ // A generic “armour history” label is deliberately insufficient evidence for removal.
+ if(d)for(const auto of baPermanent(d)){
+  const names=[baNorm(auto.name)];if(auto.source.includes(':core:')||auto.source.includes(':battle:')||auto.source.includes(':legends:')||auto.source.includes(':artificer:'))names.push(baNorm(auto.name.replace(/^История: /,'')));
+  const target=auto.target_name,skill=auto.target==='skill'&&DB_SKILLS.find(s=>s.name===target);
+  if(names.includes(name)&&m.target===auto.target&&n===auto.effect&&(to===String(target)||skill&&to===String(skill.id)))return true;
+ }return false;
+}
+function baMigrate(d){
+ if(!d?.modifiers||dwActive(d)||!Object.keys(GEAR_MAP).length)return;
+ for(const section of ['perm','cond']){
+  const prior=d.modifiers[section]||[],removed=prior.filter(m=>baLegacy(m,d));if(!removed.length)continue;
+  d.equipment_automation||={};const backup=d.equipment_automation.book_armour_legacy||=[];
+  for(const row of removed)if(!backup.some(b=>b.section===section&&JSON.stringify(b.modifier)===JSON.stringify(row)))backup.push({section,modifier:aiCopy(row)});
+  d.equipment_automation.book_armour_legacy=backup;d.modifiers[section]=prior.filter(m=>!baLegacy(m,d));
+ }
+}
+function baPermanent(d){return baRules(d).filter(m=>!m.condition);}
+permMods=function(d){baMigrate(d);const base=BA_BASE.permMods(d);return BA.depth?base:base.concat(baPermanent(d).map(m=>m.target==='skill'?{...m,target_name:String(DB_SKILLS.find(s=>s.name===m.target_name)?.id??m.target_name)}:m));};
+effStat=function(d,k){const v=BA_BASE.effStat(d,k);return BA.depth?v:Math.max(0,v);};
+statBonus=function(d,k){return Math.max(0,BA_BASE.statBonus(d,k));};
+skillBadgeInfo=function(d,row,level,basicish,chName,...rest){
+ let old;BA.depth++;try{old=BA_BASE.skillBadgeInfo(d,row,level,basicish,chName,...rest);}finally{BA.depth--;}
+ if(old.value==null)return old;
+ const key=old.charKey||CH_KEY[talSkillChar(d,row,chName||row.characteristic)],name=row.name||DB_SKILLS.find(s=>Number(s.id)===Number(row.skill_id??row.id))?.name;
+ const mods=baPermanent(d).filter(m=>m.target==='stat'&&(m.target_name===key||m.target_name==='all')||m.target==='skill'&&baNorm(m.target_name)===baNorm(name));
+ const value=Math.max(0,Number(old.value)+mods.reduce((n,m)=>n+m.effect,0));
+ return {...old,value,text:String(value),title:old.title+(mods.length?' · '+mods.map(m=>m.name+' '+(m.effect>0?'+':'')+m.effect+' (после расчёта)').join('; '):'')};
+};
+rollMods=function(d,k){baMigrate(d);return BA_BASE.rollMods(d,k).filter(m=>m.source!=='armour:autosenses').concat(baPermanent(d).filter(m=>m.target==='stat'&&(m.target_name===k||m.target_name==='all')).map(m=>({label:m.name,value:m.effect,section:'perm',locked:true,source:m.source,includedInSkillBase:true})));};
+equippedItemModifiers=function(d){return BA_BASE.equippedItemModifiers(d).filter(m=>m.source!=='armour:autosenses'||baRules(d).some(r=>r.source==='book-armour:strength')||Number(baMain(d)?.row.item_id)===175).map(m=>m.source==='armour:autosenses'?{...m,target:'skill',target_name:'8',scope:'Бдительность: зрение или слух. Только с надетым шлемом.'}:m);};
+function baRollApplies(m){
+ if(m.target==='stat')return m.target_name===rollCharKey();
+ if(m.target==='skill')return ROLL.sel?.kind==='skill'&&baNorm(actionSkillRow(ROLL.sel)?.name||String(ROLL.sel.name).split(' · ')[0])===baNorm(m.target_name);
+ return ROLL.sel?.kind==='skill'||ROLL.sel?.kind==='stat';
+}
+rollModRows=function(){
+ const d=S.character?.character_data,rows=BA_BASE.rollModRows().filter(m=>!String(m.source||'').startsWith('book-stealth:'));if(!d||dwActive(d))return rows;
+ const mods=baRules(d).filter(m=>m.condition&&baRollApplies(m));
+ const main=baMain(d),id=Number(main?.row.item_id),power=baRules(d).some(m=>m.source==='book-armour:strength')||id===175;
+ if(power&&ROLL.sel?.kind==='skill'&&baNorm(actionSkillRow(ROLL.sel)?.name||ROLL.sel.name)==='бдительность'){
+  const senses=armourAutoSenses(d);if(!senses.unavailable&&senses.value>0)mods.push(baRule('autosenses','Авточувства','skill','Бдительность',senses.value,'Бдительность: зрение или слух'));
+ }
+ const out=rows.concat(mods.map(m=>({label:m.name,value:m.effect,locked:false,on:BA.on[m.source]===true,scope:m.condition,baRule:m.source})));
+ const target=rollBaseTarget();if(target!=null){const total=Number(target)+out.filter(m=>m.on).reduce((n,m)=>n+Number(m.value||0),0);if(total<0)out.push({label:'Минимальный порог: 0',value:-total,locked:true,on:true,scope:'Итоговый порог не может быть отрицательным',source:'book-armour:minimum'});}
+ return out;
+};
+rollModRowHtml=function(r){if(!r.baRule)return BA_BASE.rollModRowHtml(r);return '<div class="roll-mod'+(r.on?'':' off')+'"><span class="lb">'+esc(r.label)+'<span class="action-mod-scope">'+esc(r.scope)+'</span></span><span class="vl">'+(r.value>0?'+':'')+r.value+'</span><input type="checkbox" data-book-armour-roll="'+escAttr(r.baRule)+'" '+(r.on?'checked':'')+' aria-label="'+escAttr(r.scope)+'"></div>';};
+openRoll=function(...args){BA.on={};return BA_BASE.openRoll(...args);};
+document.addEventListener('change',e=>{if(!e.target.matches('[data-book-armour-roll]'))return;BA.on[e.target.dataset.bookArmourRoll]=e.target.checked;renderRollMods();renderRollTotal();rollResultReset();});
+renderModSection=function(section){
+ const d=S.character?.character_data;baMigrate(d);const result=BA_BASE.renderModSection(section);if(section!=='perm'||!d)return result;
+ const host=$('mods-perm-list'),mods=baPermanent(d);if(!host||!mods.length)return result;host.querySelector('.mods-empty')?.remove();
+ host.insertAdjacentHTML('beforeend','<div data-book-armour-permanent>'+mods.map(m=>'<div class="mods-entry"><div><div class="mods-entry-name">'+esc(m.name)+' '+(m.effect>0?'+':'')+m.effect+'</div><div class="mods-entry-sub">'+esc((m.target==='stat'?statFullName(m.target_name):m.target_name==='initiative'?'Инициатива':m.target_name)+' · после расчёта · автоматически')+'</div></div></div>').join('')+'</div>');
+ const notes=[],main=baMain(d);if(Number(main?.row.item_id)===175&&!mods.some(m=>m.source==='book-armour:strength'))notes.push('Мк. I: укажите в параметре усиления Силы одно значение от +15 до +25. Пока указан диапазон, бонус не назначается.');
+ const unresolved=new Set(['legends:5','legends:10','artificer:1','artificer:2','artificer:3','artificer:4','artificer:5','artificer:6','battle:9-10']);
+ if(main)for(const {row,key}of baHistories(d))if(unresolved.has(key))notes.push(row.name+': результат зависит от выбора, броска или состояния доспеха. Эту часть эффекта задайте вручную по описанию.');
+ if(notes.length)host.insertAdjacentHTML('beforeend','<div class="desc" data-book-armour-notes>'+notes.map(esc).join('<br>')+'</div>');return result;
+};
+talInitiative=function(d){const out=BA_BASE.talInitiative(d),extra=baPermanent(d).filter(m=>m.target==='indicator'&&m.target_name==='initiative').reduce((s,m)=>s+m.effect,0);return {...out,bonus:Math.max(0,out.bonus+extra)};};
+updateDerived=function(){const result=BA_BASE.updateDerived(),d=S.character?.character_data;if(!d)return result;let el=$('book-armour-initiative');const extra=baPermanent(d).some(m=>m.target==='indicator'&&m.target_name==='initiative');if(extra&&!el){el=document.createElement('div');el.id='book-armour-initiative';el.className='ea-note';$('speed-half')?.closest('.param-chips')?.insertAdjacentElement('afterend',el);}if(el){el.hidden=!extra;if(extra){const n=talInitiative(d);el.textContent='Инициатива: '+(sqRules(d).some(r=>r.type==='initiative_die')?'10':'1к10')+' + '+n.bonus;for(const id of ['talent-initiative','ea-initiative','hfx-initiative'])if($(id))$(id).hidden=true;}}return result;};
+const baStyle=document.createElement('style');baStyle.textContent='[data-book-armour-permanent] .mods-entry>div{min-width:0;max-width:100%;flex:1}[data-book-armour-permanent] .mods-entry-name,[data-book-armour-permanent] .mods-entry-sub{white-space:normal;overflow-wrap:anywhere}';document.head.append(baStyle);
+
+</script>
+</body>
+</html>
+
+
+
