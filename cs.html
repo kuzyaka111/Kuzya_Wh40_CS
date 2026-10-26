@@ -19705,6 +19705,83 @@ updateDerived=function(){const result=BA_BASE.updateDerived(),d=S.character?.cha
 const baStyle=document.createElement('style');baStyle.textContent='[data-book-armour-permanent] .mods-entry>div{min-width:0;max-width:100%;flex:1}[data-book-armour-permanent] .mods-entry-name,[data-book-armour-permanent] .mods-entry-sub{white-space:normal;overflow-wrap:anywhere}';document.head.append(baStyle);
 
 </script>
+<script id="gear-access-requirements-runtime">
+// Verified equipment access requirements live with each catalogue item, not in prose matching.
+const GEAR_ACCESS_BASE={rqFilterControls,rqApplyFilters,rqQuote,rqIssuePurchase,wmBuy};
+let RQ_ACCESS='all';
+function gearAccessNorm(value){return String(value||'').normalize('NFKC').toLowerCase().replaceAll('ё','е').replace(/\s+/g,' ').trim();}
+function gearAccessSpecName(id){return ({1:'Апотекарий',2:'Библиарий',8:'Сангвинарный жрец',18:'Чёрный Щит',23:'Магистр Кузни'})[id]||SPECIALIZATIONS.find(s=>Number(s.id)===Number(id))?.name||'';}
+function gearAccessAdvanced(d,id){
+ const name=gearAccessSpecName(id);return !!name&&(d.tags||[]).some(t=>gearAccessNorm(t)===gearAccessNorm(name));
+}
+function gearAccessBlackShield(d){return gearAccessAdvanced(d,18)||gearAccessNorm(d.info?.chapter)==='черный щит';}
+function gearAccessChapter(d){
+ const info=d.info||{},id=Number(info.chapter_id),row=CHAPTERS.find(c=>Number(c.id)===id)||CHAPTERS.find(c=>gearAccessNorm(c.name)===gearAccessNorm(info.chapter));
+ return {id:row?.id??null,name:row?.orden_type?.kind==='custom'?info.chapter:row?.name||info.chapter||'',row};
+}
+function gearAccessChapterMatches(d,required,successors=false){
+ const actual=gearAccessChapter(d),same=c=>required.id!=null?Number(c?.id)===Number(required.id):gearAccessNorm(c?.name)===gearAccessNorm(required.name);
+ if(same(actual))return true;
+ if(!successors)return false;
+ // Flesh Tearers have their own complete rules, but are explicitly Blood Angels successors.
+ if(Number(required.id)===2&&Number(actual.id)===13)return true;
+ let row=actual.row;const seen=new Set();
+ while(row?.orden_type?.kind==='heir'&&!seen.has(Number(row.id))){
+  seen.add(Number(row.id));row=CHAPTERS.find(c=>Number(c.id)===Number(row.orden_type.founder));if(same(row))return true;
+ }
+ return false;
+}
+function gearAccessBaseSpec(d,id){
+ const info=d.info||{},name=gearAccessNorm(info.specialization),expected=gearAccessNorm(gearAccessSpecName(id));
+ if(Number(info.specialization_id)===Number(id)||expected&&name===expected)return true;
+ // The Sanguinary Priest is an Apothecary advanced speciality, not a replacement base class.
+ if(Number(id)===1&&gearAccessAdvanced(d,8))return true;
+ if(Number(id)===2&&['рунный жрец','рунический жрец'].includes(name))return true;
+ return false;
+}
+function gearAccessCheck(item,d){
+ const r=item?.stats?.access_requirements;
+ if(!r||r.version!==1)return {matches:true,restricted:false,message:''};
+ if(r.chapter_bound&&gearAccessBlackShield(d))return {matches:false,restricted:true,message:'Чёрным Щитам недоступно орденское снаряжение.'};
+ const matches=Array.isArray(r.any_of)&&r.any_of.some(option=>
+  (!option.chapters?.length||option.chapters.some(ch=>gearAccessChapterMatches(d,ch,!!option.successors)))&&
+  (!option.base_specializations?.length||option.base_specializations.some(id=>gearAccessBaseSpec(d,id)))&&
+  (!option.advanced_specializations?.length||option.advanced_specializations.some(id=>gearAccessAdvanced(d,id))));
+ return {matches,restricted:true,message:matches?'':'Не выполнены требования ордена или специализации. '+r.text};
+}
+rqQuote=function(e,d,draft={}){
+ const q=GEAR_ACCESS_BASE.rqQuote(e,d,draft),access=gearAccessCheck(e.item,d);q.access=access;
+ if(!access.matches){q.validationErrors=[...q.validationErrors,access.message];q.errors=[...q.warnings,...q.validationErrors];}
+ return q;
+};
+rqIssuePurchase=function(c,e,d,q,manual=null){
+ if(!gearAccessCheck(e.item,d).matches){if($('rq-errors'))$('rq-errors').textContent=gearAccessCheck(e.item,d).message;return false;}
+ return GEAR_ACCESS_BASE.rqIssuePurchase(c,e,d,q,manual);
+};
+wmBuy=function(c,item,amount,quote,manual=false){
+ const access=gearAccessCheck(item,c.d);if(!access.matches){if($('wm-message'))$('wm-message').textContent=access.message;return false;}
+ return GEAR_ACCESS_BASE.wmBuy(c,item,amount,quote,manual);
+};
+rqFilterControls=function(){
+ GEAR_ACCESS_BASE.rqFilterControls();const panel=$('rq-filter-panel');if(!panel)return;
+ const block=document.createElement('div');block.id='rq-access-filter';block.innerHTML=rqChoiceChips('access','Требования ордена и специализации',RQ_ACCESS,[['all','Все'],['fits','Подходят персонажу'],['fails','Не подходят персонажу']]);
+ const note=document.createElement('p');note.className='desc';note.textContent='Проверяются орден и специализация. Цена, Слава и особый способ получения учитываются отдельно.';block.append(note);panel.querySelector('.rq-price-range').before(block);
+};
+rqApplyFilters=function(){
+ GEAR_ACCESS_BASE.rqApplyFilters();const host=$('rq-list'),d=S.character?.character_data;if(!host||!d)return;
+ const entries=new Map(rqCatalog().map(e=>[e.key,e]));let shown=0;
+ for(const row of host.querySelectorAll('.rq-item')){
+  const entry=entries.get(row.querySelector('[data-rq-preview]')?.dataset.rqPreview);if(!entry)continue;
+  const a=gearAccessCheck(entry.item,d);row.hidden=row.hidden||(RQ_ACCESS==='fits'&&!a.matches)||(RQ_ACCESS==='fails'&&a.matches);if(!row.hidden)shown++;
+ }
+ if($('rq-filter-empty'))$('rq-filter-empty').hidden=shown>0||!host.querySelector('.rq-item');
+};
+document.addEventListener('click',event=>{
+ const button=event.target.closest('[data-rq-extra="access"]');if(button){RQ_ACCESS=button.dataset.value;rqFilterControls();rqApplyFilters();}
+ if(event.target.closest('#rq-filter-reset')){RQ_ACCESS='all';rqFilterControls();rqApplyFilters();}
+});
+
+</script>
 </body>
 </html>
 
