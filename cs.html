@@ -18177,10 +18177,16 @@ const DM2={on:{},hand:new WeakSet(),frenzy:new WeakSet(),owner:null,rows:[],forc
 function dm2Has(d,id,pattern){return (d?.talents||[]).some(t=>Number(t?.id??t?.talent_id)===id||pattern.test(typeof t==='string'?t:t?.name||''));}
 function dm2Named(m,id,pattern){return new RegExp('(?:^|[-:])talent:'+id+'(?:$|:)').test(String(m.source||''))||pattern.test(String(m.name||''));}
 function dm2On(row){return Object.hasOwn(DM2.on,row.id)?DM2.on[row.id]:row.defaultOn;}
+function dm2NpcTalentAlreadyIncluded(w,id){
+ if(![137,138].includes(id)||!sbActorActive()||!w.npcRow||w.type==='unarmed')return false;
+ const row=w.npcRow;
+ if(row.damage_bonuses_included===false||row.source_fields?.damage_bonuses_included===false||row.source_fields?.standard_equipment===true)return false;
+ return row.damage_bonuses_included===true||/Готовый урон владельца|талант уже включён/i.test(row.damage_basis||'');
+}
 function dm2ModRows(w,c){
  const d=S.character.character_data,melee=['weapon_melee','shield','unarmed'].includes(w.type),rows=[];
  const add=(id,name,defaultOn,effect,kind='bonus',note='',included=0)=>rows.push({id,name,defaultOn,effect,kind,note,included});
- const flat=(id,name,pattern,effect,defaultOn=true,note='')=>{if(!dm2Has(d,id,pattern))return;const existing=permMods(d).filter(m=>m.target==='weapon_damage'&&m.mode==='add'&&['all','gear',w.type,w.profile.class].includes(m.target_name)&&dm2Named(m,id,pattern)).reduce((n,m)=>n+Number(m.effect||0),0);add('talent:'+id,name,defaultOn,effect,'bonus',note,existing);};
+ const flat=(id,name,pattern,effect,defaultOn=true,note='')=>{if(!dm2Has(d,id,pattern)||dm2NpcTalentAlreadyIncluded(w,id))return;const existing=permMods(d).filter(m=>m.target==='weapon_damage'&&m.mode==='add'&&['all','gear',w.type,w.profile.class].includes(m.target_name)&&dm2Named(m,id,pattern)).reduce((n,m)=>n+Number(m.effect||0),0);add('talent:'+id,name,defaultOn,effect,'bonus',note,existing);};
  if(melee)flat(138,'Сокрушительный удар',/Сокрушительный удар|Crushing Blow/i,2);
  if(w.type==='weapon_ranged')flat(137,'Сокрушительный выстрел',/Сокрушительный выстрел|Mighty Shot/i,2);
  if(melee){flat(18,'Бич еретиков',/Бич еретиков|Scourge of Heretics/i,2,false,'Против еретика');flat(106,'Охотник на чужаков',/Охотник на чужаков|Hunter of Aliens/i,2,false,'Против ксеноса');flat(148,'Убийца демонов',/Убийца демонов|Slayer of Daemons/i,2,false,'Против демона');}
