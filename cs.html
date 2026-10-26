@@ -19478,6 +19478,87 @@ const talOpenDamage=openDamageRoll;
 openDamageRoll=function(...args){TAL.critical=false;TAL.criticalContext='';return talOpenDamage(...args);};
 
 </script>
+<script id="personal-description-book-stealth">
+// Book rules: Deathwatch Core pp. 134,160,163; Rites of Battle Mk I–III.
+// Quality AP and external defensive bonuses never change the encumbrance threshold.
+function bookStealthName(value){return String(value||'').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();}
+function bookStealthSkill(){
+ if(ROLL.sel?.kind!=='skill')return null;
+ const row=actionSkillRow(ROLL.sel),name=bookStealthName(row?.name||String(ROLL.sel.name||'').split(' · ')[0]);
+ return name==='скрытность'||name==='concealment'?'concealment':name==='бесшумный шаг'||name==='silent move'?'silent':null;
+}
+function bookStealthSize(d){
+ const sizes={'крошечный':30,'маленький':20,'небольшой':10,'средний':0,'крупный':-10,'большой':-20,'огромный':-30,miniscule:30,puny:20,scrawny:10,average:0,hulking:-10,enormous:-20,massive:-30};
+ for(const r of [...(d.features||[]),...(d.traits||[])]){
+  const m=String(r?.name||'').match(/^(?:Размер|Size)\s*(?:\(([^)]+)\))?$/i);if(!m)continue;
+  const size=bookStealthName(r.param||m[1]);if(Object.hasOwn(sizes,size))return {value:sizes[size],name:r.param||m[1]};
+ }return null;
+}
+function bookStealthArmours(d){
+ if(dwActive(d))return [];
+ const active=aiActive(d),out=[];
+ if(active)out.push({row:active,stats:active.armour_instance.stats,state:active.armour_instance.state});
+ else{const g=currentArmourGear();if(g)out.push({row:{item_id:g.id,name:g.name},stats:g.stats||{},state:d.armour||{}});}
+ for(const row of d.gear||[]){if(row===active||!gearIsEquipped(row))continue;const stats=row.armour_instance?.stats||catalogItemStats(row);if(stats?.type==='armour'&&stats.category!=='primary')out.push({row,stats,state:row.armour_instance?.state||{}});}
+ return out;
+}
+function bookStealthAp(entry,d){
+ const {stats,state}=entry,ap=stats.ap||{};let values=[];
+ for(const [zone,key]of ARMOUR_ZONE_ROW.map(z=>[z,ARMOUR_AP_KEY[z]])){
+  if(zone==='head'&&(state.head_worn===false||d.armour?.head_worn===false))continue;
+  const v=state.zones?.[zone]??ap[key];if(v!==''&&v!=null&&Number.isFinite(Number(v)))values.push(Number(v));
+ }return values.length?Math.max(...values):0;
+}
+function bookStealthModifiers(d,skill){
+ const rows=[],add=(key,label,value,scope)=>{if(value)rows.push({label,value,locked:true,on:true,source:'book-stealth:'+key,scope});};
+ const size=bookStealthSize(d);if(skill==='concealment'&&size)add('size','Размер: '+size.name,size.value,'ОКП, таблица размера. Только Скрытность.');
+ const entries=bookStealthArmours(d),scouts=new Set([1,10,227]);
+ const isScout=e=>scouts.has(Number(e.row.item_id))||/scout|разведчик/.test(bookStealthName(e.row.name));
+ const guerilla=[...(d.talents||[]),...(d.features||[])].some(r=>['партизанская подготовка','guerilla training'].includes(bookStealthName(r.name)));
+ const isPower=e=>e.stats.silhouette==='terminator'||e.stats.silhouette==='craft'||/^Броня МК\.|силов|терминатор|ремесленн/i.test(e.row.name||'')||[171,173,175,176,177,178,179,180,181,183,219,220,221].includes(Number(e.row.item_id));
+ const burdens=entries.filter(e=>!isScout(e)&&bookStealthAp(e,d)>=7&&!(guerilla&&isPower(e)));
+ if(burdens.length)add('armour','Бронированность',-30,'ОКП: броня с базовыми ОБ 7+. Скрытность и Бесшумный шаг; качество не меняет штраф.');
+ const main=entries[0];
+ if(main){const id=Number(main.row.item_id);if(!guerilla&&[175,176,177].includes(id))add('pattern','Особенность доспеха: '+main.row.name,id===177?-20:-10,'Дополнительный штраф модели по «Обрядам битвы».');
+  if(skill==='concealment'&&[10,227].includes(id))add('scout','Броня разведчика Астартес',10,'ОКП: бонус только к Скрытности.');
+ }
+ return rows;
+}
+const BOOK_STEALTH_ROLL_ROWS=rollModRows;
+rollModRows=function(){const rows=BOOK_STEALTH_ROLL_ROWS(),d=S.character?.character_data,skill=bookStealthSkill();if(!d||!skill)return rows;return rows.concat(bookStealthModifiers(d,skill));};
+
+// Description editing is restricted to personal records in the current edit draft.
+function personalDescriptionRow(row){return !!row&&typeof row==='object'&&(row.source==='custom'||(!row.source&&row.id==null&&row.catalog_id==null&&!row.catalog_key&&!row.history_catalog_key));}
+function personalDescriptionEditor(row,key,host,refresh,descriptionHost){
+ if(!editMode||!personalDescriptionRow(row)||!host)return;
+ const owner=S.character,data=owner?.character_data;if(!data?.[key]?.includes(row))return;
+ const box=document.createElement('div');box.className='personal-description-editor';
+ box.innerHTML='<label>Описание<textarea rows="6" data-personal-description></textarea></label><button type="button" class="modal-confirm">Применить к черновику</button>';
+ const field=box.querySelector('textarea');field.value=row.desc??row.description??'';
+ box.querySelector('button').onclick=()=>{
+  if(!editMode||S.character!==owner||owner.character_data!==data||!data[key]?.includes(row)||!box.isConnected)return;
+  row.desc=field.value;if(descriptionHost)descriptionHost.innerHTML=descHtml(row.desc||'Описание отсутствует.');
+  debouncedSave();refresh();toast('Описание применено к черновику. Сохраните лист.');
+ };host.append(box);
+}
+const PERSONAL_ROW_INFO=showRowInfo;
+showRowInfo=function(row,key){const result=PERSONAL_ROW_INFO(row,key);if(key!=='deeds'){if(personalDescriptionRow(row))$('info-desc').innerHTML=descHtml(row.desc??row.description??'Описание отсутствует.');personalDescriptionEditor(row,key,$('info-edit'),()=>renderList(key),$('info-desc'));}return result;};
+const PERSONAL_SOLO_INFO=showSoloInfo;
+showSoloInfo=function(row,table){const result=PERSONAL_SOLO_INFO(row,table),d=S.character?.character_data,key=['solo_chapter','solo_codex','squad_chapter','squad_codex'].find(k=>d?.[k]?.includes(row));if(key&&personalDescriptionRow(row)){ $('info-desc').innerHTML=descHtml(row.desc||'Описание отсутствует.');personalDescriptionEditor(row,key,$('info-edit'),()=>renderList(key),$('info-desc'));}return result;};
+const PERSONAL_SKILL_DETAIL=openSkillDetail;
+openSkillDetail=function(key,index){const result=PERSONAL_SKILL_DETAIL(key,index);document.querySelector('#personal-skill-description')?.remove();const row=S.character?.character_data?.[key]?.[index];if(editMode&&personalDescriptionRow(row)){const host=document.createElement('div');host.id='personal-skill-description';$('sd-desc').after(host);personalDescriptionEditor(row,key,host,renderSkills,$('sd-desc'));}return result;};
+const PERSONAL_AMMO_NORMALIZE=normalizeAmmoArray;
+normalizeAmmoArray=function(rows){const out=PERSONAL_AMMO_NORMALIZE(rows);out.forEach((row,i)=>{if(rows[i]?.desc!=null||rows[i]?.description!=null)row.desc=String(rows[i].desc??rows[i].description??'');});return out;};
+</script>
+<style>
+.personal-description-editor{margin-top:14px;padding-top:12px;border-top:1px solid var(--border-dark);display:grid;gap:10px}
+.personal-description-editor label{display:grid;gap:6px}
+.personal-description-editor textarea{width:100%;max-width:100%;box-sizing:border-box;min-height:120px;resize:vertical;font:inherit;color:var(--text-main);background:#151518;border:1px solid var(--border-dark);padding:9px}
+.personal-description-editor button{max-width:100%;white-space:normal}
+</style>
+<script>
+
+</script>
 </body>
 </html>
 
