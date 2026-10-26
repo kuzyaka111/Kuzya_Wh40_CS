@@ -14272,10 +14272,17 @@ sbParametersHtml=function(d){
  const normal=sbOriginalRuntime.sbParametersHtml(d),end=normal.indexOf(sbArmourExtrasHtml(d));
  return `<div class="sb-param-row"><div class="sb-armour-heading"><h3>Броня орды</h3>${sbArmourChoiceHtml(d)}</div><div class="sb-param-chips">${sbChip('horde.armour','Единая броня',d.horde.armour)}${sbChip('bonuses.wyn','Мод. ВЫН',d.bonuses.wyn,sbBonus(d,'wyn'),'sb-toughness')}</div></div>`+normal.slice(end);
 };
+function sbWeaponDamageType(row){
+ const types={Р:'Резаный',R:'Резаный',У:'Ударный',I:'Ударный',Э:'Энергетический',E:'Энергетический',В:'Взрывной',X:'Взрывной'};
+ const known=value=>{const s=String(value??'').trim();return types[s.toUpperCase()]||Object.values(types).find(t=>t.toLowerCase()===s.toLowerCase())||(/^режущий$/i.test(s)?'Резаный':'');};
+ const suffix=String(row.damage??'').split('·');
+ return (suffix.length===2?known(suffix[1]):'')||known(row.catalog_stats?.dmg_type)||'';
+}
 actionWeapons=function(d){
  if(!d?._statblock)return sbOriginalRuntime.actionWeapons(d);
  return (sbData().weapons||[]).map((r,i)=>{
   const type=sbGearType(r),profile={...(r.catalog_stats||{}),type,class:r.weapon_type||r.catalog_stats?.class,dmg:r.damage||r.catalog_stats?.dmg,pen:r.pen??r.catalog_stats?.pen,range:r.range??r.catalog_stats?.range};
+  profile.dmg_type=sbWeaponDamageType(r);
   const rof=String(r.rof||'').split(/[\/／]/);if(rof.length===3){profile.rof_short=Number(rof[1])||0;profile.rof_long=Number(rof[2])||0;}
   return {id:'npc:'+i,name:r.name,label:r.name,type,profile};
  }).filter(w=>['weapon_ranged','weapon_melee','shield','grenades'].includes(w.type));
